@@ -22,7 +22,7 @@ class Sample(object):
         return bar + 10
 
 
-with Sample() as sample:  # instance Sample and begin with enter method, end with exit method
+with Sample() as sample:  # instance Sample and begin with enter method, end with exit method, like test startup and teardown
     print(sample.do_something())
 
 '''
