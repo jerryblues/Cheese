@@ -18,7 +18,16 @@ alist = foo()
 aTuple = bar()
 x, y, z = bar()
 (a, b, c) = bar()
-print (alist)
-print (aTuple)
-print (x, y, z)
-print (a, b, c)
+print alist
+print aTuple
+print x, y, z
+print a, b, c
+
+
+'''
+===result===
+['xyx', 1000, -92]
+('abc', [12, 'python'], 'guide')
+abc [12, 'python'] guide
+abc [12, 'python'] guide
+'''
