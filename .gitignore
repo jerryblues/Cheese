@@ -14,3 +14,8 @@ build
 # My configurations:
 db.ini
 deploy_key_rsa
+
+#Pytest
+*.html
+.cache
+assets

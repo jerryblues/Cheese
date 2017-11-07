@@ -29,12 +29,12 @@ with Sample() as sample:  # instance Sample and begin with enter method, end wit
 this is enter
 Traceback (most recent call last):
 this is exit
-  File "D:/code/Cheese/Examples/Class_WithAs.py", line 26, in <module>
+  File "D:/code/Cheese/Python_Examples/Class_WithAs.py", line 26, in <module>
 type: <type 'exceptions.ZeroDivisionError'>
     print(sample.do_something())
 value: integer division or modulo by zero
 trace: <traceback object at 0x02793C88>
-  File "D:/code/Cheese/Examples/Class_WithAs.py", line 21, in do_something
+  File "D:/code/Cheese/Python_Examples/Class_WithAs.py", line 21, in do_something
     bar = 5 / 0
 ZeroDivisionError: integer division or modulo by zero
 '''
