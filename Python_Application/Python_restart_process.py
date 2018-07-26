@@ -9,9 +9,9 @@ import os
 import time
 
 command_stop = 'taskkill /f /im CiscoJabber.exe'
-time.sleep(1)
 command_start = 'start C:\Progra~2\CiscoS~1\CiscoJ~1\CiscoJabber.exe'
 # 采用8个字符缩写，即头6个字母（略去空格），另加波浪号和数字，首字母不足6个字母，用第二个词的字母，凑成6个
 
 os.system(command_stop)
+time.sleep(1)
 os.system(command_start)
