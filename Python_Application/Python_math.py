@@ -19,3 +19,26 @@ while True:
     if goon != '1':
         break
 print 'exit'
+
+
+# ori_amount = 10000
+# ori_rate = 0.0001
+# all_rating = 0
+#
+# for i in range(101):
+#     left_amount = ori_amount - 100 * i
+#     print 'left_amount: %.2f' % left_amount
+#
+#     rating = left_amount * ori_rate
+#     print 'rating: %.2f' % rating
+#
+#     all_rating = all_rating + rating
+#     print 'all_rating: %.2f' % all_rating
+#
+#     new_amount = left_amount + all_rating
+#     print 'new_amount: %.2f' % new_amount
+#     print '==='
+#
+# new_rate = all_rating / ori_amount / i
+# print 'for %s days' % i
+# print 'new_rate: %f' % new_rate
