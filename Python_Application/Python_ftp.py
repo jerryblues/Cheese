@@ -5,7 +5,7 @@ from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
 import socket
 
-# guide
+# guide:
 # https://my.oschina.net/kangvcar/blog/1599867
 
 port = 2121
