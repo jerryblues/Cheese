@@ -5,8 +5,7 @@ from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
 import socket
 
-# guide:
-# https://my.oschina.net/kangvcar/blog/1599867
+# guide: https://my.oschina.net/kangvcar/blog/1599867
 
 port = 2121
 localip = socket.gethostbyname(socket.gethostname())
