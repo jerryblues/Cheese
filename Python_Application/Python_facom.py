@@ -55,8 +55,10 @@ def facom_api_power_reset(ip, port, port_num):
 # TL1009-PB:10.57.247.203 port 2/3, AP IP:10.57.146.136 port 2, DU IP:10.57.146.137 port 3
 # TL265 -PB:10.57.242.41  port 2  , DU IP:10.57.233.131
 if __name__ == "__main__":
-    facom_api_power_reset("10.57.247.203", 4001, 3)
-    facom_api_power_reset("10.57.247.203", 4001, 2)
+    # facom_api_power_reset("10.57.247.204", 4001, 3)
+    # facom_api_power_reset("10.57.247.204", 4001, 2)
     # facom_api_power_on_off("10.57.247.203", 4001, 3, 'power_off')
     # facom_api_power_on_off("10.57.247.203", 4001, 2, 'power_off')
     # facom_api_power_reset("10.57.242.41", 4001, 2)
+    facom_api_power_on_off("10.57.247.219", 4001, 1, 'power_on')
+    facom_api_power_on_off("10.57.247.218", 4001, 5, 'power_on')

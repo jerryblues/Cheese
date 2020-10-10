@@ -26,4 +26,4 @@ for i in range(3):
     member5 = random.choice(guard)
     guard.remove(member5)
     j += 1
-    print 'team%s: %s,%s,%s,%s,%s' % (j, member1, member2, member3, member4, member5)
+    print('team%s: %s,%s,%s,%s,%s' % (j, member1, member2, member3, member4, member5))

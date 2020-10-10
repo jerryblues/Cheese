@@ -11,7 +11,7 @@ import time
 drive = webdriver.Chrome()
 # drive = webdriver.Firefox()
 
-drive.get("https://10.68.148.38/dana-na/auth/url_default/welcome.cgi")
+drive.get("http://authresponse.srnhz.nsn-rdnet.net/")
 # aa = drive.get_cookies()
 # print('aa=', aa)
 
@@ -21,7 +21,7 @@ drive.switch_to.window(url)
 drive.find_element_by_name("username").clear()
 drive.find_element_by_name("username").send_keys("h4zhang@nsn-intra")
 drive.find_element_by_name("password").clear()
-drive.find_element_by_name("password").send_keys("12w12w--")
+drive.find_element_by_name("password").send_keys("Holmes-0")
 
 time.sleep(0.5)
 drive.find_element_by_id("btnSubmit_6").click()
