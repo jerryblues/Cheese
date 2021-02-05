@@ -21,6 +21,6 @@ while i <= a - 1:
 print('\n')
 
 if len(r):
-    print r
+    print(r)
 else:
-    print 'no result'
+    print('no result')

@@ -24,6 +24,6 @@ chromePath = r'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe'
 webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chromePath))
 webbrowser.get('chrome').open(path, new=2, autoraise=True)
 
-print "starting HTTP server on: %s" % path
+print("starting HTTP server on: %s" % path)
 
 httpd.serve_forever()

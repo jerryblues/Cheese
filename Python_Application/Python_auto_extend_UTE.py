@@ -3,8 +3,11 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import time
 
-account = "h4zhang"
-password = "Holmes--0"
+account = input('>>>>>:').strip()    # 本地调试时注释掉
+password = input('>>>>>:').strip()   # 本地调试时注释掉
+
+# account = "h4zhang"
+# password = "xxxxxx"
 
 my_reservations = ['https://cloud.ute.nsn-rdnet.net/user/reservations?status=1',
                    'https://cloud.ute.nsn-rdnet.net/user/reservations?status=2',

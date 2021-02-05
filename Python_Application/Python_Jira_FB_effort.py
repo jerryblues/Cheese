@@ -3,15 +3,14 @@ from jira import JIRA
 
 # pip3 install jira
 
+account = input('>>>>>:').strip()    # 本地调试时注释掉
+password = input('>>>>>:').strip()   # 本地调试时注释掉
+
 jira_server = 'https://jiradc.ext.net.nokia.com'  # jira地址
-jira_username = 'h4zhang'  # 用户名
-jira_password = 'Holmes--0'  # 密码
+jira_username = account   # 用户名，本地调试时，可用明文代替
+jira_password = password  # 密码，本地调试时，可用明文代替
 
 jira = JIRA(basic_auth=(jira_username, jira_password), options={'server': jira_server})
-
-
-# print(jira.user(jira.current_user()))  # 当前用户
-
 
 def searchIssues(jql, max_results=1000):
     ''' Search issues
