@@ -1,3 +1,2 @@
 # cheese
-learn python and pytest, 
-hotpot + git bash to push and pull
+learn python and pytest
