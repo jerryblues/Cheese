@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FB Effort</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<h1>FB Effort</h1>
+
+<h2>FB Effort Per Team</h2>
+{{ total|safe }}
+
+<h2>FB Effort Per Team Percentage</h2>
+{{ percentage|safe }}
+
+</body>
+</html>

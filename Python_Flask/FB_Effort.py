@@ -1,5 +1,6 @@
 # coding=utf-8
 from jira import JIRA
+from flask import Flask, render_template
 import pandas as pd
 
 '''
@@ -82,7 +83,6 @@ for issue in issues:
         time_remaining_percentage.append(int(''.join(
             list(filter(str.isdigit, issue.fields.customfield_39192)))) / Squad_Shield_Cap)
 
-
 '''
 # change string to number then append to new list:
 new_time_remaining = []
@@ -117,89 +117,29 @@ pivoted_df = pd.pivot_table(df[['Team',
                             columns=['FB'],
                             aggfunc='sum',
                             fill_value=0)
-print(pivoted_df, '\n')
+# print(pivoted_df, '\n')
 
 data1 = (list(zip(team, end_FB, time_remaining_percentage)))
 df1 = pd.DataFrame(data1)
 df1.columns = ['Team', 'FB', 'Percentage']
 # print(df1)
 pivoted_df1 = pd.pivot_table(df1[['Team', 'FB', 'Percentage']], values='Percentage', index=[
-                             'Team'], columns=['FB'], aggfunc='sum', fill_value=0)
-print(pivoted_df1, '\n')
+    'Team'], columns=['FB'], aggfunc='sum', fill_value=0)
+# print(pivoted_df1, '\n')
+
 
 # 4.美化数据
+app = Flask(__name__)
 
 
-'''
-1.抓取数据
-2.处理数据
-3.展示数据
-4.美化数据
-'''
-
-'''
-# 方案三
-def team_effort_per_fb(team_name):
-    new_list1 = []
-    new_list2 = []
-    data = ()
-    for j in range(0, len(team)):
-        if team[j] == team_name:
-            new_list1.append(end_FB[j])
-            new_list2.append(new_time_remaining[j])
-            data = (list(zip(new_list1, new_list2)))
-    df = pd.DataFrame(data).groupby([0]).aggregate(sum)
-    df.columns = ['Remaining EE']
-    # df.index = [team_name]
-    return df
+@app.route('/')
+def show_in_web():
+    return render_template(
+        "template.html",
+        total=pivoted_df.to_html(classes="total", header="true", table_id="table"),
+        percentage=pivoted_df1.to_html(classes="percentage", header="true", table_id="table")
+    )
 
 
-print('5G_SW_HZH_Squad A effort per FB:\n', team_effort_per_fb('5G_SW_HZH_Squad A'), '\n================\n')
-print('5G_SW_HZH_Squad B effort per FB:\n', team_effort_per_fb('5G_SW_HZH_Squad B'), '\n================\n')
-print('5G_SW_HZH_Rock effort per FB:\n', team_effort_per_fb('5G_SW_HZH_Rock'), '\n================\n')
-'''
-
-'''
-# 方案二
-df = pd.DataFrame([
-    ['2016-10-20 00:00:00', 6, 17],
-    ['2016-10-20 00:00:00', 0, 21],
-    ['2017-09-11 00:00:00', 7, 22],
-    ['2017-09-11 00:00:00', 5, 30],
-    ['2017-09-11 00:00:00', 2, 40]
-])
-
-print(df.groupby([0]).aggregate(sum))
-'''
-
-'''
-# 方案一
-Squad_A_FB = []
-Squad_A_effort = []
-Squad_A_FB_new = []
-Squad_A_effort_new = []
-
-for i in range(0, len(team)):
-    if team[i] == '5G_SW_HZH_Squad A':
-        # print('5G_SW_HZH_Squad A,', end_FB[i], new_time_remaining[i])
-        Squad_A_FB.append(end_FB[i])
-        Squad_A_effort.append(new_time_remaining[i])
-# print(Squad_A_FB, Squad_A_effort)
-
-Squad_A_FB_new.append(Squad_A_FB[0])
-Squad_A_effort_new.append(Squad_A_effort[0])
-
-
-for j in range(1, len(Squad_A_FB)):
-    if Squad_A_FB[j] != Squad_A_FB[j-1]:
-        Squad_A_FB_new.append(Squad_A_FB[j])
-        Squad_A_effort_new.append(Squad_A_effort[j])
-    elif Squad_A_FB[j] == Squad_A_FB[j-1]:
-        Squad_A_effort_new[j] = Squad_A_effort_new[j] + Squad_A_effort[j-1]
-print(Squad_A_FB_new, Squad_A_effort_new)
-
-    elif team[i] == '5G_SW_HZH_Squad B':
-        print('5G_SW_HZH_Squad B,', end_FB[i], new_time_remaining[i])
-    elif team[i] == '5G_SW_HZH_Rock':
-        print('5G_SW_HZH_Rock,', end_FB[i], new_time_remaining[i])
-'''
+if __name__ == '__main__':
+    app.run()

@@ -1,0 +1,49 @@
+body {
+    padding: 20px;
+}
+
+a, h1, h2 {
+    color: #4472c4;
+}
+
+h1 {
+    border-bottom: 2px solid #a5d3ee;
+}
+
+h2 {
+    font-size: 1.2em;
+}
+
+table.dataframe,  .dataframe th,  .dataframe td {
+    border-bottom: 1px solid #C8C8C8;
+    border-right: 1px solid #C8C8C8;
+    border-left: 1px solid #C8C8C8;
+    border-top: 1px solid #C8C8C8;
+    border-collapse: collapse;
+    text-align: left;
+    padding: 9px;
+    margin-bottom: 40px;
+    font-size: 0.9em;
+}
+
+.total th{
+    background-color: #4472c4;
+    color: white;
+}
+
+.percentage th {
+    background-color: #4472c4;
+    color: white;
+}
+
+tr:nth-child(odd){
+    background-color: #bdd7ee;
+}
+
+tr:nth-child(even){
+    background-color: #ffffff;
+}
+
+tr:hover {
+    background-color: #fff2cc;
+}
