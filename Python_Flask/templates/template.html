@@ -6,6 +6,9 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+<style>
+body{ font-family: "微软雅黑"}
+</style>
 
 <h1>FB Effort</h1>
 
@@ -14,6 +17,11 @@
 
 <h2>FB Effort Per Team Percentage</h2>
 {{ percentage|safe }}
+
+<h3><a href="https://jiradc.ext.net.nokia.com/issues/?filter=332653" target="_blank">Jira filter link</a>
+<br>Team A HC=8, Team B HC=8, Team C HC=8, Team Rock HC=7, Team Shield HC=7
+<br>FB=End FB, Effort=Remaining Effort(h), Team Capacity=Headcount * 120h
+</h3>
 
 </body>
 </html>

@@ -5,6 +5,7 @@ import pandas as pd
 from apscheduler.schedulers.blocking import BlockingScheduler
 from datetime import datetime
 import logging
+import pytz
 
 
 '''
@@ -51,7 +52,7 @@ jira_filter = '''
 
 
 def job():
-    print("====== current time:", datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "======")
+    print("=== current time:", datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S"), "===")
     issues = searchIssues(jira_filter)
     # print(issues)
 
@@ -61,12 +62,17 @@ def job():
     # original_estimate = []
     time_remaining = []
     time_remaining_percentage = []
-    squad_a_cap = 9.6
-    squad_b_cap = 9.6
-    squad_rock_cap = 9.6
-    squad_shield_cap = 8.4
-    squad_c_cap = 9.6
-    # Cap means Capacity percentage constant = headcount * 120 / 100
+    a_hc = 8 - 0.75
+    b_hc = 8 - 0.75
+    rock_hc = 7 - 0.75
+    shield_hc = 7 - 0.75
+    c_hc = 8 - 0.75
+    squad_a_cap = (a_hc * 120)/100
+    squad_b_cap = (b_hc * 120)/100
+    squad_rock_cap = (rock_hc * 120)/100
+    squad_shield_cap = (shield_hc * 120)/100
+    squad_c_cap = (c_hc * 120)/100
+    # reserved_effort_for_sm_and_tl = 90h =0.75hc
 
     for issue in issues:
         end_fb.append(issue.fields.customfield_38693)
@@ -144,7 +150,7 @@ def job():
     logging.basicConfig(level=logging.DEBUG,
                         filename='FB_effort.log',
                         filemode='a',
-                        format='%(asctime)s - %(pathname)s[line:%(lineno)d] - %(levelname)s: %(message)s'
+                        format='%(asctime)s - %(levelname)s: %(message)s'
                         )
 
     @app.route('/')
@@ -162,5 +168,6 @@ def job():
 
 # 定时任务：每周一到周五 每天8点到20点 每整点0分 运行一次
 scheduler = BlockingScheduler()
-scheduler.add_job(job, 'cron', max_instances=65535, day_of_week='1-5', hour='8-20', minute='0')
+scheduler.add_job(job, 'cron', max_instances=65535, day_of_week='mon,tue,wed,thu,fri', hour='8-20', minute='0', timezone="Asia/Shanghai",
+                  next_run_time=datetime.now())
 scheduler.start()
