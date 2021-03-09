@@ -1,12 +1,11 @@
 # coding=utf-8
 from jira import JIRA
-from flask import Flask, render_template
 import pandas as pd
+from flask import Flask, render_template
 from apscheduler.schedulers.blocking import BlockingScheduler
 from datetime import datetime
-import logging
 import pytz
-
+import logging
 
 '''
 # lib to install
@@ -15,7 +14,6 @@ pip3 install pandas
 pip3 install flask
 pip3 install apscheduler
 '''
-# 1.抓取数据
 # account = input('>>>>>:').strip()    # 本地调试时注释掉
 # password = input('>>>>>:').strip()   # 本地调试时注释掉
 
@@ -23,15 +21,13 @@ jira_server = 'https://jiradc.ext.net.nokia.com'  # jira地址
 jira_username = 'h4zhang'  # 用户名，本地调试时，可用明文代替
 jira_password = 'Holmes0-0'  # 密码，本地调试时，可用明文代替
 
-jira = JIRA(
-    basic_auth=(
-        jira_username,
-        jira_password),
-    options={
-        'server': jira_server})
+jira = JIRA(basic_auth=(jira_username, jira_password), options={'server': jira_server})
+jira_filter = '''
+    project = FCA_5G_L2L3 AND issuetype in (epic) AND resolution = Unresolved AND status not in (Done, obsolete) AND cf[29790] in (5253, 5254, 5255, 5351, 6261) ORDER BY cf[38693] ASC, key ASC
+'''
 
 
-def searchIssues(jql, max_results=1000):
+def search_data(jql, max_results=1000):  # 抓取数据
     """
     Search issues
     @param jql: JQL, str
@@ -45,120 +41,76 @@ def searchIssues(jql, max_results=1000):
         print(e)
 
 
-jira_filter = '''
-    project = FCA_5G_L2L3 AND issuetype in (epic) AND resolution = Unresolved AND status not in (Done, obsolete) AND cf[29790] in (5253, 5254, 5255, 5351, 6261) ORDER BY cf[38693] ASC, key ASC
-'''
-# issues = searchIssues(jira_filter)
+def convert_data(string):  # 转换格式
+    return float(string.replace(',', '').replace('h', ''))
 
 
-def job():
-    print("=== current time:", datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S"), "===")
-    issues = searchIssues(jira_filter)
-    # print(issues)
-
-    # 2.处理数据
-    team = []
-    end_fb = []
-    # original_estimate = []
-    time_remaining = []
-    time_remaining_percentage = []
-    a_hc = 8 - 0.75
-    b_hc = 8 - 0.75
-    rock_hc = 7 - 0.75
-    shield_hc = 7 - 0.75
-    c_hc = 8 - 0.75
-    squad_a_cap = (a_hc * 120)/100
-    squad_b_cap = (b_hc * 120)/100
-    squad_rock_cap = (rock_hc * 120)/100
-    squad_shield_cap = (shield_hc * 120)/100
-    squad_c_cap = (c_hc * 120)/100
-    # reserved_effort_for_sm_and_tl = 90h =0.75hc
+def get_data(issues):  # 处理数据
+    team, end_fb, time_remaining, time_remaining_percentage = [], [], [], []
+    squad_a_hc = 8
+    squad_b_hc = 8
+    squad_rock_hc = 7
+    squad_shield_hc = 7
+    squad_c_hc = 8
+    squad_a_cap = (squad_a_hc * 120) / 100
+    squad_b_cap = (squad_b_hc * 120) / 100
+    squad_rock_cap = (squad_rock_hc * 120) / 100
+    squad_shield_cap = (squad_shield_hc * 120) / 100
+    squad_c_cap = (squad_c_hc * 120) / 100
 
     for issue in issues:
         end_fb.append(issue.fields.customfield_38693)
-        # original_estimate.append(issue.fields.customfield_39191)
-        time_remaining.append(
-            int(''.join(list(filter(str.isdigit, issue.fields.customfield_39192)))))
+        time_remaining.append(convert_data(issue.fields.customfield_39192))
         if issue.fields.customfield_29790 == '5253':
             team.append('5G_SW_HZH_Squad A')
-            time_remaining_percentage.append(int(''.join(
-                list(filter(str.isdigit, issue.fields.customfield_39192)))) / squad_a_cap)
+            time_remaining_percentage.append(convert_data(issue.fields.customfield_39192) / squad_a_cap)
         elif issue.fields.customfield_29790 == '5254':
             team.append('5G_SW_HZH_Squad B')
-            time_remaining_percentage.append(int(''.join(
-                list(filter(str.isdigit, issue.fields.customfield_39192)))) / squad_b_cap)
+            time_remaining_percentage.append(convert_data(issue.fields.customfield_39192) / squad_b_cap)
         elif issue.fields.customfield_29790 == '5351':
             team.append('5G_SW_HZH_Rock')
-            time_remaining_percentage.append(int(''.join(
-                list(filter(str.isdigit, issue.fields.customfield_39192)))) / squad_rock_cap)
-        elif issue.fields.customfield_29790 == '5255':
-            team.append('5G_SW_HZH_Squad C')
-            time_remaining_percentage.append(int(''.join(
-                list(filter(str.isdigit, issue.fields.customfield_39192)))) / squad_c_cap)
+            time_remaining_percentage.append(convert_data(issue.fields.customfield_39192) / squad_rock_cap)
         elif issue.fields.customfield_29790 == '6261':
             team.append('5G_SW_HZH_Shield')
-            time_remaining_percentage.append(int(''.join(
-                list(filter(str.isdigit, issue.fields.customfield_39192)))) / squad_shield_cap)
+            time_remaining_percentage.append(convert_data(issue.fields.customfield_39192) / squad_shield_cap)
+        elif issue.fields.customfield_29790 == '5255':
+            team.append('5G_SW_HZH_Squad C')
+            time_remaining_percentage.append(convert_data(issue.fields.customfield_39192) / squad_c_cap)
+    return team, end_fb, time_remaining, time_remaining_percentage
 
-    '''
-    # change string to number then append to new list:
-    new_time_remaining = []
-    for i in time_remaining:
-        new_time_remaining.append(int(''.join(list(filter(str.isdigit, i)))))
-    # print(new_time_remaining, type(new_time_remaining[1]))
-    # print(team, end_fb, new_time_remaining)
 
-    # change total effort to effort percentage
-    new_time_remaining_pec = []
-    for k in new_time_remaining:
-        new_time_remaining_pec.append(k / 9.6)
-    # print(new_time_remaining_pec)
-    '''
-
-    # 3.展示数据
-    pd.set_option(
+def pivot_data(team, end_fb, time_remaining, time_remaining_percentage):  # 汇总数据
+    pd.set_option(  # 设置参数：精度，最大行，最大列，最大显示宽度
         'precision', 1,
         'display.max_rows', 500,
         'display.max_columns', 500,
         'display.width', 1000)
-    # 设置参数：精度，最大行，最大列，最大显示宽度
-    data = (list(zip(team, end_fb, time_remaining)))
-    df = pd.DataFrame(data)
-    df.columns = ['Team', 'FB', 'Remaining EE']
-    # print(df)
-    pivoted_df = pd.pivot_table(df[['Team',
-                                    'FB',
-                                    'Remaining EE']],
-                                values='Remaining EE',
-                                index=['Team'],
-                                columns=['FB'],
-                                aggfunc='sum',
-                                fill_value=0)
+    df0 = pd.DataFrame((list(zip(team, end_fb, time_remaining))))
+    df0.columns = ['Team', 'FB', 'Remaining EE']
+    pivoted_fb_effort = pd.pivot_table(df0[['Team', 'FB', 'Remaining EE']], values='Remaining EE',
+                                       index=['Team'], columns=['FB'], aggfunc='sum', fill_value=0)
     # print(pivoted_df, '\n')
-
-    data1 = (list(zip(team, end_fb, time_remaining_percentage)))
-    df1 = pd.DataFrame(data1)
+    df1 = pd.DataFrame((list(zip(team, end_fb, time_remaining_percentage))))
     df1.columns = ['Team', 'FB', 'Percentage']
-    # print(df1)
-    pivoted_df1 = pd.pivot_table(df1[['Team', 'FB', 'Percentage']], values='Percentage', index=[
-        'Team'], columns=['FB'], aggfunc='sum', fill_value=0)
+    pivoted_fb_effort_percentage = pd.pivot_table(df1[['Team', 'FB', 'Percentage']], values='Percentage',
+                                                  index=['Team'], columns=['FB'], aggfunc='sum', fill_value=0)
     # print(pivoted_df1, '\n')
+    return pivoted_fb_effort, pivoted_fb_effort_percentage
 
-    # 4.美化数据
+
+def show_data():  # 展示数据
+    print("=== current time:", datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S"), "===")
+    data = get_data(search_data(jira_filter))
+    table = pivot_data(data[0], data[1], data[2], data[3])
+
     app = Flask(__name__)
-    # 打印log到文件
-    logging.basicConfig(level=logging.DEBUG,
-                        filename='FB_effort.log',
-                        filemode='a',
-                        format='%(asctime)s - %(levelname)s: %(message)s'
-                        )
 
     @app.route('/')
-    def show_in_web():
+    def web_server():
         return render_template(
             "template.html",
-            total=pivoted_df.to_html(classes="total", header="true", table_id="table"),
-            percentage=pivoted_df1.to_html(classes="percentage", header="true", table_id="table")
+            total=table[0].to_html(classes="total", header="true", table_id="table"),
+            percentage=table[1].to_html(classes="percentage", header="true", table_id="table")
         )
 
     if __name__ == '__main__':
@@ -166,8 +118,14 @@ def job():
         # app.run(host='10.57.209.188')
 
 
-# 定时任务：每周一到周五 每天8点到20点 每整点0分 运行一次
+logging.basicConfig(level=logging.DEBUG,
+                    filename='FB_effort.log',
+                    filemode='a',
+                    format='%(asctime)s - %(levelname)s: %(message)s'
+                    )
+
+# 定时任务 每周一到周五 每天8点到20点 每整点0分 运行一次
 scheduler = BlockingScheduler()
-scheduler.add_job(job, 'cron', max_instances=65535, day_of_week='mon,tue,wed,thu,fri', hour='8-20', minute='0', timezone="Asia/Shanghai",
+scheduler.add_job(show_data, 'cron', max_instances=65535, day_of_week='mon,tue,wed,thu,fri', hour='8-20', minute='0', timezone="Asia/Shanghai",
                   next_run_time=datetime.now())
 scheduler.start()
