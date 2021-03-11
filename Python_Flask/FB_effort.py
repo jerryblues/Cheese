@@ -2,7 +2,6 @@
 from jira import JIRA
 import pandas as pd
 from flask import Flask, render_template
-from apscheduler.schedulers.blocking import BlockingScheduler
 from datetime import datetime
 import pytz
 import logging
@@ -47,26 +46,26 @@ def convert_data(string):  # 转换格式
 
 def get_data(issues):  # 处理数据
     team, end_fb, time_remaining, time_remaining_percentage = [], [], [], []
-    squad_a_hc = 8
-    squad_b_hc = 8
+    squad_jazz_hc = 8
+    squad_blues_hc = 8
     squad_rock_hc = 7
     squad_shield_hc = 7
     squad_c_hc = 8
-    squad_a_cap = (squad_a_hc * 120) / 100
-    squad_b_cap = (squad_b_hc * 120) / 100
-    squad_rock_cap = (squad_rock_hc * 120) / 100
-    squad_shield_cap = (squad_shield_hc * 120) / 100
-    squad_c_cap = (squad_c_hc * 120) / 100
+    squad_jazz_cap = squad_jazz_hc * 120
+    squad_blues_cap = squad_blues_hc * 120
+    squad_rock_cap = squad_rock_hc * 120
+    squad_shield_cap = squad_shield_hc * 120
+    squad_c_cap = squad_c_hc * 120
 
     for issue in issues:
         end_fb.append(issue.fields.customfield_38693)
         time_remaining.append(convert_data(issue.fields.customfield_39192))
         if issue.fields.customfield_29790 == '5253':
-            team.append('5G_SW_HZH_Squad A')
-            time_remaining_percentage.append(convert_data(issue.fields.customfield_39192) / squad_a_cap)
+            team.append('5G_SW_HZH_Jazz')
+            time_remaining_percentage.append(convert_data(issue.fields.customfield_39192) / squad_jazz_cap)
         elif issue.fields.customfield_29790 == '5254':
-            team.append('5G_SW_HZH_Squad B')
-            time_remaining_percentage.append(convert_data(issue.fields.customfield_39192) / squad_b_cap)
+            team.append('5G_SW_HZH_Blues')
+            time_remaining_percentage.append(convert_data(issue.fields.customfield_39192) / squad_blues_cap)
         elif issue.fields.customfield_29790 == '5351':
             team.append('5G_SW_HZH_Rock')
             time_remaining_percentage.append(convert_data(issue.fields.customfield_39192) / squad_rock_cap)
@@ -89,33 +88,14 @@ def pivot_data(team, end_fb, time_remaining, time_remaining_percentage):  # 汇�
     df0.columns = ['Team', 'FB', 'Remaining EE']
     pivoted_fb_effort = pd.pivot_table(df0[['Team', 'FB', 'Remaining EE']], values='Remaining EE',
                                        index=['Team'], columns=['FB'], aggfunc='sum', fill_value=0)
-    # print(pivoted_df, '\n')
+    # print(pivoted_fb_effort, '\n')
     df1 = pd.DataFrame((list(zip(team, end_fb, time_remaining_percentage))))
     df1.columns = ['Team', 'FB', 'Percentage']
     pivoted_fb_effort_percentage = pd.pivot_table(df1[['Team', 'FB', 'Percentage']], values='Percentage',
-                                                  index=['Team'], columns=['FB'], aggfunc='sum', fill_value=0)
-    # print(pivoted_df1, '\n')
+                                                  index=['Team'], columns=['FB'], aggfunc='sum', fill_value=0)\
+        .applymap(lambda x: "{0:.1f}%".format(100*x))    # show as percentage
+    # print(pivoted_fb_effort_percentage, '\n')
     return pivoted_fb_effort, pivoted_fb_effort_percentage
-
-
-def show_data():  # 展示数据
-    print("=== current time:", datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S"), "===")
-    data = get_data(search_data(jira_filter))
-    table = pivot_data(data[0], data[1], data[2], data[3])
-
-    app = Flask(__name__)
-
-    @app.route('/')
-    def web_server():
-        return render_template(
-            "template.html",
-            total=table[0].to_html(classes="total", header="true", table_id="table"),
-            percentage=table[1].to_html(classes="percentage", header="true", table_id="table")
-        )
-
-    if __name__ == '__main__':
-        app.run()
-        # app.run(host='10.57.209.188')
 
 
 logging.basicConfig(level=logging.DEBUG,
@@ -124,8 +104,21 @@ logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(levelname)s: %(message)s'
                     )
 
-# 定时任务 每周一到周五 每天8点到20点 每整点0分 运行一次
-scheduler = BlockingScheduler()
-scheduler.add_job(show_data, 'cron', max_instances=65535, day_of_week='mon,tue,wed,thu,fri', hour='8-20', minute='0', timezone="Asia/Shanghai",
-                  next_run_time=datetime.now())
-scheduler.start()
+app = Flask(__name__)
+
+
+@app.route('/', methods=['GET'])
+def web_server():
+    print("=== current time:", datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S"), "===")
+    data = get_data(search_data(jira_filter))
+    table = pivot_data(data[0], data[1], data[2], data[3])
+    return render_template(
+        "template.html",
+        total=table[0].to_html(classes="total", header="true", table_id="table"),
+        percentage=table[1].to_html(classes="percentage", header="true", table_id="table")
+    )
+
+
+if __name__ == '__main__':
+    app.run()
+    # app.run(host='10.57.209.188')

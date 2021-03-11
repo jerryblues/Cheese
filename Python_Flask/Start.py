@@ -11,6 +11,6 @@ def job():
 
 
 scheduler = BlockingScheduler()
-scheduler.add_job(job, 'cron', max_instances=65535, day_of_week='mon,tue,wed,thu,fri', hour='8-20', minute='0, 10, 20, 30, 40, 50',
+scheduler.add_job(job, 'cron', max_instances=65535, day_of_week='mon,tue,wed,thu,fri', hour='8-20', minute='0, 30',
                   timezone="Asia/Shanghai", next_run_time=datetime.now())
 scheduler.start()
