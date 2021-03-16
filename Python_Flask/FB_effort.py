@@ -20,7 +20,7 @@ jira_server = 'https://jiradc.ext.net.nokia.com'  # jira地址
 jira_username = 'h4zhang'  # 用户名，本地调试时，可用明文代替
 jira_password = 'Holmes0-0'  # 密码，本地调试时，可用明文代替
 
-jira = JIRA(basic_auth=(jira_username, jira_password), options={'server': jira_server})
+# jira = JIRA(basic_auth=(jira_username, jira_password), options={'server': jira_server})
 jira_filter = '''
     project = FCA_5G_L2L3 AND issuetype in (epic) AND resolution = Unresolved AND status not in (Done, obsolete) AND cf[29790] in (5253, 5254, 5255, 5351, 6261) ORDER BY cf[38693] ASC, key ASC
 '''
@@ -33,6 +33,7 @@ def search_data(jql, max_results=1000):  # 抓取数据
     @param max_results: max results, int, default 1000
     @return issues: result, list
     """
+    jira = JIRA(basic_auth=(jira_username, jira_password), options={'server': jira_server})
     try:
         issues = jira.search_issues(jql, maxResults=max_results)
         return issues
