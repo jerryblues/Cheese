@@ -87,7 +87,7 @@ def extend_ute(link):
                 print("*Testline is confirmed* ^-^")
                 driver.find_element_by_id("extend-button").click()
                 reservation_end = driver.find_element_by_xpath(
-                    '//*[@id="reservation_show_details"]/div[2]/table/tbody/tr[19]/td[2]').text
+                    '//*[@id="reservation_show_details"]/div[2]/table/tbody/tr[18]/td[2]').text
                 print("Current Reservation End Time:\n %s" % reservation_end)
             else:
                 print("Testline status not available")
@@ -101,7 +101,7 @@ if not link:
     print("*Testline has not been reserved*")
     exit(0)
 else:
-    while count < 72:
+    while count < 255:
         extend_ute(link)
         print("***Script Running for %s time***\n" % count)
         count = count + 1

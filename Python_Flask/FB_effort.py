@@ -21,7 +21,7 @@ jira_username = 'h4zhang'  # 用户名，本地调试时，可用明文代替
 jira_password = 'Holmes0-0'  # 密码，本地调试时，可用明文代替
 
 # jira = JIRA(basic_auth=(jira_username, jira_password), options={'server': jira_server})
-jira_filter = '''
+jira_filter_ET = '''
     project = FCA_5G_L2L3 AND issuetype in (epic) AND resolution = Unresolved AND status not in (Done, obsolete) AND cf[29790] in (5253, 5254, 5255, 5351, 6261) ORDER BY cf[38693] ASC, key ASC
 '''
 
@@ -42,13 +42,16 @@ def search_data(jql, max_results=1000):  # 抓取数据
 
 
 def convert_data(string):  # 转换格式
-    return float(string.replace(',', '').replace('h', ''))
+    if string is None:
+        return 0
+    else:
+        return float(string.replace(',', '').replace('h', ''))
 
 
 def get_data(issues):  # 处理数据
     team, end_fb, time_remaining, time_remaining_percentage = [], [], [], []
     squad_jazz_hc = 8
-    squad_blues_hc = 8
+    squad_blues_hc = 7
     squad_rock_hc = 7
     squad_shield_hc = 7
     squad_c_hc = 8
@@ -108,18 +111,18 @@ logging.basicConfig(level=logging.DEBUG,
 app = Flask(__name__)
 
 
-@app.route('/', methods=['GET'])
+@app.route('/ET', methods=['GET'])
 def web_server():
     print("=== current time:", datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S"), "===")
-    data = get_data(search_data(jira_filter))
+    data = get_data(search_data(jira_filter_ET))
     table = pivot_data(data[0], data[1], data[2], data[3])
     return render_template(
-        "template.html",
+        "ET_template.html",
         total=table[0].to_html(classes="total", header="true", table_id="table"),
         percentage=table[1].to_html(classes="percentage", header="true", table_id="table")
     )
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='127.0.0.1', port='80')
     # app.run(host='10.57.209.188')

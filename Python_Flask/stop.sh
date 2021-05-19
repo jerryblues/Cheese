@@ -1,1 +1,1 @@
-sudo kill -9 `ps -ef|grep python |grep -v grep|awk '{print$2}'`
+sudo kill -9 `ps -ef|grep FB_effort.py |grep -v grep|awk '{print$2}'`
