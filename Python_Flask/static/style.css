@@ -42,6 +42,16 @@ table.dataframe,  .dataframe th,  .dataframe td {
     color: white;
 }
 
+.star th {
+    background-color: #4472d7;
+    color: white;
+}
+
+.team th {
+    background-color: #4472d7;
+    color: white;
+}
+
 tr:nth-child(odd){
     background-color: #bdd7ee;
 }

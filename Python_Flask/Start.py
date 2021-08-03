@@ -6,8 +6,8 @@ import os
 
 def job():
     print("=== current time:", datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S"), "===")
-    os.system("sudo kill -9 `ps -ef|grep FB_effort.py |grep -v grep|awk '{print$2}'`")
-    os.system('python3 FB_effort.py')
+    os.system("sudo kill -9 `ps -ef|grep ET_statistics.py |grep -v grep|awk '{print$2}'`")
+    os.system('python3 ET_statistics.py')
 
 
 scheduler = BlockingScheduler()

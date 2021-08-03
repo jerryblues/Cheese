@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Issue Hunter</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<style>
+body{ font-family: "微软雅黑"}
+</style>
+
+<h1>Issue Hunter</h1>
+
+<h2>Issue Hunting Team [all]</h2>
+{{ total_all|safe }}
+
+<h2>Issue Hunting Team [this year]</h2>
+{{ total_year|safe }}
+
+<h2>Issue Hunting Star [this month]</h2>
+{{ star_month|safe }}
+
+<h2>Issue Hunting Star [this year]</h2>
+{{ star_year|safe }}
+
+<h3><a href="https://jiradc.ext.net.nokia.com/issues/?filter=351404" target="_blank">Jira Issue List [in this year]</a></h3>
+<h3><a href="https://jiradc.ext.net.nokia.com/issues/?filter=351416" target="_blank">Jira Issue List [in this month]</a></h3>
+
+</body>
+</html>
