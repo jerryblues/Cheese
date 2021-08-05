@@ -2,7 +2,7 @@ body {
     padding: 20px;
 }
 
-a, h1, h2, h3 {
+a, h1, h2{
     color: #4472c4;
 }
 
@@ -17,7 +17,8 @@ h2 {
 
 h3 {
     font-size: 0.9em;
-    font-weight:normal
+    font-weight:normal;
+    color: #a0a0a0;
 }
 
 table.dataframe,  .dataframe th,  .dataframe td {
@@ -28,7 +29,7 @@ table.dataframe,  .dataframe th,  .dataframe td {
     border-collapse: collapse;
     text-align: left;
     padding: 9px;
-    margin-bottom: 30px;
+    margin-bottom: 1px;
     font-size: 0.9em;
 }
 

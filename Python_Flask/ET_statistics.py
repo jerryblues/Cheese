@@ -27,7 +27,7 @@ jira_filter_ET = '''
 '''
 
 jira_filter_ET_Jazz = '''project = FCA_5G_L2L3 AND issuetype in (epic) AND resolution = Unresolved AND status not in (Done, obsolete) AND cf[29790] in (5253) ORDER BY cf[38693] ASC, key ASC'''
-jira_filter_ET_Blues ='''project = FCA_5G_L2L3 AND issuetype in (epic) AND resolution = Unresolved AND status not in (Done, obsolete) AND cf[29790] in (5254) ORDER BY cf[38693] ASC, key ASC'''
+jira_filter_ET_Blues = '''project = FCA_5G_L2L3 AND issuetype in (epic) AND resolution = Unresolved AND status not in (Done, obsolete) AND cf[29790] in (5254) ORDER BY cf[38693] ASC, key ASC'''
 jira_filter_ET_Rock = '''project = FCA_5G_L2L3 AND issuetype in (epic) AND resolution = Unresolved AND status not in (Done, obsolete) AND cf[29790] in (5351) ORDER BY cf[38693] ASC, key ASC'''
 jira_filter_ET_Shield = '''project = FCA_5G_L2L3 AND issuetype in (epic) AND resolution = Unresolved AND status not in (Done, obsolete) AND cf[29790] in (6261) ORDER BY cf[38693] ASC, key ASC'''
 
@@ -59,7 +59,10 @@ def convert_data(string):  # 转换格式
 
 
 def get_data(issues):  # 处理数据
-    team, end_fb, time_remaining, time_remaining_percentage, feature = [], [], [], [], []
+    team, end_fb, remaining_effort, remaining_effort_percentage, original_effort = [], [], [], [], []
+    feature_blues, feature_jazz, feature_rock, feature_shield = [], [], [], []
+    remaining_effort_blues, remaining_effort_jazz, remaining_effort_rock, remaining_effort_shield = [], [], [], []
+    end_fb_blues, end_fb_jazz, end_fb_rock, end_fb_shield = [], [], [], []
     squad_jazz_hc = 7
     squad_blues_hc = 7
     squad_rock_hc = 7
@@ -73,62 +76,91 @@ def get_data(issues):  # 处理数据
 
     for issue in issues:
         end_fb.append(issue.fields.customfield_38693)
-        feature.append(issue.fields.customfield_37381)
-        time_remaining.append(convert_data(issue.fields.customfield_39192))
+        converted_data_remain = convert_data(issue.fields.customfield_39192)
+        remaining_effort.append(converted_data_remain)
+        converted_data_origin = convert_data(issue.fields.customfield_39191)
+        original_effort.append(converted_data_origin)
         if issue.fields.customfield_29790 == '5253':
-            team.append('5G_SW_HZH_Jazz')
-            time_remaining_percentage.append(convert_data(issue.fields.customfield_39192) / squad_jazz_cap)
+            team.append('L3_5GL3ET_HZH_Jazz')
+            remaining_effort_percentage.append(converted_data_remain / squad_jazz_cap)
+            feature_jazz.append(issue.fields.customfield_37381)
+            remaining_effort_jazz.append(converted_data_remain)
+            end_fb_jazz.append(issue.fields.customfield_38693)
         elif issue.fields.customfield_29790 == '5254':
-            team.append('5G_SW_HZH_Blues')
-            time_remaining_percentage.append(convert_data(issue.fields.customfield_39192) / squad_blues_cap)
+            team.append('L3_5GL3ET_HZH_Blues')
+            remaining_effort_percentage.append(converted_data_remain / squad_blues_cap)
+            feature_blues.append(issue.fields.customfield_37381)
+            remaining_effort_blues.append(converted_data_remain)
+            end_fb_blues.append(issue.fields.customfield_38693)
         elif issue.fields.customfield_29790 == '5351':
-            team.append('5G_SW_HZH_Rock')
-            time_remaining_percentage.append(convert_data(issue.fields.customfield_39192) / squad_rock_cap)
+            team.append('L3_5GL3ET_HZH_Rock')
+            remaining_effort_percentage.append(converted_data_remain / squad_rock_cap)
+            feature_rock.append(issue.fields.customfield_37381)
+            remaining_effort_rock.append(converted_data_remain)
+            end_fb_rock.append(issue.fields.customfield_38693)
         elif issue.fields.customfield_29790 == '6261':
-            team.append('5G_SW_HZH_Shield')
-            time_remaining_percentage.append(convert_data(issue.fields.customfield_39192) / squad_shield_cap)
+            team.append('L3_5GL3ET_HZH_SHIELD')
+            remaining_effort_percentage.append(converted_data_remain / squad_shield_cap)
+            feature_shield.append(issue.fields.customfield_37381)
+            remaining_effort_shield.append(converted_data_remain)
+            end_fb_shield.append(issue.fields.customfield_38693)
         elif issue.fields.customfield_29790 == '5255':
-            team.append('5G_SW_HZH_Squad C')
-            time_remaining_percentage.append(convert_data(issue.fields.customfield_39192) / squad_c_cap)
-    return team, end_fb, time_remaining, time_remaining_percentage, feature
+            team.append('L3_5GL3ET_HZH_Squad C')
+            remaining_effort_percentage.append(converted_data_remain / squad_c_cap)
+    return team, end_fb, remaining_effort, remaining_effort_percentage, original_effort, \
+           feature_blues, feature_jazz, feature_rock, feature_shield, \
+           remaining_effort_blues, remaining_effort_jazz, remaining_effort_rock, remaining_effort_shield, \
+           end_fb_blues, end_fb_jazz, end_fb_rock, end_fb_shield
 
 
-def pivot_data(team, end_fb, time_remaining, time_remaining_percentage):  # 汇总数据
+def pivot_data_sum(team, end_fb, remaining_effort):  # 汇总数据
     pd.set_option(  # 设置参数：精度，最大行，最大列，最大显示宽度
         'precision', 1,
         'display.max_rows', 500,
         'display.max_columns', 500,
         'display.width', 1000)
-    df0 = pd.DataFrame((list(zip(team, end_fb, time_remaining))))
+    df0 = pd.DataFrame((list(zip(team, end_fb, remaining_effort))))
     df0.columns = ['Team', 'FB', 'Remaining EE']
     pivoted_fb_effort = pd.pivot_table(df0[['Team', 'FB', 'Remaining EE']], values='Remaining EE',
                                        index=['Team'], columns=['FB'], aggfunc='sum', fill_value=0)
-    # print(pivoted_fb_effort, '\n')
-    df1 = pd.DataFrame((list(zip(team, end_fb, time_remaining_percentage))))
-    df1.columns = ['Team', 'FB', 'Percentage']
-    pivoted_fb_effort_percentage = pd.pivot_table(df1[['Team', 'FB', 'Percentage']], values='Percentage',
-                                                  index=['Team'], columns=['FB'], aggfunc='sum', fill_value=0)\
-        .applymap(lambda x: "{0:.1f}%".format(100*x))    # show as percentage
-    return pivoted_fb_effort, pivoted_fb_effort_percentage
+    return pivoted_fb_effort
 
 
-def pivot_data_team(feature, end_fb, time_remaining):
+def pivot_data_percentage(team, end_fb, remaining_effort_percentage):  # 汇总数据
     pd.set_option(  # 设置参数：精度，最大行，最大列，最大显示宽度
         'precision', 1,
         'display.max_rows', 500,
         'display.max_columns', 500,
         'display.width', 1000)
-    df0 = pd.DataFrame((list(zip(feature, end_fb, time_remaining))))
+    df = pd.DataFrame((list(zip(team, end_fb, remaining_effort_percentage))))
+    df.columns = ['Team', 'FB', 'Percentage']
+    pivoted_fb_effort_percentage = pd.pivot_table(df[['Team', 'FB', 'Percentage']], values='Percentage',
+                                                  index=['Team'], columns=['FB'], aggfunc='sum', fill_value=0) \
+        .applymap(lambda x: "{0:.1f}%".format(100 * x))  # show as percentage
+    return pivoted_fb_effort_percentage
+
+
+def pivot_data_team(feature, end_fb, remaining_effort):
+    pd.set_option(  # 设置参数：精度，最大行，最大列，最大显示宽度
+        'precision', 1,
+        'display.max_rows', 500,
+        'display.max_columns', 500,
+        'display.width', 1000)
+    df0 = pd.DataFrame((list(zip(feature, end_fb, remaining_effort))))
     df0.columns = ['Feature', 'FB', 'Remaining EE']
     pivoted_fb_effort_team = pd.pivot_table(df0[['Feature', 'FB', 'Remaining EE']], values='Remaining EE',
-                                       index=['Feature'], columns=['FB'], aggfunc='sum', fill_value=0, margins=True)
+                                            index=['Feature'], columns=['FB'], aggfunc='sum', fill_value=0,
+                                            margins=True)
     return pivoted_fb_effort_team
 
 
 def filter_issues(issues):
-    team_shield = ['Lei, Damon', 'Zhang, Jun 15.', 'Cao, Jiangping', 'Liu, Qiuqi', 'Yan, Susana', 'Wang, Alex 2.', 'Ye, Jun 3.']
-    team_jazz = ['Chen, Dandan', 'Tong, Doris', 'Li, Delun', 'Zhou, Lingyan', 'Tang, Zheng', 'Jia, Lijun J.', 'Yang, Chunjian']
-    team_blues = ['Ge, Nanxiao', 'Zhang, Sherry', 'Zhang, Yige G.', 'Zhu, Ruifang', 'Zhang, Hao 6.', 'Zheng, Ha', 'Xu, Xiaowen', ]
+    team_shield = ['Lei, Damon', 'Zhang, Jun 15.', 'Cao, Jiangping', 'Liu, Qiuqi', 'Yan, Susana', 'Wang, Alex 2.',
+                   'Ye, Jun 3.']
+    team_jazz = ['Chen, Dandan', 'Tong, Doris', 'Li, Delun', 'Zhou, Lingyan', 'Tang, Zheng', 'Jia, Lijun J.',
+                 'Yang, Chunjian']
+    team_blues = ['Ge, Nanxiao', 'Zhang, Sherry', 'Zhang, Yige G.', 'Zhu, Ruifang', 'Zhang, Hao 6.', 'Zheng, Ha',
+                  'Xu, Xiaowen', ]
     team_rock = ['Fan, Jolin', 'Zhuo, Lena', 'Wu, Jiadan', 'Chen, Christine', 'Wang, Zora', 'Fang, Liupei', 'Ye, Jing']
     counter_shield = 0
     counter_jazz = 0
@@ -172,7 +204,8 @@ def pivot_issues(team, month, counter):
         'display.width', 1000)
     df0 = pd.DataFrame((list(zip(team, month, counter))))
     df0.columns = ['Team', 'Month', 'Counter']
-    pivoted_issue = pd.pivot_table(df0[['Team', 'Month', 'Counter']], values='Counter', index=['Team'], columns=['Month'],
+    pivoted_issue = pd.pivot_table(df0[['Team', 'Month', 'Counter']], values='Counter', index=['Team'],
+                                   columns=['Month'],
                                    aggfunc='sum', fill_value=0, margins=True)
     return pivoted_issue
 
@@ -222,24 +255,30 @@ def web_server():
 def web_server_effort():
     print("=== current time:", datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S"), "===")
     data = get_data(search_data(jira_filter_ET))
-    table = pivot_data(data[0], data[1], data[2], data[3])
+    # get_data return:
+    # team, end_fb, remaining_effort, remaining_effort_percentage, original_effort, \ 01234
+    # feature_blues, feature_jazz, feature_rock, feature_shield, \ 5678
+    # remaining_effort_blues, remaining_effort_jazz, remaining_effort_rock, remaining_effort_shield, \ 9 10 11 12
+    # end_fb_blues, end_fb_jazz, end_fb_rock, end_fb_shield \ 13 14 15 16
+    dic = Counter(data[1])
+    length = dic[data[1][0]]
+    origin = '0rigin_' + data[1][0]
 
-    data_jazz = get_data(search_data(jira_filter_ET_Jazz))
-    table_jazz = pivot_data_team(data_jazz[4], data_jazz[1], data_jazz[2])
+    new_team = data[0][:length] + data[0]
+    new_fb = [origin] * length + data[1]
+    new_ee = data[4][:length] + data[2]
 
-    data_blues = get_data(search_data(jira_filter_ET_Blues))
-    table_blues = pivot_data_team(data_blues[4], data_blues[1], data_blues[2])
-
-    data_rock = get_data(search_data(jira_filter_ET_Rock))
-    table_rock = pivot_data_team(data_rock[4], data_rock[1], data_rock[2])
-
-    data_shield = get_data(search_data(jira_filter_ET_Shield))
-    table_shield = pivot_data_team(data_shield[4], data_shield[1], data_shield[2])
+    table_sum = pivot_data_sum(new_team, new_fb, new_ee)
+    table_percentage = pivot_data_percentage(data[0], data[1], data[3])
+    table_blues = pivot_data_team(data[5], data[13], data[9])
+    table_jazz = pivot_data_team(data[6], data[14], data[10])
+    table_rock = pivot_data_team(data[7], data[15], data[11])
+    table_shield = pivot_data_team(data[8], data[16], data[12])
 
     return render_template(
-        "et_template.html",
-        total=table[0].to_html(classes="total", header="true", table_id="table"),
-        percentage=table[1].to_html(classes="percentage", header="true", table_id="table"),
+        "effort_template.html",
+        total=table_sum.to_html(classes="total", header="true", table_id="table"),
+        percentage=table_percentage.to_html(classes="percentage", header="true", table_id="table"),
         total_jazz=table_jazz.to_html(classes="team", header="true", table_id="table"),
         total_blues=table_blues.to_html(classes="team", header="true", table_id="table"),
         total_rock=table_rock.to_html(classes="team", header="true", table_id="table"),
