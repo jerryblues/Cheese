@@ -15,11 +15,20 @@ body{ font-family: "微软雅黑"}
 
 <h2>FB Effort Per Team</h2>
 {{ total|safe }}
-<h3> Current FB: Origin Effort and Remaining Effort, Future FB: only Remaining Effort</h3>
+<h3> Current FB: Origin Effort and Remaining Effort, Future FB: only Remaining Effort
+    <br> FB=End FB, Effort=Remaining Effort(h)
+</h3>
 
 <h2>FB Effort Per Team Percentage</h2>
 {{ percentage|safe }}
-<h3> Percentage = Remaining Effort / Team Capacity</h3>
+<h3> Percentage = Remaining Effort / Team Capacity
+</h3>
+
+<h2>Team Info</h2>
+{{ squad|safe }}
+<h3> Team Capacity=HC*60h-SM*20h-TO*15h (20h: SM, 15h: Test Owner)
+    <br> New comer included
+</h3>
 
 <h2>FB Effort -- Blues</h2>
 {{ total_blues|safe }}
@@ -35,8 +44,6 @@ body{ font-family: "微软雅黑"}
 
 
 <h3><a href="https://jiradc.ext.net.nokia.com/issues/?filter=332653" target="_blank">Jira filter link</a>
-<br>Blues HC=7, Jazz HC=7, Rock HC=7, Shield HC=6, Squad C HC=8
-<br>FB=End FB, Effort=Remaining Effort(h), Team Capacity=HC * 120h - 40h (40h for SM)
 </h3>
 
 </body>

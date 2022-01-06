@@ -7,7 +7,7 @@ def test_autouse():  # fixture is autouse, no need to call it in test case
 
 @pytest.fixture(autouse=True)
 def fix_func():
-    print 'hello, world'
+    print('hello, world')
 
 
 if __name__ == '__main__':

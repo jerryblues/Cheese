@@ -6,6 +6,7 @@ from datetime import datetime
 import pytz
 import logging
 from collections import Counter
+import datetime
 
 '''
 # lib to install
@@ -34,6 +35,8 @@ jira_filter_ET_Shield = '''project = FCA_5G_L2L3 AND issuetype in (epic) AND res
 jira_filter_issues_all = '''project = 68296 AND reporter in (membersOf(I_MN_RAN_L3_SW_1_CN_ET)) and issuetype = Bug AND status != CNN ORDER BY key DESC'''
 jira_filter_issues_this_year = '''project = 68296 AND reporter in (membersOf(I_MN_RAN_L3_SW_1_CN_ET)) AND created > startOfYear() and issuetype = Bug AND status != CNN ORDER BY key DESC'''
 jira_filter_issues_this_month = '''project = 68296 AND reporter in (membersOf(I_MN_RAN_L3_SW_1_CN_ET)) AND created >= startOfMonth() and issuetype = Bug AND status != CNN ORDER BY key DESC'''
+
+jira_filter_long_open_issue = '''project = 68296 AND reporter in (membersOf(I_MN_RAN_L3_SW_1_CN_ET)) AND status not in (Done, CNN, FNR, "Transferred out") ORDER BY created ASC, key DESC'''
 
 
 def search_data(jql, max_results=10000):  # 抓取数据
@@ -64,15 +67,19 @@ def get_data(issues):  # 处理数据
     remaining_effort_blues, remaining_effort_jazz, remaining_effort_rock, remaining_effort_shield = [], [], [], []
     end_fb_blues, end_fb_jazz, end_fb_rock, end_fb_shield = [], [], [], []
     squad_jazz_hc = 7
-    squad_blues_hc = 7
-    squad_rock_hc = 7
+    squad_blues_hc = 8
+    squad_rock_hc = 8
     squad_shield_hc = 6
     squad_c_hc = 8
-    squad_jazz_cap = squad_jazz_hc * 120 - 40
-    squad_blues_cap = squad_blues_hc * 120 - 40
-    squad_rock_cap = squad_rock_hc * 120 - 40
-    squad_shield_cap = squad_shield_hc * 120 - 40
-    squad_c_cap = squad_c_hc * 120 - 40
+    squad_jazz_cap = squad_jazz_hc * 60 - 20 - 15 - 15
+    squad_blues_cap = squad_blues_hc * 60 - 20 - 15 - 15
+    squad_rock_cap = squad_rock_hc * 60 - 20 - 15 - 15
+    squad_shield_cap = squad_shield_hc * 60 - 20 - 15
+    squad_c_cap = squad_c_hc * 60 - 20 - 15
+
+    squad_name = ["Jazz", "Blues", "Rock", "Shield", "Squad C"]
+    squad_hc = [squad_jazz_hc, squad_blues_hc, squad_rock_hc, squad_shield_hc, squad_c_hc]
+    squad_cap = [squad_jazz_cap, squad_blues_cap, squad_rock_cap, squad_shield_cap, squad_c_cap]
 
     for issue in issues:
         end_fb.append(issue.fields.customfield_38693)
@@ -110,7 +117,7 @@ def get_data(issues):  # 处理数据
     return team, end_fb, remaining_effort, remaining_effort_percentage, original_effort, \
            feature_blues, feature_jazz, feature_rock, feature_shield, \
            remaining_effort_blues, remaining_effort_jazz, remaining_effort_rock, remaining_effort_shield, \
-           end_fb_blues, end_fb_jazz, end_fb_rock, end_fb_shield
+           end_fb_blues, end_fb_jazz, end_fb_rock, end_fb_shield, squad_name, squad_hc, squad_cap
 
 
 def pivot_data_sum(team, end_fb, remaining_effort):  # 汇总数据
@@ -140,6 +147,20 @@ def pivot_data_percentage(team, end_fb, remaining_effort_percentage):  # 汇总�
     return pivoted_fb_effort_percentage
 
 
+def pivot_squad(name, hc, cap):
+    pd.set_option(  # 设置参数：精度，最大行，最大列，最大显示宽度
+        'precision', 1,
+        'display.max_rows', 500,
+        'display.max_columns', 500,
+        'display.width', 1000)
+    df = pd.DataFrame((list(zip(name, hc, cap))))
+    df.columns = ["Team Name", "Team HC", "Team Capacity"]
+    df.index = df.index + 1
+    # print("print_df", '\n', df)
+    # print(df.dtypes)
+    return df
+
+
 def pivot_data_team(feature, end_fb, remaining_effort):
     pd.set_option(  # 设置参数：精度，最大行，最大列，最大显示宽度
         'precision', 1,
@@ -155,13 +176,14 @@ def pivot_data_team(feature, end_fb, remaining_effort):
 
 
 def filter_issues(issues):
-    team_shield = ['Lei, Damon', 'Zhang, Jun 15.', 'Cao, Jiangping', 'Liu, Qiuqi', 'Yan, Susana', 'Wang, Alex 2.',
+    team_shield = ['Lei, Damon', 'Zhang, Jun 15.', 'Cao, Jiangping', 'Li, Ping 3.', 'Yan, Susana', 'Wang, Alex 2.',
                    'Ye, Jun 3.']
-    team_jazz = ['Chen, Dandan', 'Tong, Doris', 'Li, Delun', 'Zhou, Lingyan', 'Tang, Zheng', 'Jia, Lijun J.',
-                 'Yang, Chunjian']
+    team_jazz = ['Chen, Dandan', 'Li, Jingyi 2.', 'Li, Delun', 'Zhou, Lingyan', 'Tang, Zheng', 'Jia, Lijun J.',
+                 'Yang, Chunjian', 'Jing, Jean']
     team_blues = ['Ge, Nanxiao', 'Zhang, Sherry', 'Zhang, Yige G.', 'Zhu, Ruifang', 'Zhang, Hao 6.', 'Zheng, Ha',
-                  'Xu, Xiaowen', ]
-    team_rock = ['Fan, Jolin', 'Zhuo, Lena', 'Wu, Jiadan', 'Chen, Christine', 'Wang, Zora', 'Fang, Liupei', 'Ye, Jing']
+                  'Xu, Xiaowen', 'Mao, Tingjian']
+    team_rock = ['Fan, Jolin', 'Zhuo, Lena', 'Wu, Jiadan', 'Chen, Christine', 'Wang, Zora', 'Fang, Liupei',
+                 'Ye, Jing', 'Pan, Jia']
     counter_shield = 0
     counter_jazz = 0
     counter_blues = 0
@@ -235,6 +257,56 @@ def pivot_issues_star(star, month, counter):
     return pivoted_issue_star
 
 
+# jira_filter_issues_long_open
+def find_long_open_issue(issues):
+    feature, split_feature = [], []
+    # key = []
+    reporter, split_reporter = [], []
+    created_date, split_created_date = [], []
+    status, split_status = [], []
+    open_day, split_open_day = [], []
+    current_day = datetime.datetime.now()
+
+    for issue in issues:
+        feature.append(issue.fields.customfield_37381)
+        # key.append(issue.fields.key)
+        reporter.append(str(issue.fields.reporter)[:-20])
+        created_date.append(issue.fields.created[:-18])
+        status.append(issue.fields.status)
+
+    for day in created_date:
+        year_month_date = day.split('-')
+        # print(year_month_date)
+        report_day = datetime.datetime(int(year_month_date[0]), int(year_month_date[1]), int(year_month_date[2]))
+        # print(report_day)
+        duration = (current_day - report_day).days
+        # print(duration)
+        if duration >= 7:
+            open_day.append(duration)
+
+    for i in range(0, len(open_day)):
+        split_feature.append(feature[i])
+        split_reporter.append(reporter[i])
+        split_created_date.append(created_date[i])
+        split_status.append(status[i])
+        split_open_day.append(open_day[i])
+    return split_feature, split_reporter, split_status, split_created_date, split_open_day
+
+
+def pivot_long_open_issue(feature, reporter, status, created_date, open_day):
+    pd.set_option(  # 设置参数：精度，最大行，最大列，最大显示宽度
+        'precision', 1,
+        'display.max_rows', 500,
+        'display.max_columns', 500,
+        'display.width', 1000)
+    df = pd.DataFrame((list(zip(feature, reporter, status, created_date, open_day))))
+    df.columns = ["Feature", "Reporter", "Status", "Created Date", "Open Day"]
+    df.index = df.index + 1
+    # print("print_df", '\n', df)
+    # print(df.dtypes)
+    return df
+
+
 # logging.basicConfig(level=logging.DEBUG,
 #                     filename='ET_statistics.log',
 #                     filemode='a',
@@ -253,13 +325,14 @@ def web_server():
 
 @app.route('/FB_Effort', methods=['GET'])
 def web_server_effort():
-    print("=== current time:", datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S"), "===")
+    print("=== current time:", datetime.datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S"), "===")
     data = get_data(search_data(jira_filter_ET))
     # get_data return:
     # team, end_fb, remaining_effort, remaining_effort_percentage, original_effort, \ 01234
     # feature_blues, feature_jazz, feature_rock, feature_shield, \ 5678
     # remaining_effort_blues, remaining_effort_jazz, remaining_effort_rock, remaining_effort_shield, \ 9 10 11 12
     # end_fb_blues, end_fb_jazz, end_fb_rock, end_fb_shield \ 13 14 15 16
+    # squad_name, squad_hc, squad_cap \ 17 18 19
     dic = Counter(data[1])
     length = dic[data[1][0]]
     origin = '0rigin_' + data[1][0]
@@ -270,6 +343,7 @@ def web_server_effort():
 
     table_sum = pivot_data_sum(new_team, new_fb, new_ee)
     table_percentage = pivot_data_percentage(data[0], data[1], data[3])
+    table_squad = pivot_squad(data[17], data[18], data[19])
     table_blues = pivot_data_team(data[5], data[13], data[9])
     table_jazz = pivot_data_team(data[6], data[14], data[10])
     table_rock = pivot_data_team(data[7], data[15], data[11])
@@ -279,6 +353,7 @@ def web_server_effort():
         "effort_template.html",
         total=table_sum.to_html(classes="total", header="true", table_id="table"),
         percentage=table_percentage.to_html(classes="percentage", header="true", table_id="table"),
+        squad=table_squad.to_html(classes="team", header="true", table_id="table"),
         total_jazz=table_jazz.to_html(classes="team", header="true", table_id="table"),
         total_blues=table_blues.to_html(classes="team", header="true", table_id="table"),
         total_rock=table_rock.to_html(classes="team", header="true", table_id="table"),
@@ -288,45 +363,69 @@ def web_server_effort():
 
 @app.route('/Issue_Hunter', methods=['GET'])
 def web_server_issue():
-    print("=== current time:", datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S"), "===")
+    print("=== current time:", datetime.datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S"), "===")
     jira_list_month = search_data(jira_filter_issues_this_month)
     jira_list_year = search_data(jira_filter_issues_this_year)
     jira_list_all = search_data(jira_filter_issues_all)
 
     data_year = filter_issues(jira_list_year)
-    table_year = pivot_issues(data_year[0], data_year[1], data_year[2])
 
-    date_all = filter_issues(jira_list_all)
-    table_all = pivot_issues(date_all[0], date_all[1], date_all[2])
+    if len(data_year[0]) == 0:
+        return render_template("null_template.html")
+    else:
+        table_year = pivot_issues(data_year[0], data_year[1], data_year[2])
 
-    jira_list_month_ = issue_hunter_star(jira_list_month)
-    jira_list_year_ = issue_hunter_star(jira_list_year)
+        date_all = filter_issues(jira_list_all)
+        table_all = pivot_issues(date_all[0], date_all[1], date_all[2])
 
-    person_month, counter_month = zip(*Counter(jira_list_month_[0]).most_common(5))
-    month_of_current_month = []
-    last_month = jira_list_month_[1][0]
-    for i in range(0, len(person_month)):
-        month_of_current_month.append(last_month)
-    # 用Counter函数统计当月提交Jira数量最多的前5名 获取名单、个数和当前月份
+        jira_list_month_ = issue_hunter_star(jira_list_month)
+        jira_list_year_ = issue_hunter_star(jira_list_year)
 
-    person_year, counter_year = zip(*Counter(jira_list_year_[0]).most_common(5))
-    month_of_current_year = []
-    last_month_year = jira_list_year_[1][0]
-    for i in range(0, len(person_year)):
-        month_of_current_year.append(last_month_year)
-    # 用Counter函数统计当年提交Jira数量最多的前5名 获取名单、个数和最新月份
-    table_star_month = pivot_issues_star(person_month, month_of_current_month, counter_month)
-    table_star_year = pivot_issues_star(person_year, month_of_current_year, counter_year)
+        if Counter(jira_list_month_[0]):
+            person_month, counter_month = zip(*Counter(jira_list_month_[0]).most_common(5))
+        else:
+            person_month, counter_month = [], []
+        month_of_current_month = []
+        last_month = jira_list_month_[1][0]
 
+        if len(person_month) == 0:
+            month_of_current_month = []
+        else:
+            for i in range(0, len(person_month)):
+                month_of_current_month.append(last_month)
+        # 用Counter函数统计当月提交Jira数量最多的前5名 获取名单、个数和当前月份
+
+        person_year, counter_year = zip(*Counter(jira_list_year_[0]).most_common(5))
+        month_of_current_year = []
+        last_month_year = jira_list_year_[1][0]
+        for i in range(0, len(person_year)):
+            month_of_current_year.append(last_month_year)
+        # 用Counter函数统计当年提交Jira数量最多的前5名 获取名单、个数和最新月份
+        table_star_month = pivot_issues_star(person_month, month_of_current_month, counter_month)
+        table_star_year = pivot_issues_star(person_year, month_of_current_year, counter_year)
+        # print("star_of_the_year:", '\n', table_star_year)
+
+        return render_template(
+            "issues_template.html",
+            total_year=table_year.to_html(classes="total", header="true", table_id="table"),
+            total_all=table_all.to_html(classes="total", header="true", table_id="table"),
+            star_month=table_star_month.to_html(classes="star", header="true", table_id="table"),
+            star_year=table_star_year.to_html(classes="star", header="true", table_id="table")
+        )
+
+
+@app.route('/Long_Open_Issue', methods=['GET'])
+def web_server_issue_long_open():
+    jira_long_open_issue = search_data(jira_filter_long_open_issue)
+    data = find_long_open_issue(jira_long_open_issue)
+    table = pivot_long_open_issue(data[0], data[1], data[2], data[3], data[4])
     return render_template(
-        "issues_template.html",
-        total_year=table_year.to_html(classes="total", header="true", table_id="table"),
-        total_all=table_all.to_html(classes="total", header="true", table_id="table"),
-        star_month=table_star_month.to_html(classes="star", header="true", table_id="table"),
-        star_year=table_star_year.to_html(classes="star", header="true", table_id="table")
+        "long_open_issues_template.html",
+        total=table.to_html(classes="total", header="true", table_id="table")
     )
 
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port='80')
     # app.run(host='10.57.209.188')
+    # should be http://10.57.209.188:5000/FB_Effort  in home_template.html

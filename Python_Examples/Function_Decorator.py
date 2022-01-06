@@ -25,10 +25,10 @@ def mysum(*arg):
 
 # same as: mysum=dec(mysum) and should write it here.
 
-print mysum(1, 2, 3)
+print(mysum(1, 2, 3))
 # 1.parameter send to *arg 2. run mysum=dec(mysum) 3.send mysum to fuc, and the new mysum refer to the return of dec,which is in_dec
-print mysum()
-print mysum(1, 2, 3, '6')
+print(mysum())
+print(mysum(1, 2, 3, '6'))
 
 '''
 ===result===

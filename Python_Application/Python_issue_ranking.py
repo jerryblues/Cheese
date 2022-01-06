@@ -1,7 +1,10 @@
 # coding=utf-8
 from jira import JIRA
 import pandas as pd
+import time
+import datetime
 from collections import Counter
+
 
 '''
 # lib to install
@@ -38,85 +41,43 @@ def search_data(jql, max_results=1000):
         print(e)
 
 
-# jira_filter = '''project = 68296 AND reporter in (membersOf(I_MN_RAN_L3_SW_1_CN_ET)) AND created >= startOfMonth() ORDER BY key DESC'''
-# issues = searchIssues(jira_filter)
-#
-# team_shield = ['Lei, Damon', 'Zhang, Jun 15.', 'Cao, Jiangping', 'Liu, Qiuqi', 'Yan, Susana', 'Wang, Alex 2.', 'Ye, Jun 3.']
-# team_jazz = ['Chen, Dandan', 'Tong, Doris', 'Li, Delun', 'Zhou, Lingyan', 'Tang, Zheng', 'Jia, Lijun J.', 'Yang, Chunjian']
-# team_blues = ['Ge, Nanxiao', 'Zhang, Sherry', 'Zhang, Yige G.', 'Zhu, Ruifang', 'Zhang, Hao 6.', 'Zheng, Ha', 'Xu, Xiaowen', ]
-# team_rock = ['Fan, Jolin', 'Zhuo, Lena', 'Wu, Jiadan', 'Chen, Christine', 'Wang, Zora', 'Fang, Liupei', 'Ye, Jing']
-# counter_shield = 0
-# counter_jazz = 0
-# counter_blues = 0
-# counter_rock = 0
-# team = []
-# month = []
-# counter = []
-#
-# for issue in issues:
-#     # print(issue.fields.created[0:7], str(issue.fields.reporter)[:-20])
-#     month.append(issue.fields.created[0:7])
-#     if str(issue.fields.reporter)[:-20] in team_shield:
-#         counter_shield = counter_shield + 1
-#         team.append('Shield')
-#         counter.append(1)
-#     elif str(issue.fields.reporter)[:-20] in team_jazz:
-#         counter_jazz = counter_jazz + 1
-#         team.append('Jazz')
-#         counter.append(1)
-#     elif str(issue.fields.reporter)[:-20] in team_blues:
-#         counter_blues = counter_blues + 1
-#         team.append('Blues')
-#         counter.append(1)
-#     elif str(issue.fields.reporter)[:-20] in team_rock:
-#         counter_rock = counter_rock + 1
-#         team.append('Rock')
-#         counter.append(1)
-# # print(counter_shield, counter_jazz, counter_blues, counter_rock)
-#
-# pd.set_option(
-#     'precision', 1,
-#     'display.max_rows', 500,
-#     'display.max_columns', 500,
-#     'display.width', 1000)
-# # 设置参数：精度，最大行，最大列，最大显示宽度
-# data = (list(zip(team, month, counter)))
-# current_month = month[0]
-# df = pd.DataFrame(data)
-# df.columns = ['Team', 'Month', 'Counter']
-# # df.sort_values('Month')
-# # print(df, '\n')
-# pivoted_df = pd.pivot_table(df,
-#                             index='Team',
-#                             columns='Month',
-#                             values=['Counter'],
-#                             aggfunc='sum',
-#                             fill_value=0)
-# pivoted_df = pivoted_df.sort_values(('Counter', current_month), ascending=False)
-# print(pivoted_df)
+jira_filter_long_open_issue = '''project = 68296 AND reporter in (membersOf(I_MN_RAN_L3_SW_1_CN_ET)) AND status not in (Done, CNN, FNR, "Transferred out") ORDER BY created ASC, key DESC'''
 
 
-def issue_hunter_star(issues):
-    star = []
-    month = []
+def find_long_open_issue(issues):
+    feature = []
+    fault_id = []
+    reporter = []
+    created_date = []
+    status = []
+    open_day = []
+    current_day = datetime.datetime.now()
+
     for issue in issues:
-        month.append(issue.fields.created[0:7])
-        star.append(str(issue.fields.reporter)[:-20])
-    return star, month
+        feature.append(issue.fields.customfield_37381)
+        fault_id.append(issue.fields.key)
+        reporter.append(str(issue.fields.reporter)[:-20])
+        created_date.append(issue.fields.created[:-18])
+        status.append(issue.fields.status)
+
+    return feature, reporter, created_date, status, fault_id
 
 
-jira_filter_issues_this_year = '''project = 68296 AND reporter in (membersOf(I_MN_RAN_L3_SW_1_CN_ET)) AND created > startOfYear() ORDER BY key DESC'''
-month = []
+def pivot_long_open_issue(feature, reporter, created_date, status, fault_id):
+    pd.set_option(  # 设置参数：精度，最大行，最大列，最大显示宽度
+        'precision', 1,
+        'display.max_rows', 500,
+        'display.max_columns', 500,
+        'display.width', 1000)
+    df = pd.DataFrame((list(zip(feature, reporter, created_date, status, fault_id))))
+    df.columns = ["Feature", "Reporter", "Created Date", "Status"]
+    df.index = df.index + 1
+    # print("print_df", '\n', df)
+    # print(df.dtypes)
+    return df
 
-jira_list_year = search_data(jira_filter_issues_this_year)
-jira_list_year_ = issue_hunter_star(jira_list_year)
-last_month = jira_list_year_[1][0]
-counter = Counter(jira_list_year_[0]).most_common(5)
-print(counter)
-first, second = zip(*counter)
-print(first)
-print(second)
 
-for i in range(0, len(first)):
-    month.append(last_month)
-print(month)
+jira_long_open_issue = search_data(jira_filter_long_open_issue)
+data = find_long_open_issue(jira_long_open_issue)
+table = pivot_long_open_issue(data[0], data[1], data[2], data[3], data[4])
+print(table)

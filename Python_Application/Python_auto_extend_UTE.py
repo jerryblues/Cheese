@@ -69,7 +69,7 @@ def extend_ute(link):
         driver.find_element_by_id("id_login_btn").click()
 
         requested_testline_type = driver.find_element_by_xpath(
-            '//*[@id="testline_type"]').text
+            '//*[@id="topology"]').text
         print("Requested testline type:\n %s" % requested_testline_type)
 
         screen_text = driver.find_elements_by_xpath("/*")
