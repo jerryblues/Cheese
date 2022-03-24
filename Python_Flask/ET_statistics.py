@@ -20,7 +20,7 @@ pip3 install apscheduler
 
 jira_server = 'https://jiradc.ext.net.nokia.com'  # jira地址
 jira_username = 'h4zhang'  # 用户名，本地调试时，可用明文代替
-jira_password = 'Holmes0-0'  # 密码，本地调试时，可用明文代替
+jira_password = 'Holmes00-'  # 密码，本地调试时，可用明文代替
 
 # jira = JIRA(basic_auth=(jira_username, jira_password), options={'server': jira_server})
 jira_filter_ET = '''

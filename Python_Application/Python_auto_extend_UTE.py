@@ -105,7 +105,7 @@ else:
         extend_ute(link)
         print("***Script Running for %s time***\n" % count)
         count = count + 1
-        time.sleep(3500)
+        time.sleep(2400)
         link = get_link(my_reservations)
     else:
         print("***Script End***")
