@@ -11,8 +11,7 @@ import time
 from apscheduler.schedulers.blocking import BlockingScheduler
 from datetime import datetime
 import pytz
-import pandas as pd
-import xlrd
+from git.repo import Repo
 
 
 def facom_api_power_on_off(ip, port=4001, port_num=1, operation_mode="power_on", planned_time="00:00"):
@@ -59,42 +58,12 @@ def facom_api_power_reset(ip, port=4001, port_num=1):
     facom_api_power_on_off(ip, port, port_num, 'power_on')
 
 
-# read data from excel
-'''
-print("\n(1)全部数据：")
-print(df.values)
-
-print("\n(2)第2行第3列的值：")
-print(df.values[1,2])
-
-print("\n(3)第3行数据：")
-print(df.values[2])
-
-print("\n(4)获取第2、3行数据：")
-print(df.values[[1,2]])
-
-print("\n(5)第2列数据：")
-print(df.values[:,1])
-
-print("\n(6)第2、3列数据：")
-print(df.values[:,[1,2]])
-
-print("\n(7)第2至4行、第3至5列数据：")
-print(df.values[1:4,2:5])
-'''
-# file1 = 'C:/5CG7316JVN-Data/h4zhang/Desktop/testline_info.xls'
-# df = pd.read_excel(file1, sheet_name='Sheet1', header=None, skiprows=[0])
-#
-# if __name__ == "__main__":
-#     for i in range(0, len(df.values[:, 0])):
-#         facom_api_power_reset(df.values[:, 0][i], 4001, df.values[:, 1][i])
-#         print("===PB IP:", df.values[:, 0][i], "PORT:", df.values[:, 1][i], "===\n===reset===")
-
 # read data from ini
-file2 = 'C:/5CG7316JVN-Data/h4zhang/Desktop/testline_info.ini'
+r = Repo("C:/Holmes/code/autopoweroffon")
+file = 'C:/Holmes/code/autopoweroffon/testline_info.ini'
 conf = configparser.ConfigParser()
-power_off_tl_ip_19 = []
-power_off_tl_port_19 = []
+power_off_tl_ip_20 = []
+power_off_tl_port_20 = []
 power_off_tl_ip_23 = []
 power_off_tl_port_23 = []
 power_on_tl_ip_08 = []
@@ -108,13 +77,14 @@ def current_date_time():
 
 
 def update_testline_info_to_power_off_on():
-    power_off_tl_ip_19.clear()  # 清空testline信息 重新读取配置
-    power_off_tl_port_19.clear()
+    r.remote().pull()  # 重新git pull 获取最新配置
+    power_off_tl_ip_20.clear()  # 清空testline信息 重新读取配置
+    power_off_tl_port_20.clear()
     power_off_tl_ip_23.clear()
     power_off_tl_port_23.clear()
     power_on_tl_ip_08.clear()
     power_on_tl_port_08.clear()
-    conf.read(file2, encoding="utf-8")
+    conf.read(file, encoding="utf-8")
     sections = conf.sections()
     print("\n===", current_date_time()[1], "===")
     for i in range(len(sections)):  # len(sections) = total testline num
@@ -122,9 +92,9 @@ def update_testline_info_to_power_off_on():
         if int(items[2][1]):  # auto_power_off_on = 1
             if str(current_date_time()[0]) in items[3][1]:  # 配置的关机星期 包含当天
                 print(sections[i], "-- power off time:", items[4][1])
-                if items[4][1] == "19:00":  # 19点下电的TL加入列表
-                    power_off_tl_ip_19.append(items[0][1])
-                    power_off_tl_port_19.append(items[1][1])
+                if items[4][1] == "20:00":  # 20点下电的TL加入列表
+                    power_off_tl_ip_20.append(items[0][1])
+                    power_off_tl_port_20.append(items[1][1])
                 else:  # 23点下电的TL加入列表
                     power_off_tl_ip_23.append(items[0][1])
                     power_off_tl_port_23.append(items[1][1])
@@ -136,26 +106,26 @@ def update_testline_info_to_power_off_on():
         else:  # auto_power_off_on = 0
             print(sections[i], "-- not open power off flag")
     print("===========================")
-    # print("# Testline IP/port about to power off/on based on exact time #")
-    #     # # power off at 19:00
-    #     # print(power_off_tl_ip_19)
-    #     # print(power_off_tl_port_19)
-    #     # # power off at 23:00
-    #     # print(power_off_tl_ip_23)
-    #     # print(power_off_tl_port_23)
-    #     # # power on at 08:00
-    #     # print(power_on_tl_ip_08)
-    #     # print(power_on_tl_port_08)
+    print("# Testline IP/port about to power off/on based on exact time #")
+    # power off at 20:00
+    print(power_off_tl_ip_20)
+    print(power_off_tl_port_20)
+    # power off at 23:00
+    print(power_off_tl_ip_23)
+    print(power_off_tl_port_23)
+    # power on at 08:00
+    print(power_on_tl_ip_08)
+    print(power_on_tl_port_08)
 
 
-# 19:00 -- TL下电
-def power_off_19():
-    if len(power_off_tl_ip_19):
-        for i in range(len(power_off_tl_ip_19)):
-            facom_api_power_on_off(power_off_tl_ip_19[i], port=4001,
-                                   port_num=power_off_tl_port_19[i], operation_mode="power_off", planned_time="19:00")
+# 20:00 -- TL下电
+def power_off_20():
+    if len(power_off_tl_ip_20):
+        for i in range(len(power_off_tl_ip_20)):
+            facom_api_power_on_off(power_off_tl_ip_20[i], port=4001,
+                                   port_num=power_off_tl_port_20[i], operation_mode="power_off", planned_time="20:00")
     else:
-        print("===No testline need to power off at 19:00===")
+        print("===No testline need to power off at 20:00===")
 
 
 # 23:00 -- TL下电
@@ -180,12 +150,16 @@ def power_on_08():
 
 # 定时读取配置文件并按照配置上下电
 scheduler = BlockingScheduler()
-scheduler.add_job(update_testline_info_to_power_off_on, 'cron', day_of_week='1-5', hour='0-23',
-                  minute='0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55')
-scheduler.add_job(power_off_19, 'cron', day_of_week='1-5', hour='0-23',
-                  minute='2, 7, 12, 17, 22, 27, 32, 37, 42, 47, 52, 57')
-scheduler.add_job(power_off_23, 'cron', day_of_week='1-5', hour='0-23',
-                  minute='3, 8, 13, 18, 23, 28, 33, 38, 43, 48, 53, 58')
-scheduler.add_job(power_on_08, 'cron', day_of_week='1-5', hour='0-23',
-                  minute='4, 9, 14, 19, 24, 29, 34, 39, 44, 49, 54, 59')
+scheduler.add_job(update_testline_info_to_power_off_on, 'cron', day_of_week='0-6', hour='0-23', minute='0',
+                  timezone="Asia/Shanghai")
+scheduler.add_job(power_off_20, 'cron', day_of_week='0-4', hour='20', minute='5', timezone="Asia/Shanghai")
+scheduler.add_job(power_off_23, 'cron', day_of_week='0-4', hour='23', minute='5', timezone="Asia/Shanghai")
+scheduler.add_job(power_on_08, 'cron', day_of_week='0-4', hour='8', minute='5', timezone="Asia/Shanghai")
 scheduler.start()
+
+'''
+# future function:
+  下电时长统计
+  TL power off/on plan show on web
+  邮件通知
+'''
