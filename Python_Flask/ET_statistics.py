@@ -7,6 +7,9 @@ import pytz
 import logging
 from collections import Counter
 import datetime
+import configparser
+from facom_cmd import *
+
 
 '''
 # lib to install
@@ -307,11 +310,85 @@ def pivot_long_open_issue(feature, reporter, status, created_date, open_day):
     return df
 
 
+def pivot_tl_status(tl_ip, tl_port, tl_power_off_on_flag, tl_power_off_date, tl_power_off_time, tl_power_on_time, tl_owner, tl_power_off_on_status):
+    pd.set_option(  # 设置参数：精度，最大行，最大列，最大显示宽度
+        'precision', 1,
+        'display.max_rows', 500,
+        'display.max_columns', 500,
+        'display.width', 1000)
+    df = pd.DataFrame((list(zip(tl_ip, tl_port, tl_power_off_on_flag, tl_power_off_date, tl_power_off_time, tl_power_on_time, tl_owner, tl_power_off_on_status))))
+    df.columns = ["PB IP", "PB PORT", "Power Off/On Flag", "Power Off/On Date", "Power Off Time", "Power On Time", "TL Owner", "Power Off/On Status"]
+    df.index = df.index + 1
+    # print("print_df", '\n', df)
+    # print(df.dtypes)
+    return df
+
+
+file = 'C:/Holmes/code/autopoweroffon/testline_info.ini'
+conf = configparser.ConfigParser()
+tl_ip = []
+tl_port = []
+tl_power_off_on_flag = []
+tl_power_off_date = []
+tl_power_off_time = []
+tl_power_on_time = []
+tl_owner = []
+tl_power_off_on_status = []
+
+
+def facom_api_power_on_off_origin(ip, port=4001, port_num=1, operation_mode="power_on"):
+    """
+    this API is PowerON or PowerOFF the facom equipment
+    | Input Parameters | Man | Description |
+    | ip | Yes | Ip of facom equipment |
+    | port| Yes | Connection port of facom server,1~6 are allowed |
+    | port_num | Yes | The power output port number |
+    | operation_mode | Man | 'power_on' or 'power_off' |
+
+    example:
+    facom_api_power_on_off('10.69.6.32','4001','6','power_off')
+    """
+    try:
+        fb_obj = OperationOfFacom(ip, port)
+        if operation_mode in ['power_on', 'power_off', 'query_status']:
+            return eval('fb_obj.%s("%s")' % (operation_mode, port_num))
+    # else:
+    #     raise LrcValidateException('operation_mode = %s is not support, \
+    #     it must be power_on or power_off' % operation_mode)
+    except:
+        return "status_unknown"
+
+
+def get_testline_info():
+    conf.read(file, encoding="utf-8")
+    tl_ip.clear()
+    tl_port.clear()
+    tl_power_off_on_flag.clear()
+    tl_power_off_date.clear()
+    tl_power_off_time.clear()
+    tl_power_on_time.clear()
+    tl_owner.clear()
+    tl_power_off_on_status.clear()
+    sections = conf.sections()
+    for i in range(len(sections)):  # len(sections) = total testline num
+        items = conf.items(sections[i])
+        tl_ip.append(items[0][1])
+        tl_port.append(items[1][1])
+        tl_power_off_on_flag.append(items[2][1])
+        tl_power_off_date.append(items[3][1])
+        tl_power_off_time.append(items[4][1])
+        tl_power_on_time.append(items[5][1])
+        tl_owner.append(items[6][1])
+        tl_power_off_on_status.append(facom_api_power_on_off_origin(
+            tl_ip[i], port=4001, port_num=tl_port[i], operation_mode="query_status"))
+    return tl_ip, tl_port, tl_power_off_on_flag, tl_power_off_date, tl_power_off_time, tl_power_on_time, tl_owner, tl_power_off_on_status
+
 # logging.basicConfig(level=logging.DEBUG,
 #                     filename='ET_statistics.log',
 #                     filemode='a',
 #                     format='%(asctime)s - %(levelname)s: %(message)s'
 #                     )
+
 
 app = Flask(__name__)
 
@@ -421,6 +498,16 @@ def web_server_issue_long_open():
     table = pivot_long_open_issue(data[0], data[1], data[2], data[3], data[4])
     return render_template(
         "long_open_issues_template.html",
+        total=table.to_html(classes="total", header="true", table_id="table")
+    )
+
+
+@app.route('/TL_status', methods=['GET'])
+def web_server_tl_status():
+    data = get_testline_info()
+    table = pivot_tl_status(data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7])
+    return render_template(
+        "testline_status_template.html",
         total=table.to_html(classes="total", header="true", table_id="table")
     )
 

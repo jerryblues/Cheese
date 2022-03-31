@@ -14,6 +14,29 @@ import pytz
 from git.repo import Repo
 
 
+def facom_api_power_on_off_query(ip, port=4001, port_num=1, operation_mode="query_status"):
+    """
+    this API is PowerON or PowerOFF the facom equipment
+    | Input Parameters | Man | Description |
+    | ip | Yes | Ip of facom equipment |
+    | port| Yes | Connection port of facom server,1~6 are allowed |
+    | port_num | Yes | The power output port number |
+    | operation_mode | Man | 'power_on' or 'power_off' |
+
+    example:
+    facom_api_power_on_off('10.69.6.32','4001','6','power_off')
+    """
+    try:
+        fb_obj = OperationOfFacom(ip, port)
+        if operation_mode in ['power_on', 'power_off', 'query_status']:
+            return eval('fb_obj.%s("%s")' % (operation_mode, port_num))
+    # else:
+    #     raise LrcValidateException('operation_mode = %s is not support, \
+    #     it must be power_on or power_off' % operation_mode)
+    except:
+        return "status_unknown"
+
+
 def facom_api_power_on_off(ip, port=4001, port_num=1, operation_mode="power_on", planned_time="00:00"):
     """
     this API is PowerON or PowerOFF the facom equipment
@@ -28,7 +51,7 @@ def facom_api_power_on_off(ip, port=4001, port_num=1, operation_mode="power_on",
     """
     try:
         fb_obj = OperationOfFacom(ip, port)
-        if operation_mode in ['power_on', 'power_off']:
+        if operation_mode in ['power_on', 'power_off', 'query_status']:
             eval('fb_obj.%s("%s")' % (operation_mode, port_num))
         # else:
         #     raise LrcValidateException('operation_mode = %s is not support, \
@@ -91,14 +114,14 @@ def update_testline_info_to_power_off_on():
         items = conf.items(sections[i])
         if int(items[2][1]):  # auto_power_off_on = 1
             if str(current_date_time()[0]) in items[3][1]:  # 配置的关机星期 包含当天
-                print(sections[i], "-- power off time:", items[4][1])
+                # print(sections[i], "-- power off time:", items[4][1])
                 if items[4][1] == "20:00":  # 20点下电的TL加入列表
                     power_off_tl_ip_20.append(items[0][1])
                     power_off_tl_port_20.append(items[1][1])
                 else:  # 23点下电的TL加入列表
                     power_off_tl_ip_23.append(items[0][1])
                     power_off_tl_port_23.append(items[1][1])
-                print(sections[i], "-- power on  time:", items[5][1])
+                # print(sections[i], "-- power on  time:", items[5][1])
                 power_on_tl_ip_08.append(items[0][1])  # 08点开机的TL加入列表
                 power_on_tl_port_08.append(items[1][1])
             else:  # 配置的关机星期 未包含当天
@@ -106,16 +129,16 @@ def update_testline_info_to_power_off_on():
         else:  # auto_power_off_on = 0
             print(sections[i], "-- not open power off flag")
     print("===========================")
-    print("# Testline IP/port about to power off/on based on exact time #")
-    # power off at 20:00
-    print(power_off_tl_ip_20)
-    print(power_off_tl_port_20)
-    # power off at 23:00
-    print(power_off_tl_ip_23)
-    print(power_off_tl_port_23)
-    # power on at 08:00
-    print(power_on_tl_ip_08)
-    print(power_on_tl_port_08)
+    # print("# Testline IP/port about to power off/on based on exact time #")
+    # # power off at 20:00
+    # print(power_off_tl_ip_20)
+    # print(power_off_tl_port_20)
+    # # power off at 23:00
+    # print(power_off_tl_ip_23)
+    # print(power_off_tl_port_23)
+    # # power on at 08:00
+    # print(power_on_tl_ip_08)
+    # print(power_on_tl_port_08)
 
 
 # 20:00 -- TL下电
@@ -149,17 +172,18 @@ def power_on_08():
 
 
 # 定时读取配置文件并按照配置上下电
-scheduler = BlockingScheduler()
-scheduler.add_job(update_testline_info_to_power_off_on, 'cron', day_of_week='0-6', hour='0-23', minute='0',
-                  timezone="Asia/Shanghai")
-scheduler.add_job(power_off_20, 'cron', day_of_week='0-4', hour='20', minute='5', timezone="Asia/Shanghai")
-scheduler.add_job(power_off_23, 'cron', day_of_week='0-4', hour='23', minute='5', timezone="Asia/Shanghai")
-scheduler.add_job(power_on_08, 'cron', day_of_week='0-4', hour='8', minute='5', timezone="Asia/Shanghai")
-scheduler.start()
+# scheduler = BlockingScheduler()
+# scheduler.add_job(update_testline_info_to_power_off_on, 'cron', day_of_week='0-6', hour='0-23', minute='0',
+#                   timezone="Asia/Shanghai")
+# scheduler.add_job(power_off_20, 'cron', day_of_week='0-4', hour='20', minute='5', timezone="Asia/Shanghai")
+# scheduler.add_job(power_off_23, 'cron', day_of_week='0-4', hour='23', minute='5', timezone="Asia/Shanghai")
+# scheduler.add_job(power_on_08, 'cron', day_of_week='0-4', hour='8', minute='5', timezone="Asia/Shanghai")
+# scheduler.start()
 
-'''
-# future function:
-  下电时长统计
-  TL power off/on plan show on web
-  邮件通知
-'''
+# print(facom_api_power_on_off_origin(ip='10.71.182.175', port=4001, port_num=8, operation_mode="qurery_status"))
+# facom_api_power_on_off_origin(ip='10.71.182.175', port=4001, port_num=8, operation_mode="qurery_status")
+
+
+facom_api_power_on_off(ip='10.71.182.172', port=4001, port_num=8, operation_mode="power_on")
+print(facom_api_power_on_off_query(ip='10.71.182.172', port=4001, port_num=1, operation_mode="query_status"))
+print(facom_api_power_on_off_query(ip='10.71.182.172', port=4001, port_num=8, operation_mode="query_status"))

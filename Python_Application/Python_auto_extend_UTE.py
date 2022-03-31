@@ -7,7 +7,7 @@ import time
 # password = input('>>>>>:').strip()   # 本地调试时注释掉
 
 account = "h4zhang"
-password = "Holmes0-0"
+password = "Holmes00-"
 
 my_reservations = ['https://cloud.ute.nsn-rdnet.net/user/reservations?status=1',
                    'https://cloud.ute.nsn-rdnet.net/user/reservations?status=2',
