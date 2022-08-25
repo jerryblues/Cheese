@@ -69,9 +69,9 @@ def get_data(issues):  # 处理数据
     feature_blues, feature_jazz, feature_rock, feature_shield = [], [], [], []
     remaining_effort_blues, remaining_effort_jazz, remaining_effort_rock, remaining_effort_shield = [], [], [], []
     end_fb_blues, end_fb_jazz, end_fb_rock, end_fb_shield = [], [], [], []
-    squad_jazz_hc = 7
+    squad_jazz_hc = 8
     squad_blues_hc = 8
-    squad_rock_hc = 8
+    squad_rock_hc = 7
     squad_shield_hc = 6
     squad_c_hc = 8
     squad_jazz_cap = squad_jazz_hc * 60 - 20 - 15 - 15
@@ -181,11 +181,11 @@ def pivot_data_team(feature, end_fb, remaining_effort):
 def filter_issues(issues):
     team_shield = ['Lei, Damon', 'Zhang, Jun 15.', 'Cao, Jiangping', 'Li, Ping 3.', 'Yan, Susana', 'Wang, Alex 2.',
                    'Ye, Jun 3.']
-    team_jazz = ['Chen, Dandan', 'Li, Jingyi 2.', 'Li, Delun', 'Zhou, Lingyan', 'Tang, Zheng', 'Jia, Lijun J.',
+    team_jazz = ['Fan, Jolin', 'Chen, Dandan', 'Li, Delun', 'Zhou, Lingyan', 'Tang, Zheng', 'Jia, Lijun J.',
                  'Yang, Chunjian', 'Jing, Jean']
     team_blues = ['Ge, Nanxiao', 'Zhang, Sherry', 'Zhang, Yige G.', 'Zhu, Ruifang', 'Zhang, Hao 6.', 'Zheng, Ha',
-                  'Xu, Xiaowen', 'Mao, Tingjian']
-    team_rock = ['Fan, Jolin', 'Zhuo, Lena', 'Wu, Jiadan', 'Chen, Christine', 'Wang, Zora', 'Fang, Liupei',
+                  'Wang, Zora', 'Mao, Tingjian']
+    team_rock = ['Zhuo, Lena', 'Wu, Jiadan', 'Chen, Christine', 'Xu, Xiaowen', 'Fang, Liupei',
                  'Ye, Jing', 'Pan, Jia']
     counter_shield = 0
     counter_jazz = 0
@@ -310,14 +310,14 @@ def pivot_long_open_issue(feature, reporter, status, created_date, open_day):
     return df
 
 
-def pivot_tl_status(tl_ip, tl_port, tl_power_off_on_flag, tl_power_off_date, tl_power_off_time, tl_power_on_time, tl_owner, tl_power_off_on_status):
+def pivot_tl_status(tl_info, tl_ip, tl_port, tl_power_off_on_flag, tl_power_off_date, tl_power_off_time, tl_power_on_time, tl_owner, tl_power_off_on_status):
     pd.set_option(  # 设置参数：精度，最大行，最大列，最大显示宽度
         'precision', 1,
         'display.max_rows', 500,
         'display.max_columns', 500,
         'display.width', 1000)
-    df = pd.DataFrame((list(zip(tl_ip, tl_port, tl_power_off_on_flag, tl_power_off_date, tl_power_off_time, tl_power_on_time, tl_owner, tl_power_off_on_status))))
-    df.columns = ["PB IP", "PB PORT", "Power Off/On Flag", "Power Off/On Date", "Power Off Time", "Power On Time", "TL Owner", "Power Off/On Status"]
+    df = pd.DataFrame((list(zip(tl_info, tl_ip, tl_port, tl_power_off_on_flag, tl_power_off_date, tl_power_off_time, tl_power_on_time, tl_owner, tl_power_off_on_status))))
+    df.columns = ["TL Info", "PB IP", "PB PORT", "Power Off/On Flag", "Power Off/On Date", "Power Off Time", "Power On Time", "TL Owner", "Power Off/On Status"]
     df.index = df.index + 1
     # print("print_df", '\n', df)
     # print(df.dtypes)
@@ -326,6 +326,7 @@ def pivot_tl_status(tl_ip, tl_port, tl_power_off_on_flag, tl_power_off_date, tl_
 
 file = 'C:/Holmes/code/autopoweroffon/testline_info.ini'
 conf = configparser.ConfigParser()
+tl_info = []
 tl_ip = []
 tl_port = []
 tl_power_off_on_flag = []
@@ -361,6 +362,7 @@ def facom_api_power_on_off_origin(ip, port=4001, port_num=1, operation_mode="pow
 
 def get_testline_info():
     conf.read(file, encoding="utf-8")
+    tl_info.clear()
     tl_ip.clear()
     tl_port.clear()
     tl_power_off_on_flag.clear()
@@ -372,6 +374,7 @@ def get_testline_info():
     sections = conf.sections()
     for i in range(len(sections)):  # len(sections) = total testline num
         items = conf.items(sections[i])
+        tl_info.append(sections[i])
         tl_ip.append(items[0][1])
         tl_port.append(items[1][1])
         tl_power_off_on_flag.append(items[2][1])
@@ -381,7 +384,8 @@ def get_testline_info():
         tl_owner.append(items[6][1])
         tl_power_off_on_status.append(facom_api_power_on_off_origin(
             tl_ip[i], port=4001, port_num=tl_port[i], operation_mode="query_status"))
-    return tl_ip, tl_port, tl_power_off_on_flag, tl_power_off_date, tl_power_off_time, tl_power_on_time, tl_owner, tl_power_off_on_status
+    return tl_info, tl_ip, tl_port, tl_power_off_on_flag, tl_power_off_date, tl_power_off_time, tl_power_on_time, tl_owner, tl_power_off_on_status
+
 
 # logging.basicConfig(level=logging.DEBUG,
 #                     filename='ET_statistics.log',
@@ -505,7 +509,7 @@ def web_server_issue_long_open():
 @app.route('/TL_status', methods=['GET'])
 def web_server_tl_status():
     data = get_testline_info()
-    table = pivot_tl_status(data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7])
+    table = pivot_tl_status(data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8])
     return render_template(
         "testline_status_template.html",
         total=table.to_html(classes="total", header="true", table_id="table")

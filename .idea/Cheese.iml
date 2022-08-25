@@ -10,6 +10,7 @@
     <orderEntry type="module" module-name="robotws5g" />
     <orderEntry type="module" module-name="easysnapshotextractor" />
     <orderEntry type="module" module-name="robotws" />
+    <orderEntry type="module" module-name="simplepipe" />
   </component>
   <component name="TemplatesService">
     <option name="TEMPLATE_FOLDERS">

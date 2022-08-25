@@ -6,6 +6,7 @@
       <module fileurl="file://$PROJECT_DIR$/../easysnapshotextractor/.idea/easysnapshotextractor.iml" filepath="$PROJECT_DIR$/../easysnapshotextractor/.idea/easysnapshotextractor.iml" />
       <module fileurl="file://$PROJECT_DIR$/../../ET/robotws/.idea/robotws.iml" filepath="$PROJECT_DIR$/../../ET/robotws/.idea/robotws.iml" />
       <module fileurl="file://$PROJECT_DIR$/../../ET/robotws5g/.idea/robotws5g.iml" filepath="$PROJECT_DIR$/../../ET/robotws5g/.idea/robotws5g.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../simplepipe/.idea/simplepipe.iml" filepath="$PROJECT_DIR$/../simplepipe/.idea/simplepipe.iml" />
     </modules>
   </component>
 </project>

@@ -1,7 +1,10 @@
 # coding=utf-8
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from datetime import datetime
 import time
+import pytz
+import re
 
 # account = input('>>>>>:').strip()    # 本地调试时注释掉
 # password = input('>>>>>:').strip()   # 本地调试时注释掉
@@ -12,6 +15,7 @@ password = "Holmes00-"
 my_reservations = ['https://cloud.ute.nsn-rdnet.net/user/reservations?status=1',
                    'https://cloud.ute.nsn-rdnet.net/user/reservations?status=2',
                    'https://cloud.ute.nsn-rdnet.net/user/reservations?status=3']
+#  my_reservations = ['https://cloud.ute.nsn-rdnet.net/user/reservations?status=3']
 #  default link: https://cloud.ute.nsn-rdnet.net/reservation/current
 #  pending, assigned, confirmed
 
@@ -20,13 +24,13 @@ def get_link(link):
     all_link = []
     tmp = []
     my_link = []
+
     for link in link:
         chrome_options = Options()
         chrome_options.add_argument('--headless')
         driver = webdriver.Chrome(options=chrome_options)
-
+        driver.set_page_load_timeout(60)
         driver.get(link)
-
         driver.switch_to.window(driver.current_window_handle)
         driver.find_element_by_name("username").clear()
         driver.find_element_by_name("username").send_keys(account)
@@ -74,7 +78,8 @@ def extend_ute(link):
 
         screen_text = driver.find_elements_by_xpath("/*")
         for list in screen_text:
-            # print(list.text)
+            s = list.text
+            # print(type(s))
             if "Reservation status Pending for testline" in list.text:
                 print("*Testline is pending* ...")
             elif "Reservation status Canceled" in list.text:
@@ -86,12 +91,16 @@ def extend_ute(link):
             elif "Reservation status Confirmed" in list.text:
                 print("*Testline is confirmed* ^-^")
                 driver.find_element_by_id("extend-button").click()
-                reservation_end = driver.find_element_by_xpath(
-                    '//*[@id="reservation_show_details"]/div[2]/table/tbody/tr[18]/td[2]').text
-                print("Current Reservation End Time:\n %s" % reservation_end)
+                # reservation_end = driver.find_element_by_xpath(
+                #     '//*[@id="reservation_show_details"]/div[2]/table/tbody/tr[18]/td[2]').text
+                # print("Current Reservation End Time:\n %s" % reservation_end)
             else:
                 print("Testline status not available")
-        print("Current Time:\n", time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
+
+        for line in s.split('\n'):
+            if re.match(r'Reservation end [0-9]{2}(.*)', line, re.M | re.I):
+                print("Current Reservation End Time:\n", line[16:])
+        print("Current Time:\n", datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S"))
         driver.quit()
 
 
@@ -109,3 +118,27 @@ else:
         link = get_link(my_reservations)
     else:
         print("***Script End***")
+
+# count = 1
+# try:
+#     link = get_link(my_reservations)
+# except:
+#     link = get_link(my_reservations)
+# else:
+#     while count < 9999:
+#         if link:
+#             try:
+#                 extend_ute(link)
+#             except:
+#                 extend_ute(link)
+#             else:
+#                 print("***Script Running for %s time***\n" % count)
+#                 count = count + 1
+#                 time.sleep(2400)
+#                 try:
+#                     link = get_link(my_reservations)
+#                 except:
+#                     link = get_link(my_reservations)
+#         else:
+#             print("***Testline has not been reserved***")
+#             time.sleep(2400)

@@ -5,86 +5,67 @@
 @author: h4zhang
 """
 
-from facom_cmd import *
-import configparser
-import time
-from apscheduler.schedulers.blocking import BlockingScheduler
-from datetime import datetime
-import pytz
-from git.repo import Repo
+import smtplib
+import datetime
+from email.header import Header
+from email.mime.text import MIMEText
+import urllib.request
+import re
+
+str = """Details
+ID 5faa1b36-c278-4fa8-aa3e-fe77e70cfb41
+Reservation owner Nan Xiao Ge
+Shared with Hao Zhang
+Reservation status Confirmed
+Testline user ute
+Testline password Nokia_123456
+Requested topology CLOUD_5G_I_BLLL_AP_KLLL_SANSA_L1B_ECPRI_CMWV_TDD
+Tags CLOUD_5G_I_BLLL_AP_KLLL_SANSA_L1B_ECPRI_CMWV_TDD, 5G_RAN
+Requested duration 1h
+Requested build SBTS00_ENB_9999_220514_000022
+Requested sysimage utevm_debian10_64bit_202109211335.qcow2.tar.gz
+Requested ute-4g 2219.02.00
+Requested airphone 5G_4.0.20845
+Requested test repository revision 0f82c7c5d00741df21b69b4ddb139834a5ff1118
+Requested BTS state configured
+Postpone to 17 May 2022, 6:00 a.m.
+Waiting time 04h 03m 37s
+Reservation start 17 May 2022, 10:03 a.m.
+Reservation end 17 May 2022, 7:03 p.m."""
+
+for line in str.split('\n'):
+    if re.match(r'Reservation end [0-9]{2}(.*)', line, re.M | re.I):
+        print("Current Reservation End Time:\n", line[16:])
 
 
-# def facom_api_power_on_off_origin(ip, port=4001, port_num=1, operation_mode="power_on"):
-#     """
-#     this API is PowerON or PowerOFF the facom equipment
-#     | Input Parameters | Man | Description |
-#     | ip | Yes | Ip of facom equipment |
-#     | port| Yes | Connection port of facom server,1~6 are allowed |
-#     | port_num | Yes | The power output port number |
-#     | operation_mode | Man | 'power_on' or 'power_off' |
+
+# if re.match(r'Reservation end [0-9]{2}(.*)', str, re.M | re.I):
+#     print("yes")
+# else:
+#     print("no")
+
+# def send_reportContent(subject, sender, receivers_to, receivers_cc, html):
+#     message = MIMEText(html, 'html', 'utf-8')
+#     message['From'] = Header(sender.split('@')[0], 'utf-8')
+#     message['Cc'] = receivers_cc
+#     message['To'] = receivers_to
+#     message['Subject'] = Header(subject, 'utf-8')
+#     server = smtplib.SMTP('172.24.146.151')
+#     server.sendmail(sender, receivers_to.split(','), message.as_string())
 #
-#     example:
-#     facom_api_power_on_off('10.69.6.32','4001','6','power_off')
-#     """
-#     fb_obj = OperationOfFacom(ip, port)
-#     if operation_mode in ['power_on', 'power_off', 'qurery_status']:
-#         eval('fb_obj.%s("%s")' % (operation_mode, port_num))
-#     # else:
-#     #     raise LrcValidateException('operation_mode = %s is not support, \
-#     #     it must be power_on or power_off' % operation_mode)
-
-
-def facom_api_power_on_off_origin(ip, port=4001, port_num=1, operation_mode="power_on"):
-    """
-    this API is PowerON or PowerOFF the facom equipment
-    | Input Parameters | Man | Description |
-    | ip | Yes | Ip of facom equipment |
-    | port| Yes | Connection port of facom server,1~6 are allowed |
-    | port_num | Yes | The power output port number |
-    | operation_mode | Man | 'power_on' or 'power_off' |
-
-    example:
-    facom_api_power_on_off('10.69.6.32','4001','6','power_off')
-    """
-    try:
-        fb_obj = OperationOfFacom(ip, port)
-        if operation_mode in ['power_on', 'power_off', 'qurery_status']:
-            return eval('fb_obj.%s("%s")' % (operation_mode, port_num))
-        # else:
-        #     raise LrcValidateException('operation_mode = %s is not support, \
-        #     it must be power_on or power_off' % operation_mode)
-    except:
-        return "status unkown"
-
-
-file = 'C:/Holmes/code/autopoweroffon/testline_info.ini'
-conf = configparser.ConfigParser()
-tl_ip = []
-tl_port = []
-tl_power_off_on_flag = []
-tl_power_off_date = []
-tl_power_off_time = []
-tl_power_on_time = []
-tl_owner = []
-tl_power_off_on_status = []
-
-
-def get_testline_info():
-    conf.read(file, encoding="utf-8")
-    sections = conf.sections()
-    for i in range(len(sections)):  # len(sections) = total testline num
-        items = conf.items(sections[i])
-        tl_ip.append(items[0][1])
-        tl_port.append(items[1][1])
-        tl_power_off_on_flag.append(items[2][1])
-        tl_power_off_date.append(items[3][1])
-        tl_power_off_time.append(items[4][1])
-        tl_power_on_time.append(items[5][1])
-        tl_owner.append(items[6][1])
-        tl_power_off_on_status.append(facom_api_power_on_off_origin(
-            tl_ip[i], port=4001, port_num=tl_port[i], operation_mode="qurery_status"))
-    print(tl_ip, tl_port, tl_power_off_on_status)
-    return tl_ip, tl_port, tl_power_off_on_flag, tl_power_off_date, tl_power_off_time, tl_power_on_time, tl_owner, tl_power_off_on_status
-
-
-get_testline_info()
+#
+# def getHtml(url):
+#     html = urllib.request.urlopen(url).read()
+#     return html
+#
+#
+# sender_email = r"hao.6.zhang@nokia-sbell.com"
+# receiver_email = r"hao.6.zhang@nokia-sbell.com, youyong.zheng@nokia-sbell.com"
+# receiver_cc_email = r"hao.6.zhang@nokia-sbell.com"
+# today = str(datetime.date.today())
+# subject = f'ET team - Testline Power Off/On status - {today}'
+#
+# html = getHtml("http://10.57.209.188:5000/TL_status")
+#
+# send_reportContent(subject=subject, sender=sender_email, receivers_to=receiver_email, receivers_cc=receiver_cc_email,
+#                    html=html)
