@@ -1,7 +1,8 @@
 import socket
 import binascii
+import time
 import logging
-
+# remember to open firewall when local debugging
 
 __all__ = ['OperationOfFacom']
 
@@ -34,8 +35,8 @@ class OperationOfFacom(object):
     def power_on(self, port_num):
         send_message = self._generate_send_message(
             port_num, 'setup', 'powerOn')
-        print ('generate power on message')
-        print ('send power on message')
+        print('generate power on message')
+        print('send power on message')
         return self._send(send_message, 'setup')
 
     def power_off(self, port_num):
@@ -73,14 +74,17 @@ class OperationOfFacom(object):
     def _send(self, send_message, function_code):
         self.socket.connect((self.ip, self.port))
         # print('socket connect')
+        # time.sleep(2)
         # print(send_message)
         self.socket.send(send_message)
         # print('socket send')
         response = self.socket.recv(128)
+        # print(response)
         # print('socket response')
         self.socket.close()
         # print('socket close')
         return self._check_response(send_message, response, function_code)
+
 
     def _check_response(self, send_message, response, function_code='setup'):
         response_of_POWER_ON = [b'\x01\x02\x01\x01`H', b'\x01\x02\x02\x01`\xb8', b'\x01\x02\x03\x01a(', b'\x01\x02\x04\x01c\x18'

@@ -9,7 +9,11 @@ from collections import Counter
 import datetime
 import configparser
 from facom_cmd import *
-
+from flask_sslify import SSLify
+from OpenSSL import SSL
+from taf.pdu import pdu
+import time
+import socket
 
 '''
 # lib to install
@@ -17,6 +21,8 @@ pip3 install jira
 pip3 install pandas
 pip3 install flask
 pip3 install apscheduler
+pip3 install flask_sslify
+pip3 install pyopenssl
 '''
 # account = input('>>>>>:').strip()    # 本地调试时注释掉
 # password = input('>>>>>:').strip()   # 本地调试时注释掉
@@ -69,10 +75,10 @@ def get_data(issues):  # 处理数据
     feature_blues, feature_jazz, feature_rock, feature_shield = [], [], [], []
     remaining_effort_blues, remaining_effort_jazz, remaining_effort_rock, remaining_effort_shield = [], [], [], []
     end_fb_blues, end_fb_jazz, end_fb_rock, end_fb_shield = [], [], [], []
-    squad_jazz_hc = 8
-    squad_blues_hc = 8
+    squad_jazz_hc = 7
+    squad_blues_hc = 7
     squad_rock_hc = 7
-    squad_shield_hc = 6
+    squad_shield_hc = 7
     squad_c_hc = 8
     squad_jazz_cap = squad_jazz_hc * 60 - 20 - 15 - 15
     squad_blues_cap = squad_blues_hc * 60 - 20 - 15 - 15
@@ -310,25 +316,29 @@ def pivot_long_open_issue(feature, reporter, status, created_date, open_day):
     return df
 
 
-def pivot_tl_status(tl_info, tl_ip, tl_port, tl_power_off_on_flag, tl_power_off_date, tl_power_off_time, tl_power_on_time, tl_owner, tl_power_off_on_status):
+def pivot_tl_status(tl_info, tl_ip, tl_port, tl_port_num, tl_power_off_on_flag, tl_power_off_date, tl_power_off_time, tl_power_on_time, tl_owner,
+                    tl_power_off_on_status):
     pd.set_option(  # 设置参数：精度，最大行，最大列，最大显示宽度
         'precision', 1,
         'display.max_rows', 500,
         'display.max_columns', 500,
         'display.width', 1000)
-    df = pd.DataFrame((list(zip(tl_info, tl_ip, tl_port, tl_power_off_on_flag, tl_power_off_date, tl_power_off_time, tl_power_on_time, tl_owner, tl_power_off_on_status))))
-    df.columns = ["TL Info", "PB IP", "PB PORT", "Power Off/On Flag", "Power Off/On Date", "Power Off Time", "Power On Time", "TL Owner", "Power Off/On Status"]
+    df = pd.DataFrame((list(zip(tl_info, tl_ip, tl_port, tl_port_num, tl_power_off_on_flag, tl_power_off_date, tl_power_off_time, tl_power_on_time, tl_owner,
+                                tl_power_off_on_status))))
+    df.columns = ["TL Info", "PB IP", "PB PORT", "PB PORT NUM", "Power Off/On Flag", "Power Off/On Date", "Power Off Time", "Power On Time", "TL Owner",
+                  "Power Off/On Status"]
     df.index = df.index + 1
     # print("print_df", '\n', df)
     # print(df.dtypes)
     return df
 
 
-file = 'C:/Holmes/code/autopoweroffon/testline_info.ini'
+file = '/home/ute/zhanghao/autopoweroffon/testline_info.ini'
 conf = configparser.ConfigParser()
 tl_info = []
 tl_ip = []
 tl_port = []
+tl_port_num = []
 tl_power_off_on_flag = []
 tl_power_off_date = []
 tl_power_off_time = []
@@ -337,27 +347,32 @@ tl_owner = []
 tl_power_off_on_status = []
 
 
-def facom_api_power_on_off_origin(ip, port=4001, port_num=1, operation_mode="power_on"):
-    """
-    this API is PowerON or PowerOFF the facom equipment
-    | Input Parameters | Man | Description |
-    | ip | Yes | Ip of facom equipment |
-    | port| Yes | Connection port of facom server,1~6 are allowed |
-    | port_num | Yes | The power output port number |
-    | operation_mode | Man | 'power_on' or 'power_off' |
-
-    example:
-    facom_api_power_on_off('10.69.6.32','4001','6','power_off')
-    """
+def query_pdu(pdu_ip, pdu_port, port_num, pdu_alias='query'):
+    ppdu = pdu()
+    # pdu_type = 'HBTE'
+    if pdu_port == '5000':
+        pdu_type = 'HBTE'
+    elif pdu_port == '4001':
+        pdu_type = 'FACOM'
+    else:
+        power_status = 'ERROR PORT'
+        return power_status
+    if port_num not in ['1', '2', '3', '4', '5', '6', '7', '8']:
+        power_status = 'ERROR PORT NUM'
+        return power_status
+    # print(pdu_ip, pdu_type)
     try:
-        fb_obj = OperationOfFacom(ip, port)
-        if operation_mode in ['power_on', 'power_off', 'query_status']:
-            return eval('fb_obj.%s("%s")' % (operation_mode, port_num))
-    # else:
-    #     raise LrcValidateException('operation_mode = %s is not support, \
-    #     it must be power_on or power_off' % operation_mode)
-    except:
-        return "status_unknown"
+        ppdu.setup_pdu(model=pdu_type, host=pdu_ip, port=pdu_port, alias=pdu_alias)
+        power_status = ppdu.get_port_status(port=port_num, pdu_device=pdu_alias)
+    except socket.timeout:
+        power_status = 'Timeout'
+        return power_status
+    except Exception as e:
+        # print('ERROR:', e)
+        power_status = e
+        return power_status
+    else:
+        return power_status
 
 
 def get_testline_info():
@@ -365,6 +380,7 @@ def get_testline_info():
     tl_info.clear()
     tl_ip.clear()
     tl_port.clear()
+    tl_port_num.clear()
     tl_power_off_on_flag.clear()
     tl_power_off_date.clear()
     tl_power_off_time.clear()
@@ -372,19 +388,23 @@ def get_testline_info():
     tl_owner.clear()
     tl_power_off_on_status.clear()
     sections = conf.sections()
+    tic = time.perf_counter()
     for i in range(len(sections)):  # len(sections) = total testline num
         items = conf.items(sections[i])
         tl_info.append(sections[i])
         tl_ip.append(items[0][1])
         tl_port.append(items[1][1])
-        tl_power_off_on_flag.append(items[2][1])
-        tl_power_off_date.append(items[3][1])
-        tl_power_off_time.append(items[4][1])
-        tl_power_on_time.append(items[5][1])
-        tl_owner.append(items[6][1])
-        tl_power_off_on_status.append(facom_api_power_on_off_origin(
-            tl_ip[i], port=4001, port_num=tl_port[i], operation_mode="query_status"))
-    return tl_info, tl_ip, tl_port, tl_power_off_on_flag, tl_power_off_date, tl_power_off_time, tl_power_on_time, tl_owner, tl_power_off_on_status
+        tl_port_num.append(items[2][1])
+        tl_power_off_on_flag.append(items[3][1])
+        tl_power_off_date.append(items[4][1])
+        tl_power_off_time.append(items[5][1])
+        tl_power_on_time.append(items[6][1])
+        tl_owner.append(items[7][1])
+        tl_power_off_on_status.append(query_pdu(tl_ip[i], tl_port[i], tl_port_num[i]))
+    toc = time.perf_counter()
+    print(f"time cost: {toc - tic:0.2f} seconds")
+    # print(tl_power_off_on_status)
+    return tl_info, tl_ip, tl_port, tl_port_num, tl_power_off_on_flag, tl_power_off_date, tl_power_off_time, tl_power_on_time, tl_owner, tl_power_off_on_status
 
 
 # logging.basicConfig(level=logging.DEBUG,
@@ -392,7 +412,6 @@ def get_testline_info():
 #                     filemode='a',
 #                     format='%(asctime)s - %(levelname)s: %(message)s'
 #                     )
-
 
 app = Flask(__name__)
 
@@ -509,7 +528,7 @@ def web_server_issue_long_open():
 @app.route('/TL_status', methods=['GET'])
 def web_server_tl_status():
     data = get_testline_info()
-    table = pivot_tl_status(data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8])
+    table = pivot_tl_status(data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9])
     return render_template(
         "testline_status_template.html",
         total=table.to_html(classes="total", header="true", table_id="table")
@@ -517,6 +536,13 @@ def web_server_tl_status():
 
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port='80')
-    # app.run(host='10.57.209.188')
-    # should be http://10.57.209.188:5000/FB_Effort  in home_template.html
+    '''http'''
+    app.run(host='10.57.195.35', port=8080)
+    # need to update in home_template.html
+
+    '''https -- private key'''
+    # sslify = SSLify(app)
+    # app.run(host='10.57.195.35', port=8443, debug=True, ssl_context=('./SSL/ca/ca.crt', './SSL/ca/ca.key'))
+
+    '''https -- default key'''
+    # app.run(host='10.57.195.35', port=8080, debug=True, ssl_context='adhoc')

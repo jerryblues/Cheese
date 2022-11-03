@@ -197,18 +197,18 @@ receiver_email = r"hao.6.zhang@nokia-sbell.com"
 receiver_cc_email = r"hao.6.zhang@nokia-sbell.com"
 today = str(datetime.date.today())
 subject = f'RAN_L3_SW_1_CN_ET - Testline Power Off/On Status - {today}'
-# html = urllib.request.urlopen("http://10.57.209.188:8080/TL_status").read()
+# html = urllib.request.urlopen("https://10.57.195.35:8080/TL_status").read()
 
 
 def send_mail():
     try:
-        html = urllib.request.urlopen("http://10.57.209.188:8080/TL_status", timeout=10).read()
+        html = urllib.request.urlopen("https://10.57.195.35:8080/TL_status", timeout=600).read()
     except:
         html = '<font size="4">' \
                '<strong><br/>' \
                'Not able to get TL status now!<br/>' \
                'Check this link first:<br/>' \
-               'http://10.57.209.188:8080/TL_status</strong>'
+               'https://10.57.195.35:8080/TL_status</strong>'
         print("=== get TL status failed ===")
     else:
         print("=== send mail done ===")

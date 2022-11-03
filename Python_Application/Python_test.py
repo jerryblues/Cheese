@@ -5,67 +5,121 @@
 @author: h4zhang
 """
 
-import smtplib
+from jira import JIRA
+import pandas as pd
+from flask import Flask, render_template
+from datetime import datetime
+import pytz
+import logging
+from collections import Counter
 import datetime
-from email.header import Header
-from email.mime.text import MIMEText
+import configparser
+from facom_cmd import *
 import urllib.request
-import re
+import ssl
+from taf.pdu import pdu
+import time
+import socket
 
-str = """Details
-ID 5faa1b36-c278-4fa8-aa3e-fe77e70cfb41
-Reservation owner Nan Xiao Ge
-Shared with Hao Zhang
-Reservation status Confirmed
-Testline user ute
-Testline password Nokia_123456
-Requested topology CLOUD_5G_I_BLLL_AP_KLLL_SANSA_L1B_ECPRI_CMWV_TDD
-Tags CLOUD_5G_I_BLLL_AP_KLLL_SANSA_L1B_ECPRI_CMWV_TDD, 5G_RAN
-Requested duration 1h
-Requested build SBTS00_ENB_9999_220514_000022
-Requested sysimage utevm_debian10_64bit_202109211335.qcow2.tar.gz
-Requested ute-4g 2219.02.00
-Requested airphone 5G_4.0.20845
-Requested test repository revision 0f82c7c5d00741df21b69b4ddb139834a5ff1118
-Requested BTS state configured
-Postpone to 17 May 2022, 6:00 a.m.
-Waiting time 04h 03m 37s
-Reservation start 17 May 2022, 10:03 a.m.
-Reservation end 17 May 2022, 7:03 p.m."""
-
-for line in str.split('\n'):
-    if re.match(r'Reservation end [0-9]{2}(.*)', line, re.M | re.I):
-        print("Current Reservation End Time:\n", line[16:])
+file = 'C:/Holmes/code/autopoweroffon/testline_info.ini'
+conf = configparser.ConfigParser()
+tl_info = []
+tl_ip = []
+tl_port = []
+tl_port_num = []
+tl_power_off_on_flag = []
+tl_power_off_date = []
+tl_power_off_time = []
+tl_power_on_time = []
+tl_owner = []
+tl_power_off_on_status = []
 
 
+def get_testline_info():
+    conf.read(file, encoding="utf-8")
+    tl_info.clear()
+    tl_ip.clear()
+    tl_port.clear()
+    tl_port_num.clear()
+    tl_power_off_on_flag.clear()
+    tl_power_off_date.clear()
+    tl_power_off_time.clear()
+    tl_power_on_time.clear()
+    tl_owner.clear()
+    tl_power_off_on_status.clear()
+    sections = conf.sections()
+    tic = time.perf_counter()
+    for i in range(len(sections)):  # len(sections) = total testline num
+        items = conf.items(sections[i])
+        tl_info.append(sections[i])
+        tl_ip.append(items[0][1])
+        tl_port.append(items[1][1])
+        tl_port_num.append(items[2][1])
+        tl_power_off_on_flag.append(items[3][1])
+        tl_power_off_date.append(items[4][1])
+        tl_power_off_time.append(items[5][1])
+        tl_power_on_time.append(items[6][1])
+        tl_owner.append(items[7][1])
+        tl_power_off_on_status.append(query_pdu(tl_ip[i], tl_port[i], tl_port_num[i]))
+    toc = time.perf_counter()
+    print(f"time cost: {toc - tic:0.2f} seconds")
+    # print(tl_power_off_on_status)
+    return tl_info, tl_ip, tl_port, tl_power_off_on_flag, tl_power_off_date, tl_power_off_time, tl_power_on_time, tl_owner, tl_power_off_on_status
 
-# if re.match(r'Reservation end [0-9]{2}(.*)', str, re.M | re.I):
-#     print("yes")
-# else:
-#     print("no")
 
-# def send_reportContent(subject, sender, receivers_to, receivers_cc, html):
-#     message = MIMEText(html, 'html', 'utf-8')
-#     message['From'] = Header(sender.split('@')[0], 'utf-8')
-#     message['Cc'] = receivers_cc
-#     message['To'] = receivers_to
-#     message['Subject'] = Header(subject, 'utf-8')
-#     server = smtplib.SMTP('172.24.146.151')
-#     server.sendmail(sender, receivers_to.split(','), message.as_string())
-#
-#
-# def getHtml(url):
-#     html = urllib.request.urlopen(url).read()
-#     return html
-#
-#
-# sender_email = r"hao.6.zhang@nokia-sbell.com"
-# receiver_email = r"hao.6.zhang@nokia-sbell.com, youyong.zheng@nokia-sbell.com"
-# receiver_cc_email = r"hao.6.zhang@nokia-sbell.com"
-# today = str(datetime.date.today())
-# subject = f'ET team - Testline Power Off/On status - {today}'
-#
-# html = getHtml("http://10.57.209.188:5000/TL_status")
-#
-# send_reportContent(subject=subject, sender=sender_email, receivers_to=receiver_email, receivers_cc=receiver_cc_email,
-#                    html=html)
+def query_pdu(pdu_ip, pdu_port, port_num, pdu_alias='query'):
+    ppdu = pdu()
+    # pdu_type = 'HBTE'
+    if pdu_port == '5000':
+        pdu_type = 'HBTE'
+    elif pdu_port == '4001':
+        pdu_type = 'FACOM'
+    else:
+        power_status = 'ERROR PORT'
+        return power_status
+    if port_num not in ['1', '2', '3', '4', '5', '6', '7', '8']:
+        power_status = 'ERROR PORT NUM'
+        return power_status
+    # print(pdu_ip, pdu_type)
+    try:
+        ppdu.setup_pdu(model=pdu_type, host=pdu_ip, port=pdu_port, alias=pdu_alias)
+        power_status = ppdu.get_port_status(port=port_num, pdu_device=pdu_alias)
+    except socket.timeout:
+        power_status = 'Timeout'
+        return power_status
+    except Exception as e:
+        # print('ERROR:', e)
+        power_status = e
+        return power_status
+    else:
+        return power_status
+
+
+def turn_on_pdu(pdu_ip, pdu_port, port_num, pdu_alias='turnon'):
+    ppdu = pdu()
+    if pdu_port == '5000':
+        pdu_type = 'HBTE'
+    elif pdu_port == '4001':
+        pdu_type = 'FACOM'
+    ppdu.setup_pdu(model=pdu_type, host=pdu_ip, port=pdu_port, alias=pdu_alias)
+    ppdu.power_on(port=port_num, pdu_device=pdu_alias)
+    time.sleep(2)
+
+
+def turn_off_pdu(pdu_ip, pdu_port, port_num, pdu_alias='turnoff'):
+    ppdu = pdu()
+    if pdu_port == '5000':
+        pdu_type = 'HBTE'
+    elif pdu_port == '4001':
+        pdu_type = 'FACOM'
+    ppdu.setup_pdu(model=pdu_type, host=pdu_ip, port=pdu_port, alias=pdu_alias)
+    ppdu.power_off(port=port_num, pdu_device=pdu_alias)
+    time.sleep(2)
+
+
+# get_testline_info()
+# print(query_pdu('10.71.180.173', '4001', '2'))
+# turn_off_pdu('10.71.180.173', '4001', '2')
+# print(query_pdu('10.71.180.173', '4001', '2'))
+# turn_on_pdu('10.71.180.173', '4001', '2')
+# print(query_pdu('10.71.180.173', '4001', '2'))
