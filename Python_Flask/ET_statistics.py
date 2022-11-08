@@ -333,7 +333,7 @@ def pivot_tl_status(tl_info, tl_ip, tl_port, tl_port_num, tl_power_off_on_flag, 
     return df
 
 
-file = '/home/ute/zhanghao/autopoweroffon/testline_info.ini'
+file = "C://Holmes//code//autopoweroffon//testline_info.ini"
 conf = configparser.ConfigParser()
 tl_info = []
 tl_ip = []
@@ -519,6 +519,7 @@ def web_server_issue_long_open():
     jira_long_open_issue = search_data(jira_filter_long_open_issue)
     data = find_long_open_issue(jira_long_open_issue)
     table = pivot_long_open_issue(data[0], data[1], data[2], data[3], data[4])
+    # print(table.values[0][1])
     return render_template(
         "long_open_issues_template.html",
         total=table.to_html(classes="total", header="true", table_id="table")
@@ -537,7 +538,7 @@ def web_server_tl_status():
 
 if __name__ == '__main__':
     '''http'''
-    app.run(host='10.57.195.35', port=8080)
+    app.run(host='127.0.0.1', port=80)
     # need to update in home_template.html
 
     '''https -- private key'''
