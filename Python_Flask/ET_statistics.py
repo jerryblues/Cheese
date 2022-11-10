@@ -349,11 +349,12 @@ tl_power_off_on_status = []
 
 def query_pdu(pdu_ip, pdu_port, port_num, pdu_alias='query'):
     ppdu = pdu()
-    # pdu_type = 'HBTE'
-    if pdu_port == '5000':
+    if pdu_port == 5000:
         pdu_type = 'HBTE'
-    elif pdu_port == '4001':
+    elif pdu_port == 4001:
         pdu_type = 'FACOM'
+    elif pdu_port == 3000:
+        pdu_type = 'TOPYOUNG'
     else:
         power_status = 'ERROR PORT'
         return power_status
@@ -400,7 +401,7 @@ def get_testline_info():
         tl_power_off_time.append(items[5][1])
         tl_power_on_time.append(items[6][1])
         tl_owner.append(items[7][1])
-        tl_power_off_on_status.append(query_pdu(tl_ip[i], tl_port[i], tl_port_num[i]))
+        tl_power_off_on_status.append(query_pdu(tl_ip[i], int(tl_port[i]), tl_port_num[i]))
     toc = time.perf_counter()
     print(f"time cost: {toc - tic:0.2f} seconds")
     # print(tl_power_off_on_status)
