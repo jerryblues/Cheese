@@ -185,14 +185,14 @@ def pivot_data_team(feature, end_fb, remaining_effort):
 
 
 def filter_issues(issues):
-    team_shield = ['Lei, Damon', 'Zhang, Jun 15.', 'Cao, Jiangping', 'Li, Ping 3.', 'Yan, Susana', 'Wang, Alex 2.',
-                   'Ye, Jun 3.']
-    team_jazz = ['Fan, Jolin', 'Chen, Dandan', 'Li, Delun', 'Zhou, Lingyan', 'Tang, Zheng', 'Jia, Lijun J.',
-                 'Yang, Chunjian', 'Jing, Jean']
-    team_blues = ['Ge, Nanxiao', 'Zhang, Sherry', 'Zhang, Yige G.', 'Zhu, Ruifang', 'Zhang, Hao 6.', 'Zheng, Ha',
-                  'Wang, Zora', 'Mao, Tingjian']
-    team_rock = ['Zhuo, Lena', 'Wu, Jiadan', 'Chen, Christine', 'Xu, Xiaowen', 'Fang, Liupei',
-                 'Ye, Jing', 'Pan, Jia']
+    team_shield = ['Damon Lei', 'Jun 15. Zhang', 'Jiangping Cao', 'Ping 3. Li', 'Susana Yan', 'Alex 2. Wang',
+                   'Jun 3. Ye']
+    team_jazz = ['Jolin Fan', 'Dandan Chen', 'Delun Li', 'Lingyan Zhou', 'Zheng Tang', 'Lijun J. Jia',
+                 'Chunjian Yang', 'Jean Jing']
+    team_blues = ['Nanxiao Ge', 'Sherry Zhang', 'Yige G. Zhang', 'Ruifang Zhu', 'Hao 6. Zhang', 'Ha Zheng',
+                  'Zora Wang', 'Tingjian Mao']
+    team_rock = ['Lena Zhuo', 'Jiadan Wu', 'Christine Chen', 'Xiaowen Xu', 'Liupei Fang',
+                 'Jing Ye', 'Jia Pan']
     counter_shield = 0
     counter_jazz = 0
     counter_blues = 0
@@ -204,23 +204,24 @@ def filter_issues(issues):
 
     for issue in issues:
         month.append(issue.fields.created[0:7])
-        if str(issue.fields.reporter)[:-20] in team_shield:
+        if str(issue.fields.reporter)[:-6] in team_shield:
             counter_shield = counter_shield + 1
             team.append('Shield')
             counter.append(1)
-        elif str(issue.fields.reporter)[:-20] in team_jazz:
+        elif str(issue.fields.reporter)[:-6] in team_jazz:
             counter_jazz = counter_jazz + 1
             team.append('Jazz')
             counter.append(1)
-        elif str(issue.fields.reporter)[:-20] in team_blues:
+        elif str(issue.fields.reporter)[:-6] in team_blues:
             counter_blues = counter_blues + 1
             team.append('Blues')
             counter.append(1)
-        elif str(issue.fields.reporter)[:-20] in team_rock:
+        elif str(issue.fields.reporter)[:-6] in team_rock:
             counter_rock = counter_rock + 1
             team.append('Rock')
             counter.append(1)
         else:
+            print("Ungrouped list:", str(issue.fields.reporter)[:-6])
             counter_other = counter_other + 1
             team.append('Ungrouped')
             counter.append(1)
@@ -246,7 +247,7 @@ def issue_hunter_star(issues):
     month = []
     for issue in issues:
         month.append(issue.fields.created[0:7])
-        star.append(str(issue.fields.reporter)[:-20])
+        star.append(str(issue.fields.reporter)[:-6])
     return star, month
 
 
@@ -279,7 +280,7 @@ def find_long_open_issue(issues):
     for issue in issues:
         feature.append(issue.fields.customfield_37381)
         # key.append(issue.fields.key)
-        reporter.append(str(issue.fields.reporter)[:-20])
+        reporter.append(str(issue.fields.reporter)[:-6])
         created_date.append(issue.fields.created[:-18])
         status.append(issue.fields.status)
 
@@ -333,8 +334,8 @@ def pivot_tl_status(tl_info, tl_ip, tl_port, tl_port_num, tl_power_off_on_flag, 
     return df
 
 
-file = "C://Holmes//code//autopoweroffon//testline_info.ini"
-conf = configparser.ConfigParser()
+# file = "C://Holmes//code//autopoweroffon//testline_info.ini"
+# conf = configparser.ConfigParser()
 tl_info = []
 tl_ip = []
 tl_port = []
@@ -377,6 +378,8 @@ def query_pdu(pdu_ip, pdu_port, port_num, pdu_alias='query'):
 
 
 def get_testline_info():
+    file = "C://Holmes//code//autopoweroffon//testline_info.ini"
+    conf = configparser.ConfigParser()
     conf.read(file, encoding="utf-8")
     tl_info.clear()
     tl_ip.clear()
