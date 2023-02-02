@@ -5,21 +5,22 @@ from datetime import datetime
 import time
 import pytz
 import re
+from retrying import retry
 
 # account = input('>>>>>:').strip()    # 本地调试时注释掉
 # password = input('>>>>>:').strip()   # 本地调试时注释掉
 
 account = "h4zhang"
-password = "Holmes00-"
+password = "Holmes-09"
 
 my_reservations = ['https://cloud.ute.nsn-rdnet.net/user/reservations?status=1',
                    'https://cloud.ute.nsn-rdnet.net/user/reservations?status=2',
                    'https://cloud.ute.nsn-rdnet.net/user/reservations?status=3']
-#  my_reservations = ['https://cloud.ute.nsn-rdnet.net/user/reservations?status=3']
 #  default link: https://cloud.ute.nsn-rdnet.net/reservation/current
 #  pending, assigned, confirmed
 
 
+@retry
 def get_link(link):
     all_link = []
     tmp = []
@@ -43,7 +44,6 @@ def get_link(link):
         find_href = driver.find_elements_by_tag_name('a')
         for link in find_href:
             all_link.append(link.get_attribute("href"))
-
         driver.quit()
 
     for i in all_link:
@@ -56,6 +56,7 @@ def get_link(link):
     return my_link
 
 
+@retry
 def extend_ute(link):
     for link in link:
         chrome_options = Options()
@@ -79,7 +80,6 @@ def extend_ute(link):
         screen_text = driver.find_elements_by_xpath("/*")
         for list in screen_text:
             s = list.text
-            # print(type(s))
             if "Reservation status Pending for testline" in list.text:
                 print("*Testline is pending* ...")
             elif "Reservation status Canceled" in list.text:
@@ -96,49 +96,47 @@ def extend_ute(link):
                 # print("Current Reservation End Time:\n %s" % reservation_end)
             else:
                 print("Testline status not available")
-
         for line in s.split('\n'):
-            if re.match(r'Reservation end [0-9]{2}(.*)', line, re.M | re.I):
-                print("Current Reservation End Time:\n", line[16:])
+            if re.match(r'Reservation end (.*)', line, re.M | re.I):
+                print("Reservation End Time:\n", line[15:])
+            if re.match(r'Reservation owner (.*)', line, re.M | re.I):
+                print("Reservation Owner:\n", line[17:])
         print("Current Time:\n", datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S"))
         driver.quit()
 
 
 count = 1
-link = get_link(my_reservations)
-if not link:
-    print("*Testline has not been reserved*")
-    exit(0)
-else:
-    while count < 255:
+while count < 9999:
+    link = get_link(my_reservations)
+    if link:
         extend_ute(link)
         print("***Script Running for %s time***\n" % count)
         count = count + 1
         time.sleep(2400)
+    else:
+        print("***Testline has not been reserved***")
+        count = count + 1
+        time.sleep(2400)
+
+'''
+count = 1
+while count < 9999:
+    try:
+        link = get_link(my_reservations)
+    except:
         link = get_link(my_reservations)
     else:
-        print("***Script End***")
-
-# count = 1
-# try:
-#     link = get_link(my_reservations)
-# except:
-#     link = get_link(my_reservations)
-# else:
-#     while count < 9999:
-#         if link:
-#             try:
-#                 extend_ute(link)
-#             except:
-#                 extend_ute(link)
-#             else:
-#                 print("***Script Running for %s time***\n" % count)
-#                 count = count + 1
-#                 time.sleep(2400)
-#                 try:
-#                     link = get_link(my_reservations)
-#                 except:
-#                     link = get_link(my_reservations)
-#         else:
-#             print("***Testline has not been reserved***")
-#             time.sleep(2400)
+        if link:
+            try:
+                extend_ute(link)
+            except:
+                extend_ute(link)
+            else:
+                print("***Script Running for %s time***\n" % count)
+                count = count + 1
+                time.sleep(2400)
+        else:
+            print("***Testline has not been reserved***")
+            count = count + 1
+            time.sleep(2400)
+'''

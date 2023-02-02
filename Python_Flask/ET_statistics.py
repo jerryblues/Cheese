@@ -29,7 +29,7 @@ pip3 install pyopenssl
 
 jira_server = 'https://jiradc.ext.net.nokia.com'  # jira地址
 jira_username = 'h4zhang'  # 用户名，本地调试时，可用明文代替
-jira_password = 'Holmes00-'  # 密码，本地调试时，可用明文代替
+jira_password = 'Holmes-09'  # 密码，本地调试时，可用明文代替
 
 # jira = JIRA(basic_auth=(jira_username, jira_password), options={'server': jira_server})
 jira_filter_ET = '''
@@ -63,7 +63,7 @@ def search_data(jql, max_results=10000):  # 抓取数据
         print(e)
 
 
-def convert_data(string):  # 转换格式
+def convert_data(string):  # 转换格式 xxh转换为数字
     if string is None:
         return 0
     else:
@@ -76,7 +76,7 @@ def get_data(issues):  # 处理数据
     remaining_effort_blues, remaining_effort_jazz, remaining_effort_rock, remaining_effort_shield = [], [], [], []
     end_fb_blues, end_fb_jazz, end_fb_rock, end_fb_shield = [], [], [], []
     squad_jazz_hc = 7
-    squad_blues_hc = 7
+    squad_blues_hc = 8
     squad_rock_hc = 7
     squad_shield_hc = 7
     squad_c_hc = 8
@@ -165,8 +165,6 @@ def pivot_squad(name, hc, cap):
     df = pd.DataFrame((list(zip(name, hc, cap))))
     df.columns = ["Team Name", "Team HC", "Team Capacity"]
     df.index = df.index + 1
-    # print("print_df", '\n', df)
-    # print(df.dtypes)
     return df
 
 
@@ -221,7 +219,7 @@ def filter_issues(issues):
             team.append('Rock')
             counter.append(1)
         else:
-            print("Ungrouped list:", str(issue.fields.reporter)[:-6])
+            # print("Ungrouped list:", str(issue.fields.reporter)[:-6])
             counter_other = counter_other + 1
             team.append('Ungrouped')
             counter.append(1)
@@ -257,8 +255,19 @@ def pivot_issues_star(star, month, counter):
         'display.max_rows', 500,
         'display.max_columns', 500,
         'display.width', 1000)
-    current_month = month[0]
-    df = pd.DataFrame((list(zip(star, month, counter))))
+    if len(month) == 0:  # 如果当月没有Jira时的处理
+        # current_month = datetime.datetime.now().strftime("%Y-%m")  # 配置为显示成当前月份会报错
+        current_month = 0
+        star_result = [0]
+        month_result = [0]
+        counter_result = [0]
+    else:
+        current_month = month[0]
+        star_result = star
+        month_result = month
+        counter_result = counter
+    print("current_month", current_month, type(current_month))
+    df = pd.DataFrame((list(zip(star_result, month_result, counter_result))))
     df.columns = ['Star', 'Month', 'Counter']
     pivoted_issue_star = pd.pivot_table(df, values=['Counter'], index=['Star'], columns=['Month'], fill_value=0)
     # print(pivoted_issue_star, '\n')
@@ -267,10 +276,8 @@ def pivot_issues_star(star, month, counter):
     return pivoted_issue_star
 
 
-# jira_filter_issues_long_open
 def find_long_open_issue(issues):
     feature, split_feature = [], []
-    # key = []
     reporter, split_reporter = [], []
     created_date, split_created_date = [], []
     status, split_status = [], []
@@ -279,7 +286,6 @@ def find_long_open_issue(issues):
 
     for issue in issues:
         feature.append(issue.fields.customfield_37381)
-        # key.append(issue.fields.key)
         reporter.append(str(issue.fields.reporter)[:-6])
         created_date.append(issue.fields.created[:-18])
         status.append(issue.fields.status)
@@ -334,8 +340,6 @@ def pivot_tl_status(tl_info, tl_ip, tl_port, tl_port_num, tl_power_off_on_flag, 
     return df
 
 
-# file = "C://Holmes//code//autopoweroffon//testline_info.ini"
-# conf = configparser.ConfigParser()
 tl_info = []
 tl_ip = []
 tl_port = []
@@ -438,16 +442,20 @@ def web_server_effort():
     # end_fb_blues, end_fb_jazz, end_fb_rock, end_fb_shield \ 13 14 15 16
     # squad_name, squad_hc, squad_cap \ 17 18 19
     dic = Counter(data[1])
-    length = dic[data[1][0]]
+    length = dic[data[1][0]]  # 计算第一个FB有几个数据
     origin = '0rigin_' + data[1][0]
 
+    # 在原始数据中插入数据用于展示 Origin Effort 插入的个数=第一个FB数据的个数
     new_team = data[0][:length] + data[0]
     new_fb = [origin] * length + data[1]
     new_ee = data[4][:length] + data[2]
 
+    # 总effort 和 effort百分比
     table_sum = pivot_data_sum(new_team, new_fb, new_ee)
     table_percentage = pivot_data_percentage(data[0], data[1], data[3])
+    # Team Info
     table_squad = pivot_squad(data[17], data[18], data[19])
+    # 每个Team每个FB的feature和effort
     table_blues = pivot_data_team(data[5], data[13], data[9])
     table_jazz = pivot_data_team(data[6], data[14], data[10])
     table_rock = pivot_data_team(data[7], data[15], data[11])
@@ -477,36 +485,40 @@ def web_server_issue():
     if len(data_year[0]) == 0:
         return render_template("null_template.html")
     else:
+        # 今年Jira Issue统计
         table_year = pivot_issues(data_year[0], data_year[1], data_year[2])
-
+        # 所有Jira Issue统计
         date_all = filter_issues(jira_list_all)
         table_all = pivot_issues(date_all[0], date_all[1], date_all[2])
+        # 当月Jira Issue Hunting Star
+        jira_list_month_result = issue_hunter_star(jira_list_month)
+        # 今年Jira Issue Hunting Star
+        jira_list_year_result = issue_hunter_star(jira_list_year)
 
-        jira_list_month_ = issue_hunter_star(jira_list_month)
-        jira_list_year_ = issue_hunter_star(jira_list_year)
-
-        if Counter(jira_list_month_[0]):
-            person_month, counter_month = zip(*Counter(jira_list_month_[0]).most_common(5))
-        else:
+        if Counter(jira_list_month_result[0]):  # 当月统计非0时
+            person_month, counter_month = zip(*Counter(jira_list_month_result[0]).most_common(5))  # 取前5
+            last_month = jira_list_month_result[1][0]
+        else:  # 当月统计为0时
             person_month, counter_month = [], []
-        month_of_current_month = []
-        last_month = jira_list_month_[1][0]
+            last_month = 0
 
+        result_of_current_month = []
         if len(person_month) == 0:
-            month_of_current_month = []
+            result_of_current_month = []
         else:
             for i in range(0, len(person_month)):
-                month_of_current_month.append(last_month)
+                result_of_current_month.append(last_month)
         # 用Counter函数统计当月提交Jira数量最多的前5名 获取名单、个数和当前月份
 
-        person_year, counter_year = zip(*Counter(jira_list_year_[0]).most_common(5))
-        month_of_current_year = []
-        last_month_year = jira_list_year_[1][0]
+        person_year, counter_year = zip(*Counter(jira_list_year_result[0]).most_common(5))
+        result_of_current_year = []
+        last_month_year = jira_list_year_result[1][0]
         for i in range(0, len(person_year)):
-            month_of_current_year.append(last_month_year)
+            result_of_current_year.append(last_month_year)
         # 用Counter函数统计当年提交Jira数量最多的前5名 获取名单、个数和最新月份
-        table_star_month = pivot_issues_star(person_month, month_of_current_month, counter_month)
-        table_star_year = pivot_issues_star(person_year, month_of_current_year, counter_year)
+
+        table_star_month = pivot_issues_star(person_month, result_of_current_month, counter_month)
+        table_star_year = pivot_issues_star(person_year, result_of_current_year, counter_year)
         # print("star_of_the_year:", '\n', table_star_year)
 
         return render_template(

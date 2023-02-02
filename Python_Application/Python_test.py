@@ -1,125 +1,123 @@
 # coding=utf-8
 """
-@file: Python_test.py.py
-@time: 2022/3/24 16:43
+@file: Python_facom.py
+@time: 2018/9/5 13:36
 @author: h4zhang
 """
-
-from jira import JIRA
-import pandas as pd
-from flask import Flask, render_template
+# pip3 install gitpython
+# pip3 install PyEmail
+from facom_cmd import *
+import configparser
+import time
+from apscheduler.schedulers.blocking import BlockingScheduler
 from datetime import datetime
 import pytz
-import logging
-from collections import Counter
+import smtplib
 import datetime
-import configparser
-from facom_cmd import *
+from email.header import Header
+from email.mime.text import MIMEText
 import urllib.request
 import ssl
-from taf.pdu import pdu
 import time
 import socket
-
-file = 'C:/Holmes/code/autopoweroffon/testline_info.ini'
-conf = configparser.ConfigParser()
-tl_info = []
-tl_ip = []
-tl_port = []
-tl_port_num = []
-tl_power_off_on_flag = []
-tl_power_off_date = []
-tl_power_off_time = []
-tl_power_on_time = []
-tl_owner = []
-tl_power_off_on_status = []
+from taf.pdu import pdu
 
 
-def get_testline_info():
-    conf.read(file, encoding="utf-8")
-    tl_info.clear()
-    tl_ip.clear()
-    tl_port.clear()
-    tl_port_num.clear()
-    tl_power_off_on_flag.clear()
-    tl_power_off_date.clear()
-    tl_power_off_time.clear()
-    tl_power_on_time.clear()
-    tl_owner.clear()
-    tl_power_off_on_status.clear()
-    sections = conf.sections()
-    tic = time.perf_counter()
-    for i in range(len(sections)):  # len(sections) = total testline num
-        items = conf.items(sections[i])
-        tl_info.append(sections[i])
-        tl_ip.append(items[0][1])
-        tl_port.append(items[1][1])
-        tl_port_num.append(items[2][1])
-        tl_power_off_on_flag.append(items[3][1])
-        tl_power_off_date.append(items[4][1])
-        tl_power_off_time.append(items[5][1])
-        tl_power_on_time.append(items[6][1])
-        tl_owner.append(items[7][1])
-        tl_power_off_on_status.append(query_pdu(tl_ip[i], tl_port[i], tl_port_num[i]))
-    toc = time.perf_counter()
-    print(f"time cost: {toc - tic:0.2f} seconds")
-    # print(tl_power_off_on_status)
-    return tl_info, tl_ip, tl_port, tl_power_off_on_flag, tl_power_off_date, tl_power_off_time, tl_power_on_time, tl_owner, tl_power_off_on_status
+from telnetlib import Telnet
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.header import Header
+import optparse
+import os
+import logging
+import sys
 
 
-def query_pdu(pdu_ip, pdu_port, port_num, pdu_alias='query'):
-    ppdu = pdu()
-    # pdu_type = 'HBTE'
-    if pdu_port == '5000':
-        pdu_type = 'HBTE'
-    elif pdu_port == '4001':
-        pdu_type = 'FACOM'
-    else:
-        power_status = 'ERROR PORT'
-        return power_status
-    if port_num not in ['1', '2', '3', '4', '5', '6', '7', '8']:
-        power_status = 'ERROR PORT NUM'
-        return power_status
-    # print(pdu_ip, pdu_type)
-    try:
-        ppdu.setup_pdu(model=pdu_type, host=pdu_ip, port=pdu_port, alias=pdu_alias)
-        power_status = ppdu.get_port_status(port=port_num, pdu_device=pdu_alias)
-    except socket.timeout:
-        power_status = 'Timeout'
-        return power_status
-    except Exception as e:
-        # print('ERROR:', e)
-        power_status = e
-        return power_status
-    else:
-        return power_status
+ssl._create_default_https_context = ssl._create_unverified_context
 
 
-def turn_on_pdu(pdu_ip, pdu_port, port_num, pdu_alias='turnon'):
-    ppdu = pdu()
-    if pdu_port == '5000':
-        pdu_type = 'HBTE'
-    elif pdu_port == '4001':
-        pdu_type = 'FACOM'
-    ppdu.setup_pdu(model=pdu_type, host=pdu_ip, port=pdu_port, alias=pdu_alias)
-    ppdu.power_on(port=port_num, pdu_device=pdu_alias)
-    time.sleep(2)
+class MailSender:
+    def __init__(self):
+        self.nokia_relays = [
+            '10.130.128.21',
+            '10.130.128.30',
+            '135.239.3.80',
+            '135.239.3.83']
+        self.relay_port = 25
+        self.sender = 'hao.6.zhang@nokia-sbell.com'
+
+    def is_relay_connectable(self, relay):
+        try:
+            con = Telnet(relay, self.relay_port, timeout=5)
+            is_connectable = True
+            con.close()
+        except Exception:
+            print('connet to {} failed'.format(relay))
+            is_connectable = False
+        return is_connectable
+
+    def choose_nokia_relay(self):
+        for relay in self.nokia_relays:
+            if self.is_relay_connectable(relay):
+                return relay
+        raise AssertionError(
+            'not find the nokia mail relay from {} '
+            'with port {}'.format(
+                self.nokia_relays,
+                self.relay_port))
+
+    def send_mail(self, receiver, subject, content, format='plain', attachFileList=None):
+        receiver = receiver.replace(',', ';')
+        sender = self.sender
+        message = MIMEMultipart()
+        message['From'] = self.sender
+        message['To'] = receiver
+        subject = subject
+        message['Subject'] = Header(subject, 'utf-8')
+
+        message.attach(MIMEText(content, format, 'utf-8'))
+        if attachFileList:
+            for file in attachFileList:
+                att1 = MIMEText(open(file, 'rb').read(), 'base64', 'utf-8')
+                att1["Content-Type"] = 'application/octet-stream'
+                att1["Content-Disposition"] = 'attachment; filename={}'.format(file)
+                message.attach(att1)
+
+        relay = self.choose_nokia_relay()
+        smtp = smtplib.SMTP(relay, self.relay_port)
+        smtp.sendmail(sender, receiver, message.as_string())
+        smtp.quit()
+        print('send mail to {} succeed'.format(receiver))
 
 
-def turn_off_pdu(pdu_ip, pdu_port, port_num, pdu_alias='turnoff'):
-    ppdu = pdu()
-    if pdu_port == '5000':
-        pdu_type = 'HBTE'
-    elif pdu_port == '4001':
-        pdu_type = 'FACOM'
-    ppdu.setup_pdu(model=pdu_type, host=pdu_ip, port=pdu_port, alias=pdu_alias)
-    ppdu.power_off(port=port_num, pdu_device=pdu_alias)
-    time.sleep(2)
+def mail():
+    content = urllib.request.urlopen("https://10.57.195.35:8080/TL_status", timeout=500).read()
+    MailSender().send_mail(
+        receiver='hao.6.zhang@nokia-sbell.com',
+        subject='RAN_L3_SW_1_CN_ET - Testline Power Off/On Status',
+        content=content, format='html')
 
 
-# get_testline_info()
-# print(query_pdu('10.71.180.173', '4001', '2'))
-# turn_off_pdu('10.71.180.173', '4001', '2')
-# print(query_pdu('10.71.180.173', '4001', '2'))
-# turn_on_pdu('10.71.180.173', '4001', '2')
-# print(query_pdu('10.71.180.173', '4001', '2'))
+# mail()
+
+import random
+from retrying import retry
+@retry
+def random_with_retry():
+    if random.randint(0, 10) > 2:
+        print("大于2，重试...")
+        raise Exception("大于2")
+    print("小于2，成功！")
+
+
+@retry
+def retry_ute():
+    x = random.randint(0, 3)
+    if x == 0:
+        print("can not be 0")
+        raise Exception("=0")
+    print(12 / x)
+
+
+retry_ute()
