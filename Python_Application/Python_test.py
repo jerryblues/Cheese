@@ -103,6 +103,8 @@ def mail():
 
 import random
 from retrying import retry
+
+
 @retry
 def random_with_retry():
     if random.randint(0, 10) > 2:
@@ -111,13 +113,19 @@ def random_with_retry():
     print("小于2，成功！")
 
 
+i = 0
+
+
 @retry
 def retry_ute():
-    x = random.randint(0, 3)
+    global i
+    i = i + 1
+    x = random.randint(0, 1)
+    print("\nstart...", "\nx =", x)
     if x == 0:
-        print("can not be 0")
-        raise Exception("=0")
-    print(12 / x)
+        print("x can not be 0. retry...", i)
+        # raise Exception("=0")
+    print("result: 12 /", x, "=", 12 / x)
 
 
 retry_ute()

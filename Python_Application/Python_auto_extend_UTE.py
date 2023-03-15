@@ -105,17 +105,21 @@ def extend_ute(link):
         driver.quit()
 
 
-count = 1
-while count < 9999:
+script_count = 1
+extend_count = 1
+while script_count < 9999:
     link = get_link(my_reservations)
     if link:
         extend_ute(link)
-        print("***Script Running for %s time***\n" % count)
-        count = count + 1
+        print("***UTE extended for %s time***" % extend_count)
+        print("***Script Running for %s time***\n" % script_count)
+        extend_count = extend_count + 1
+        script_count = script_count + 1
         time.sleep(2400)
     else:
-        print("***Testline has not been reserved***")
-        count = count + 1
+        print("***UTE not reserved***")
+        print("***Script Running for %s time***\n" % script_count)
+        script_count = script_count + 1
         time.sleep(2400)
 
 '''
