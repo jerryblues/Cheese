@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Feature Info</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='table.css') }}">
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script type="text/javascript" src="../static/datatables.js"></script>
+    <script>
+        // 增加列过滤
+        $(document).ready(function() {
+            $('#myTable').DataTable({
+                initComplete: function () {
+                    this.api().columns().every(function () {
+                        var column = this;
+                        var select = $('<select><option value=""></option></select>')
+                            .appendTo($(column.header()))
+                            .on('change', function () {
+                                var val = $.fn.dataTable.util.escapeRegex(
+                                    $(this).val()
+                                );
+                                column
+                                    .search(val ? '^' + val + '$' : '', true, false)
+                                    .draw();
+                            });
+
+                        column.data().unique().sort().each(function (d, j) {
+                            select.append('<option value="' + d + '">' + d + '</option>')
+                        });
+                    });
+                },
+                ordering: false, //取消排序
+                autoWidth: true, //自动列宽
+                language: {
+                    "emptyTable": "No data available in table",
+                    "info": "Showing _START_ to _END_ of _TOTAL_ entries",
+                    "infoEmpty": "Showing 0 to 0 of 0 entries",
+                    "infoFiltered": "(filtered from _MAX_ total entries)",
+                    "lengthMenu": "Show _MENU_ entries",
+                    "loadingRecords": "Loading...",
+                    "processing": "Processing...",
+                    "search": "Search:",
+                    "zeroRecords": "No matching records found"
+                }
+            });
+        } );
+    </script>
+</head>
+<body>
+    <form action="/feature_info" method="POST">
+        <h3 for="feature_id">Feature ID<br>
+        <input type="text" id="feature_id" name="feature_id">
+        <input type="submit" value="Submit"></h3>
+    </form>
+    <!--    case和label默认值为0，两个值相同时显示为蓝色，值不同时显示为红色-->
+    <h3>Summary</h3>
+    <p>Total case number:
+    {% if total_case == total_label %}
+        <span style="color: blue;">{{ total_case|default('0') }}</span>
+    {% else %}
+        <span style="color: red;">{{ total_case|default('0') }}</span>
+    {% endif %}
+    Total label number:
+    {% if total_case == total_label %}
+        <span style="color: blue;">{{ total_label|default('0') }}</span>
+    {% else %}
+        <span style="color: red;">{{ total_label|default('0') }}</span>
+    {% endif %}
+    </p>
+    <h3>Detailed Table</h3>
+    <table id="myTable" class="display">
+        <thead>
+            <tr>
+                <th>Backlog ID</th>
+                <th>End FB</th>
+                <th>Case Name</th>
+                <th>Label</th>
+                <th>QC Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in data %}
+            <tr>
+                <td>{{ item['backlog_id'] }}</td>
+                <td>{{ item['end_fb'] }}</td>
+                <td>{{ item['case_name'] }}</td>
+                <td>{{ item['label'] }}</td>
+                <td>{{ item['qc_status'] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

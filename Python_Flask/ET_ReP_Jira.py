@@ -4,10 +4,13 @@
 @time: 2023/4/26 11:01
 @author: h4zhang
 """
-from flask import Flask, render_template, request
 import requests
 import json
+import pandas as pd
+from flask import Flask, render_template, request
 from jira import JIRA
+from flask import Flask, jsonify, render_template
+import re
 
 
 def get_token():
@@ -42,7 +45,7 @@ def get_token():
     token = response.text[third_quote_index + 1:fourth_quote_index]
 
     # 输出 'token'
-    print("token:", token)
+    print("===token===\n", token)
     return token
 
 
@@ -58,7 +61,12 @@ def validate_token(t):
     # 发送POST请求
     res = requests.post(url, json=data)
     # If the token is invalid, the server will respond with status 400 and JSON object that contains further details of the error.
-    print("response:", res)
+    # print(type(res))
+    # print(res.status_code)
+    if res.status_code == 201:
+        print("===token is valid===")
+    else:
+        print("===response===\n", res)
     return res
 
 
@@ -83,12 +91,8 @@ def query_jira(link):
     return end_fb_string, label_string
 
 
-# token = get_token()
-# validate_token(token)
-
 url = "https://rep-portal.ext.net.nokia.com/api/qc-beta/instances/report/?fields=id,m_path,test_set__name,backlog_id,name,url,status,status_color,fault_report_id_link,comment,sw_build,res_tester,test_entity,function_area,ca,organization,release,feature,requirement,last_testrun__timestamp&limit=200&m_path__pos_neg=s\RAN_L3_SW_CN_1&ordering=name&test_set__name__pos_neg_empty_str="
-token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6Img0emhhbmciLCJpYXQiOjE2ODI0MDY1NzksImV4cCI6MTY4MjY2NTc3OSwianRpIjoiNzk4Y2EwZDgtMTA2YS00YjE2LWExNDQtYmUyMGFlMzlmMmE0IiwidXNlcl9pZCI6MTM0OTgsInVzZXJfcHJvZmlsZV9pZCI6WzEzNDk4XSwib3JpZ19pYXQiOjE2ODI0MDY1NzksImlzX2FkbWluIjpmYWxzZX0.Qm7v87_ZDOP1JzJYpvOIBt4zjc2aV7SVdUqS84OU0NQ"
-# query_url = url + feature
+token = get_token()
 
 # headers format is "JWT token" in type of string
 headers = {
@@ -109,7 +113,7 @@ def get_result(feature):
     qc_status = []
     end_fb = []
     label = []
-    # query backlog ID and case name
+    # query backlog ID and case name from reporting portal, 'feature' is from input on web
     query_rep_result = query_rep(feature)
     '''
     data format
@@ -124,32 +128,61 @@ def get_result(feature):
         backlog_id.append(query_rep_result['results'][i]['backlog_id'][0]['id'])
         case_name.append(query_rep_result['results'][i]['name'][:19])
         qc_status.append(query_rep_result['results'][i]['status'])
-        # query end FB and label
+        # query end FB and label from Jira, according to backlog_id
         query_jira_result = query_jira("key = " + backlog_id[i])
-        end_fb.append(query_jira_result[0])
-        tc_tag = [s for s in query_jira_result[1] if s.startswith('TC')]
-        label.append(tc_tag)
+        end_fb.append(query_jira_result[0])      # get end_fb
+        tc_tag = [s for s in query_jira_result[1] if s.startswith('TC')]     # get label, format is ['TC#001#']
+        case_number = int(re.findall(r'\d+', tc_tag[0])[0])                  # get case number from label
+        label.append(case_number)
         i += 1
         # print(backlog_id[k], end_fb[k], case_name[k], label[k], qc_status[k])
     return backlog_id, end_fb, case_name, label, qc_status
 
 
+# 取出唯一的backlog ID，并把对应的label个数累加
+def summary(lst1, lst2):
+    distinct_indexes = []
+    seen = set()
+    for i, x in enumerate(lst1):
+        if x not in seen:
+            seen.add(x)
+            distinct_indexes.append(i)
+    # print(distinct_indexes)
+    total = 0
+    for i in distinct_indexes:
+        total = total + lst2[i]
+    # print(total)
+    return total
+
+
 app = Flask(__name__)
 
 
-@app.route("/")
+@app.route("/feature_info")
 def index():
-    return render_template("case_status_form.html")
+    return render_template("et_rep_jira.html")
 
 
-@app.route("/feature_case_status", methods=["POST"])
+@app.route("/feature_info", methods=["POST"])
 def process_input():
-    feature = request.form.get("feature_id")
-    data = get_result(feature)
-    return render_template('case_status_table.html',
-                           len=len(data[0]),
-                           list1=data[0], list2=data[1], list3=data[2], list4=data[3], list5=data[4])
+    feature = request.form.get("feature_id")  # get input from web
+    source_data = get_result(feature)
+    data = {
+        'backlog_id': source_data[0],
+        'end_fb': source_data[1],
+        'case_name': source_data[2],
+        'label': source_data[3],
+        'qc_status': source_data[4]
+    }
+    total_label = summary(source_data[0], source_data[3])
+    # print("total label", total_label)
+    total_case = len(source_data[2])
+    # print("total case", total_case)
+    df = pd.DataFrame(data)
+    # 表格数据由df传入，数值则直接传入html
+    return render_template('et_rep_jira.html', data=df.to_dict('records'), total_label=total_label, total_case=total_case)
 
 
-if __name__ == "__main__":
-    app.run()
+if __name__ == '__main__':
+    validate_token(token)
+    app.run(host='127.0.0.1', port=8080)
