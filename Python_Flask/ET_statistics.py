@@ -14,6 +14,7 @@ from OpenSSL import SSL
 from taf.pdu import pdu
 import time
 import socket
+import ET_ReP_Jira
 
 '''
 # lib to install
@@ -552,9 +553,34 @@ def web_server_tl_status():
     )
 
 
+@app.route("/feature_info")
+def index():
+    return render_template("et_rep_jira.html")
+
+
+@app.route("/feature_info", methods=["POST"])
+def process_input():
+    feature = ET_ReP_Jira.request.form.get("feature_id")  # get input from web
+    source_data = ET_ReP_Jira.get_result(feature)
+    data = {
+        'backlog_id': source_data[0],
+        'end_fb': source_data[1],
+        'case_name': source_data[2],
+        'label': source_data[3],
+        'qc_status': source_data[4]
+    }
+    total_label = ET_ReP_Jira.summary(source_data[0], source_data[3])
+    # print("total label", total_label)
+    total_case = len(source_data[2])
+    # print("total case", total_case)
+    df = pd.DataFrame(data)
+    # 表格数据由df传入，数值则直接传入html
+    return render_template('et_rep_jira.html', data=df.to_dict('records'), total_label=total_label, total_case=total_case)
+
+
 if __name__ == '__main__':
     '''http'''
-    app.run(host='127.0.0.1', port=80)
+    app.run(debug=True, host='127.0.0.1', port=8080)
     # need to update in home_template.html
 
     '''https -- private key'''
