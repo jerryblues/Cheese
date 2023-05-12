@@ -11,6 +11,14 @@ from flask import Flask, render_template, request
 from jira import JIRA
 from flask import Flask, jsonify, render_template
 import re
+import logging
+
+
+logging.basicConfig(level=logging.INFO,
+                    filename='ET_statistics.log',
+                    filemode='a',
+                    format='%(asctime)s - %(levelname)s: %(message)s'
+                    )
 
 
 def get_token():
@@ -113,7 +121,9 @@ def get_result(feature, t):
     end_fb = []
     label = []
     # query backlog ID and case name from reporting portal, 'feature' is from input on web
+    logging.info("<--3.0 get result start-->")
     query_rep_result = query_rep(feature, t)
+    logging.info("<--3.1 get result from rep-->")
     '''
     data format
     print(data)
@@ -125,17 +135,21 @@ def get_result(feature, t):
     '''
     while i < len(query_rep_result['results']):
         backlog_id.append(query_rep_result['results'][i]['backlog_id'][0]['id'])
-        case_name.append(query_rep_result['results'][i]['name'][:19])
+        # 完整的case name
+        fullname = query_rep_result['results'][i]['name']
+        # 截取fullname中第一个英文字符开始的60个字符
+        case_name.append(fullname[re.search('[a-zA-Z]', fullname).start():100] + '...')
         qc_status.append(query_rep_result['results'][i]['status'])
         # query end FB and label from Jira, according to backlog_id
         query_jira_result = query_jira("key = " + backlog_id[i])
+        logging.info("<--3.2 get result from jira-->")
         end_fb.append(query_jira_result[0])      # get end_fb
         tc_tag = [s for s in query_jira_result[1] if s.startswith('TC')]     # get label, format is ['TC#001#']
         case_number = int(re.findall(r'\d+', tc_tag[0])[0])                  # get case number from label
         label.append(case_number)
         i += 1
         # print(backlog_id[k], end_fb[k], case_name[k], label[k], qc_status[k])
-    return backlog_id, end_fb, case_name, label, qc_status
+    return backlog_id, end_fb, label, case_name, qc_status
 
 
 # 取出唯一的backlog ID，并把对应的label个数累加
