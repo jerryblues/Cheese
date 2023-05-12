@@ -1,20 +1,17 @@
 # coding=utf-8
 from jira import JIRA
 import pandas as pd
-from flask import Flask, render_template
 from datetime import datetime
 import pytz
-import logging
 from collections import Counter
 import datetime
 import configparser
-from facom_cmd import *
-from flask_sslify import SSLify
-from OpenSSL import SSL
 from taf.pdu import pdu
 import time
 import socket
 import ET_ReP_Jira
+from flask import Flask, render_template, request
+import logging
 
 '''
 # lib to install
@@ -25,6 +22,8 @@ pip3 install apscheduler
 pip3 install flask_sslify
 pip3 install pyopenssl
 '''
+token = "first token is invalid"
+
 # account = input('>>>>>:').strip()    # 本地调试时注释掉
 # password = input('>>>>>:').strip()   # 本地调试时注释掉
 
@@ -42,7 +41,7 @@ jira_filter_ET_Blues = '''project = FCA_5G_L2L3 AND issuetype in (epic) AND reso
 jira_filter_ET_Rock = '''project = FCA_5G_L2L3 AND issuetype in (epic) AND resolution = Unresolved AND status not in (Done, obsolete) AND cf[29790] in (5351) ORDER BY cf[38693] ASC, key ASC'''
 jira_filter_ET_Shield = '''project = FCA_5G_L2L3 AND issuetype in (epic) AND resolution = Unresolved AND status not in (Done, obsolete) AND cf[29790] in (6261) ORDER BY cf[38693] ASC, key ASC'''
 
-jira_filter_issues_all = '''project = 68296 AND reporter in (membersOf(I_MN_RAN_L3_SW_1_CN_ET)) and issuetype = Bug AND status != CNN ORDER BY key DESC'''
+jira_filter_issues_all = '''project = 68296 AND reporter in (membersOf(I_MN_RAN_L3_SW_1_CN_ET)) AND created > startOfYear() and issuetype = Bug AND status != CNN ORDER BY key DESC'''
 jira_filter_issues_this_year = '''project = 68296 AND reporter in (membersOf(I_MN_RAN_L3_SW_1_CN_ET)) AND created > startOfYear() and issuetype = Bug AND status != CNN ORDER BY key DESC'''
 jira_filter_issues_this_month = '''project = 68296 AND reporter in (membersOf(I_MN_RAN_L3_SW_1_CN_ET)) AND created >= startOfMonth() and issuetype = Bug AND status != CNN ORDER BY key DESC'''
 
@@ -76,8 +75,8 @@ def get_data(issues):  # 处理数据
     feature_blues, feature_jazz, feature_rock, feature_shield = [], [], [], []
     remaining_effort_blues, remaining_effort_jazz, remaining_effort_rock, remaining_effort_shield = [], [], [], []
     end_fb_blues, end_fb_jazz, end_fb_rock, end_fb_shield = [], [], [], []
-    squad_jazz_hc = 8
-    squad_blues_hc = 8
+    squad_jazz_hc = 7
+    squad_blues_hc = 7
     squad_rock_hc = 7
     squad_shield_hc = 7
     squad_c_hc = 8
@@ -416,11 +415,11 @@ def get_testline_info():
     return tl_info, tl_ip, tl_port, tl_port_num, tl_power_off_on_flag, tl_power_off_date, tl_power_off_time, tl_power_on_time, tl_owner, tl_power_off_on_status
 
 
-# logging.basicConfig(level=logging.DEBUG,
-#                     filename='ET_statistics.log',
-#                     filemode='a',
-#                     format='%(asctime)s - %(levelname)s: %(message)s'
-#                     )
+logging.basicConfig(level=logging.INFO,
+                    filename='ET_statistics.log',
+                    filemode='a',
+                    format='%(asctime)s - %(levelname)s: %(message)s'
+                    )
 
 app = Flask(__name__)
 
@@ -560,8 +559,14 @@ def index():
 
 @app.route("/feature_info", methods=["POST"])
 def process_input():
-    feature = ET_ReP_Jira.request.form.get("feature_id")  # get input from web
-    source_data = ET_ReP_Jira.get_result(feature)
+    global token
+    if ET_ReP_Jira.validate_token(token):
+        logging.info("<--token is valid-->")
+    else:  # 如果token失效，就重新获取
+        token = ET_ReP_Jira.get_token()
+        logging.info("<--get new token-->")
+    feature = request.form.get("feature_id")  # get input from web
+    source_data = ET_ReP_Jira.get_result(feature, token)
     data = {
         'backlog_id': source_data[0],
         'end_fb': source_data[1],

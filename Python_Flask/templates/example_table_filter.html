@@ -8,41 +8,50 @@
     <script type="text/javascript" src="https://cdn.datatables.net/v/dt/dt-1.11.2/datatables.min.js"></script>
     <script>
         $(document).ready(function() {
-            $('#myTable').DataTable({
-                initComplete: function () {
-                    this.api().columns().every(function () {
-                        var column = this;
-                        var select = $('<select><option value=""></option></select>')
-                            .appendTo($(column.header()))
-                            .on('change', function () {
-                                var val = $.fn.dataTable.util.escapeRegex(
-                                    $(this).val()
-                                );
-                                column
-                                    .search(val ? '^' + val + '$' : '', true, false)
-                                    .draw();
-                            });
-
-                        column.data().unique().sort().each(function (d, j) {
-                            select.append('<option value="' + d + '">' + d + '</option>')
-                        });
+    $('#myTable').DataTable({
+        initComplete: function () {
+            this.api().columns().every(function () {
+                var column = this;
+                var select = $('<select><option value=""></option></select>')
+                    .appendTo($(column.header()))
+                    .on('change', function () {
+                        var val = $.fn.dataTable.util.escapeRegex(
+                            $(this).val()
+                        );
+                        column
+                            .search(val ? '^' + val + '$' : '', true, false)
+                            .draw();
                     });
-                },
-                ordering: false,
-                autoWidth: true,
-                language: {
-                    "emptyTable": "No data available in table",
-                    "info": "Showing _START_ to _END_ of _TOTAL_ entries",
-                    "infoEmpty": "Showing 0 to 0 of 0 entries",
-                    "infoFiltered": "(filtered from _MAX_ total entries)",
-                    "lengthMenu": "Show _MENU_ entries",
-                    "loadingRecords": "Loading...",
-                    "processing": "Processing...",
-                    "search": "Search:",
-                    "zeroRecords": "No matching records found"
-                }
+
+                column.data().unique().sort().each(function (d, j) {
+                    // 列筛选的下拉菜单中，保留原始数据
+                    select.append($('<option></option>').val(d).html(d));
+                });
             });
-        } );
+        },
+        ordering: false,
+        autoWidth: true,
+        language: {
+            "emptyTable": "No data available in table",
+            "info": "Showing _START_ to _END_ of _TOTAL_ entries",
+            "infoEmpty": "Showing 0 to 0 of 0 entries",
+            "infoFiltered": "(filtered from _MAX_ total entries)",
+            "lengthMenu": "Show _MENU_ entries",
+            "loadingRecords": "Loading...",
+            "processing": "Processing...",
+            "search": "Search:",
+            "zeroRecords": "No matching records found"
+        },
+        "columnDefs": [{
+            "targets": 1, // age列
+            "render": function (data, type, row) {
+                var color = (row[1] >= 35) ? 'red' : 'blue'; // 根据条件判断选择颜色
+                return '<span style="color:' + color + '">' + data + '</span>';
+            }
+        }]
+    });
+});
+
     </script>
 </head>
 <body>
