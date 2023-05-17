@@ -87,12 +87,13 @@ def query_rep(feature, t):
     # print(query_link)
     response = requests.get(query_link, headers=headers)
     # print("status:", response.status_code)
+    logging.info(f"[1.2] <--response status: {response.status_code}-->")
     # print("headers:", response.headers)
     # print("text:", response.text)
     return json.loads(response.text)
 
 
-def query_jira(link):
+def query_jira(link, jira):
     end_fb_string = 0
     label_string = 0
     issues = jira.search_issues(link, maxResults=1000)
@@ -103,27 +104,30 @@ def query_jira(link):
     return end_fb_string, label_string
 
 
-token = "first token is invalid"
+# token = "first token is invalid"
 # token = get_token()
 
 # Jira configuration
 jira_server = 'https://jiradc.ext.net.nokia.com'  # jira地址
 jira_username = 'h4zhang'  # 用户名，本地调试时，可用明文代替
 jira_password = 'Holmes-09'  # 密码，本地调试时，可用明文代替
-jira = JIRA(basic_auth=(jira_username, jira_password), options={'server': jira_server})
 
 
 def get_result(feature, t):
     i = 0
+    k = 0
     backlog_id = []
     case_name = []
     qc_status = []
     end_fb = []
     label = []
+    mapping_cache = {}  # 缓存映射结果的字典, 使同样的backlog ID只需要调用一次query_jira
     # query backlog ID and case name from reporting portal, 'feature' is from input on web
-    logging.info("<--3.0 get result start-->")
     query_rep_result = query_rep(feature, t)
-    logging.info("<--3.1 get result from rep-->")
+    if query_rep_result:
+        logging.info("[2.0] <--get result from rep done-->")
+    else:
+        logging.info("[2.0] <--get result from rep failed-->")
     '''
     data format
     print(data)
@@ -133,22 +137,35 @@ def get_result(feature, t):
     print(type(data), type(data['results']), type(data['results'][1]))
     print(len(data['results']))
     '''
+    # 查询jira前，先登录和鉴权
+    jira_login_auth = JIRA(basic_auth=(jira_username, jira_password), options={'server': jira_server})
     while i < len(query_rep_result['results']):
         backlog_id.append(query_rep_result['results'][i]['backlog_id'][0]['id'])
+        logging.info(f"[3.1].[{i+1}] <--get backlog_id from query_rep_result-->")
         # 完整的case name
         fullname = query_rep_result['results'][i]['name']
-        # 截取fullname中第一个英文字符开始的60个字符
+        # 截取fullname中第一个英文字符开始的100个字符
         case_name.append(fullname[re.search('[a-zA-Z]', fullname).start():100] + '...')
+        logging.info(f"[3.2].[{i+1}] <--get case_name from query_rep_result-->")
         qc_status.append(query_rep_result['results'][i]['status'])
-        # query end FB and label from Jira, according to backlog_id
-        query_jira_result = query_jira("key = " + backlog_id[i])
-        logging.info("<--3.2 get result from jira-->")
-        end_fb.append(query_jira_result[0])      # get end_fb
-        tc_tag = [s for s in query_jira_result[1] if s.startswith('TC')]     # get label, format is ['TC#001#']
-        case_number = int(re.findall(r'\d+', tc_tag[0])[0])                  # get case number from label
-        label.append(case_number)
+        logging.info(f"[3.3].[{i+1}] <--get qc_status from query_rep_result-->")
         i += 1
-        # print(backlog_id[k], end_fb[k], case_name[k], label[k], qc_status[k])
+    # query end FB and label from Jira, according to backlog_id
+    for Backlog_ID in backlog_id:  # 使同样的backlog ID只需要调用一次query_jira
+        if Backlog_ID not in mapping_cache:
+            query_jira_result = query_jira("key = " + Backlog_ID, jira_login_auth)
+            tc_tag = [s for s in query_jira_result[1] if s.startswith('TC')]  # get label, format is ['TC#001#']
+            case_number = int(re.findall(r'\d+', tc_tag[0])[0])               # get case number from label
+            mapped_b, mapped_c = query_jira_result[0], case_number
+            mapping_cache[Backlog_ID] = (mapped_b, mapped_c)
+            logging.info(f"[3.4].[{k + 1}] <--get end_fb from query_jira_result-->")
+            logging.info(f"[3.5].[{k + 1}] <--get case_label from query_jira_result-->")
+            k = k + 1
+        else:
+            mapped_b, mapped_c = mapping_cache[Backlog_ID]
+        end_fb.append(mapped_b)
+        label.append(mapped_c)
+    logging.info(f"[3.6] <--query [{k}] times for jira-->")
     return backlog_id, end_fb, label, case_name, qc_status
 
 

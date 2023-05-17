@@ -561,15 +561,18 @@ def index():
 def process_input():
     global token
     if ET_ReP_Jira.validate_token(token):
-        logging.info("<--0.1 token is valid-->")
+        logging.info("[0.1] <--token is valid-->")
     else:  # 如果token失效，就重新获取
         token = ET_ReP_Jira.get_token()
-        logging.info("<--0.2 get new token-->")
-    logging.info("<--1.0 token validated-->")
+        logging.info("[0.1] <--get new token-->")
+    logging.info("[0.2] <--token validated-->")
     feature = request.form.get("feature_id")  # get input from web
-    logging.info("<--2.0 get feature id done-->")
+    if feature:
+        logging.info(f"[1.1] <--query feature id: {feature}-->")
+    else:
+        logging.info("[1.1] <--get feature id failed-->")
     source_data = ET_ReP_Jira.get_result(feature, token)
-    logging.info("<--4.O get source data done-->")
+    logging.info(f"[4.0] <--query [{feature}] done-->")
     # source data order: backlog_id, end_fb, label, case_name, qc_status
     data = {
         'backlog_id': source_data[0],
