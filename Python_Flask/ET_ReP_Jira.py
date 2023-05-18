@@ -20,38 +20,34 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s: %(message)s'
                     )
 
+# Jira configuration
+jira_server = 'https://jiradc.ext.net.nokia.com'  # jira地址
+jira_username = 'h4zhang'  # 用户名，本地调试时，可用明文代替
+jira_password = 'Holmes-09'  # 密码，本地调试时，可用明文代替
+
 
 def get_token():
     # 定义请求的URL
     url = 'https://rep-portal.wroclaw.nsn-rdnet.net/jwt/obtain/'
-
     # 定义POST请求的数据（字典形式）
     data = {
         "username": "h4zhang",
         "password": "Holmes-09"
     }
-
     # 发送POST请求
     response = requests.post(url, json=data)
-
     # 打印响应结果
     # print(response.text)
-
     # 找到第一个双引号的索引位置
     first_quote_index = response.text.find('"')
-
     # 找到第二个双引号的索引位置，从第一个双引号索引位置开始搜索
     second_quote_index = response.text.find('"', first_quote_index + 1)
-
     # 再次使用 find() 方法找到第三个双引号的索引位置，从第二个双引号索引位置开始搜索
     third_quote_index = response.text.find('"', second_quote_index + 1)
-
     # 再次使用 find() 方法找到第四个双引号的索引位置，从第三个双引号索引位置开始搜索
     fourth_quote_index = response.text.find('"', third_quote_index + 1)
-
     # 利用切片获取第三个和第四个双引号之间的内容
     t = response.text[third_quote_index + 1:fourth_quote_index]
-
     # 输出 'token'
     print("===token===\n", t)
     return t
@@ -60,12 +56,10 @@ def get_token():
 def validate_token(t):
     # 定义请求的URL
     url = 'https://rep-portal.wroclaw.nsn-rdnet.net/jwt/verify/ '
-
     # 定义POST请求的数据（字典形式）
     data = {
         "pk": 1606902367,
         "token": t}
-
     # 发送POST请求
     res = requests.post(url, json=data)
     # If the token is invalid, the server will respond with status 400 and JSON object that contains further details of the error.
@@ -82,8 +76,10 @@ def validate_token(t):
 def query_rep(feature, t):
     # headers format is "JWT token" in type of string
     headers = {"Authorization": "JWT " + t}
-    url = "https://rep-portal.ext.net.nokia.com/api/qc-beta/instances/report/?fields=id,m_path,test_set__name,backlog_id,name,url,status,status_color,fault_report_id_link,comment,sw_build,res_tester,test_entity,function_area,ca,organization,release,feature,requirement,last_testrun__timestamp&limit=200&m_path__pos_neg=s\RAN_L3_SW_CN_1&ordering=name&test_set__name__pos_neg_empty_str="
+    # url 获取方式：edge打开rep，输入feature ID，打开F12，刷新页面，在网络页签中，获取请求url(最长的那个)，然后去掉feature ID
+    url = "https://rep-portal.ext.net.nokia.com/api/qc-beta/instances/report/?fields=id%2Cm_path%2Ctest_set__name%2Cbacklog_id%2Cname%2Curl%2Cstatus%2Cstatus_color%2Cfault_report_id_link%2Ccomment%2Csw_build%2Cres_tester%2Ctest_entity%2Cfunction_area%2Cca%2Corganization%2Crelease%2Cfeature%2Crequirement%2Clast_testrun__timestamp&limit=200&m_path__pos_neg=New_Features%5CRAN_L3_SW_CN_1&ordering=name&organization__pos_neg=RAN_L3_SW_CN_1&test_set__name__pos_neg_empty_str="
     query_link = url + feature
+    logging.debug(f"<--{query_link}-->")
     # print(query_link)
     response = requests.get(query_link, headers=headers)
     # print("status:", response.status_code)
@@ -94,34 +90,27 @@ def query_rep(feature, t):
 
 
 def query_jira(link, jira):
-    end_fb_string = 0
-    label_string = 0
+    key = []
+    end_fb = []
+    label = []
+    jira_dict = {}
     issues = jira.search_issues(link, maxResults=1000)
     for issue in issues:
-        end_fb_string = issue.fields.customfield_38693
-        label_string = issue.fields.labels
-    # print("end_fb:", end_fb_string)
-    return end_fb_string, label_string
-
-
-# token = "first token is invalid"
-# token = get_token()
-
-# Jira configuration
-jira_server = 'https://jiradc.ext.net.nokia.com'  # jira地址
-jira_username = 'h4zhang'  # 用户名，本地调试时，可用明文代替
-jira_password = 'Holmes-09'  # 密码，本地调试时，可用明文代替
+        key.append(issue.key)  # get backlog_id
+        end_fb.append(issue.fields.customfield_38693)
+        label.append(issue.fields.labels)
+        jira_dict = dict(zip(key, zip(end_fb, label)))  # save 3 list into dict
+    return jira_dict
 
 
 def get_result(feature, t):
     i = 0
-    k = 0
     backlog_id = []
     case_name = []
     qc_status = []
     end_fb = []
     label = []
-    mapping_cache = {}  # 缓存映射结果的字典, 使同样的backlog ID只需要调用一次query_jira
+
     # query backlog ID and case name from reporting portal, 'feature' is from input on web
     query_rep_result = query_rep(feature, t)
     if query_rep_result:
@@ -141,31 +130,41 @@ def get_result(feature, t):
     jira_login_auth = JIRA(basic_auth=(jira_username, jira_password), options={'server': jira_server})
     while i < len(query_rep_result['results']):
         backlog_id.append(query_rep_result['results'][i]['backlog_id'][0]['id'])
-        logging.info(f"[3.1].[{i+1}] <--get backlog_id from query_rep_result-->")
+
         # 完整的case name
         fullname = query_rep_result['results'][i]['name']
         # 截取fullname中第一个英文字符开始的100个字符
         case_name.append(fullname[re.search('[a-zA-Z]', fullname).start():100] + '...')
-        logging.info(f"[3.2].[{i+1}] <--get case_name from query_rep_result-->")
+
         qc_status.append(query_rep_result['results'][i]['status'])
-        logging.info(f"[3.3].[{i+1}] <--get qc_status from query_rep_result-->")
+
         i += 1
+    logging.info(f"[3.1].[{i}] <--get backlog_id from query_rep_result-->")
+    logging.info(f"[3.2].[{i}] <--get case_name from query_rep_result-->")
+    logging.info(f"[3.3].[{i}] <--get qc_status from query_rep_result-->")
+
     # query end FB and label from Jira, according to backlog_id
-    for Backlog_ID in backlog_id:  # 使同样的backlog ID只需要调用一次query_jira
-        if Backlog_ID not in mapping_cache:
-            query_jira_result = query_jira("key = " + Backlog_ID, jira_login_auth)
-            tc_tag = [s for s in query_jira_result[1] if s.startswith('TC')]  # get label, format is ['TC#001#']
-            case_number = int(re.findall(r'\d+', tc_tag[0])[0])               # get case number from label
-            mapped_b, mapped_c = query_jira_result[0], case_number
-            mapping_cache[Backlog_ID] = (mapped_b, mapped_c)
-            logging.info(f"[3.4].[{k + 1}] <--get end_fb from query_jira_result-->")
-            logging.info(f"[3.5].[{k + 1}] <--get case_label from query_jira_result-->")
-            k = k + 1
+    query_link = "key in ({})".format(', '.join("{}".format(item) for item in backlog_id))
+    logging.debug(f"{query_link}")
+    query_jira_result = query_jira(query_link, jira_login_auth)
+    logging.debug(f"{query_jira_result}")
+    for element in backlog_id:
+        value1, value2 = query_jira_result[element]
+        logging.debug(f"{value1}")
+        logging.debug(f"{value2}")
+        end_fb.append(value1)
+        tc_tag = [s for s in value2 if s.startswith('TC')]
+        logging.debug(f"{tc_tag}")
+        if tc_tag:
+            case_number = int(re.findall(r'\d+', tc_tag[0])[0])
         else:
-            mapped_b, mapped_c = mapping_cache[Backlog_ID]
-        end_fb.append(mapped_b)
-        label.append(mapped_c)
-    logging.info(f"[3.6] <--query [{k}] times for jira-->")
+            case_number = 0
+        logging.debug(f"{case_number}")
+        label.append(case_number)
+    logging.debug(f"[3.4] <--end_fb: {end_fb}-->")
+    logging.info(f"[3.4].[{len(end_fb)}] <--get end_fb from query_jira_result-->")
+    logging.debug(f"[3.6] <--label: {label}-->")
+    logging.info(f"[3.5].[{len(label)}] <--get case_label from query_jira_result-->")
     return backlog_id, end_fb, label, case_name, qc_status
 
 

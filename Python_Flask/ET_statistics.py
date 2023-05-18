@@ -568,7 +568,7 @@ def process_input():
     logging.info("[0.2] <--token validated-->")
     feature = request.form.get("feature_id")  # get input from web
     if feature:
-        logging.info(f"[1.1] <--query feature id: {feature}-->")
+        logging.info(f"[1.1] <--query feature id: [{feature}]-->")
     else:
         logging.info("[1.1] <--get feature id failed-->")
     source_data = ET_ReP_Jira.get_result(feature, token)
@@ -583,7 +583,7 @@ def process_input():
     }
     total_label = ET_ReP_Jira.summary(source_data[0], source_data[2])
     # print("total label", total_label)
-    total_case = len(source_data[2])
+    total_case = len(source_data[0])
     # print("total case", total_case)
     df = pd.DataFrame(data)
     # 表格数据由df传入，数值则直接传入html
