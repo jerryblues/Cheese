@@ -59,10 +59,19 @@
     </script>
 </head>
 <body>
+    <style>
+        h4 {
+            color: #9f9f9f;
+            display: inline; /* 设置为 inline 显示方式 */
+            font-weight: normal; /* 设置为非加粗 */
+        }
+    </style>
+
     <form action="/feature_info" method="POST">
-        <h3 for="feature_id">Feature ID<br>
+        <h3 for="feature_id">Feature Test Set<br></h3>
         <input type="text" id="feature_id" name="feature_id">
-        <input type="submit" value="Submit"></h3>
+        <input type="submit" value="Submit">
+        <h4>Tips: "8225" to search CB008225, "8140, -CNI" to search 8140 and exclude CNI, "CNI-72007-C_CB008140" to search this CNI, and MAX return item=200</h4>
     </form>
     <!--    case和label默认值为0，两个值相同时显示为蓝色，值不同时显示为红色-->
     <h3>Summary</h3>

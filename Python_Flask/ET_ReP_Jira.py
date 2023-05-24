@@ -14,7 +14,7 @@ import re
 import logging
 
 
-logging.basicConfig(level=logging.INFO,
+logging.basicConfig(level=logging.DEBUG,
                     filename='ET_statistics.log',
                     filemode='a',
                     format='%(asctime)s - %(levelname)s: %(message)s'
@@ -77,14 +77,15 @@ def query_rep(feature, t):
     # headers format is "JWT token" in type of string
     headers = {"Authorization": "JWT " + t}
     # url 获取方式：edge打开rep，输入feature ID，打开F12，刷新页面，在网络页签中，获取请求url(最长的那个)，然后去掉feature ID
-    url = "https://rep-portal.ext.net.nokia.com/api/qc-beta/instances/report/?fields=id%2Cm_path%2Ctest_set__name%2Cbacklog_id%2Cname%2Curl%2Cstatus%2Cstatus_color%2Cfault_report_id_link%2Ccomment%2Csw_build%2Cres_tester%2Ctest_entity%2Cfunction_area%2Cca%2Corganization%2Crelease%2Cfeature%2Crequirement%2Clast_testrun__timestamp&limit=200&m_path__pos_neg=New_Features%5CRAN_L3_SW_CN_1&ordering=name&organization__pos_neg=RAN_L3_SW_CN_1&test_set__name__pos_neg_empty_str="
+    url = "https://rep-portal.ext.net.nokia.com/api/qc-beta/instances/report/?fields=id%2Cm_path%2Ctest_set__name%2Cbacklog_id%2Cname%2Curl%2Cstatus%2Cstatus_color%2Cfault_report_id_link%2Ccomment%2Csw_build%2Cres_tester%2Ctest_entity%2Cfunction_area%2Cca%2Corganization%2Crelease%2Cfeature%2Crequirement%2Clast_testrun__timestamp&limit=200&m_path__pos_neg=New_Features%5CRAN_L3_SW_CN_1&ordering=name&test_set__name__pos_neg_empty_str="
     query_link = url + feature
     logging.debug(f"<--{query_link}-->")
     # print(query_link)
     response = requests.get(query_link, headers=headers)
-    # print("status:", response.status_code)
     logging.info(f"[1.2] <--response status: {response.status_code}-->")
+    # print("status:", response.status_code)
     # print("headers:", response.headers)
+    logging.debug(f"<--response text: {response.text}-->")
     # print("text:", response.text)
     return json.loads(response.text)
 
@@ -113,59 +114,61 @@ def get_result(feature, t):
 
     # query backlog ID and case name from reporting portal, 'feature' is from input on web
     query_rep_result = query_rep(feature, t)
-    if query_rep_result:
+    if len(query_rep_result['results']):
         logging.info("[2.0] <--get result from rep done-->")
+        '''
+        data format
+        print(data)
+        print(data['results'][0]['backlog_id'])  # list
+        print(data['results'][0]['backlog_id'][0])  # dic
+        print(data['results'][0]['backlog_id'][0]['id'])  # value
+        print(type(data), type(data['results']), type(data['results'][1]))
+        print(len(data['results']))
+        '''
+        # 查询jira前，先登录和鉴权
+        jira_login_auth = JIRA(basic_auth=(jira_username, jira_password), options={'server': jira_server})
+        while i < len(query_rep_result['results']):
+            backlog_id.append(query_rep_result['results'][i]['backlog_id'][0]['id'])
+
+            # 完整的case name
+            fullname = query_rep_result['results'][i]['name']
+            # 截取fullname中第一个英文字符开始的100个字符
+            case_name.append(fullname[re.search('[a-zA-Z]', fullname).start():100] + '...')
+
+            qc_status.append(query_rep_result['results'][i]['status'])
+
+            i += 1
+        logging.info(f"[3.1].[{i}] <--get backlog_id from query_rep_result-->")
+        logging.info(f"[3.2].[{i}] <--get case_name from query_rep_result-->")
+        logging.info(f"[3.3].[{i}] <--get qc_status from query_rep_result-->")
+
+        # query end FB and label from Jira, according to backlog_id
+        query_link = "key in ({})".format(', '.join("{}".format(item) for item in backlog_id))
+        logging.debug(f"{query_link}")
+        query_jira_result = query_jira(query_link, jira_login_auth)
+        logging.debug(f"{query_jira_result}")
+        for element in backlog_id:
+            value1, value2 = query_jira_result[element]
+            logging.debug(f"{value1}")
+            logging.debug(f"{value2}")
+            end_fb.append(value1)
+            tc_tag = [s for s in value2 if s.startswith('TC')]
+            logging.debug(f"{tc_tag}")
+            if tc_tag:
+                case_number = int(re.findall(r'\d+', tc_tag[0])[0])
+            else:
+                case_number = 0
+            logging.debug(f"{case_number}")
+            label.append(case_number)
+        logging.debug(f"[3.4] <--end_fb: {end_fb}-->")
+        logging.info(f"[3.4].[{len(end_fb)}] <--get end_fb from query_jira_result-->")
+        logging.debug(f"[3.5] <--label: {label}-->")
+        logging.info(f"[3.5].[{len(label)}] <--get case_label from query_jira_result-->")
+        return backlog_id, end_fb, label, case_name, qc_status
+
     else:
-        logging.info("[2.0] <--get result from rep failed-->")
-    '''
-    data format
-    print(data)
-    print(data['results'][0]['backlog_id'])  # list
-    print(data['results'][0]['backlog_id'][0])  # dic
-    print(data['results'][0]['backlog_id'][0]['id'])  # value
-    print(type(data), type(data['results']), type(data['results'][1]))
-    print(len(data['results']))
-    '''
-    # 查询jira前，先登录和鉴权
-    jira_login_auth = JIRA(basic_auth=(jira_username, jira_password), options={'server': jira_server})
-    while i < len(query_rep_result['results']):
-        backlog_id.append(query_rep_result['results'][i]['backlog_id'][0]['id'])
-
-        # 完整的case name
-        fullname = query_rep_result['results'][i]['name']
-        # 截取fullname中第一个英文字符开始的100个字符
-        case_name.append(fullname[re.search('[a-zA-Z]', fullname).start():100] + '...')
-
-        qc_status.append(query_rep_result['results'][i]['status'])
-
-        i += 1
-    logging.info(f"[3.1].[{i}] <--get backlog_id from query_rep_result-->")
-    logging.info(f"[3.2].[{i}] <--get case_name from query_rep_result-->")
-    logging.info(f"[3.3].[{i}] <--get qc_status from query_rep_result-->")
-
-    # query end FB and label from Jira, according to backlog_id
-    query_link = "key in ({})".format(', '.join("{}".format(item) for item in backlog_id))
-    logging.debug(f"{query_link}")
-    query_jira_result = query_jira(query_link, jira_login_auth)
-    logging.debug(f"{query_jira_result}")
-    for element in backlog_id:
-        value1, value2 = query_jira_result[element]
-        logging.debug(f"{value1}")
-        logging.debug(f"{value2}")
-        end_fb.append(value1)
-        tc_tag = [s for s in value2 if s.startswith('TC')]
-        logging.debug(f"{tc_tag}")
-        if tc_tag:
-            case_number = int(re.findall(r'\d+', tc_tag[0])[0])
-        else:
-            case_number = 0
-        logging.debug(f"{case_number}")
-        label.append(case_number)
-    logging.debug(f"[3.4] <--end_fb: {end_fb}-->")
-    logging.info(f"[3.4].[{len(end_fb)}] <--get end_fb from query_jira_result-->")
-    logging.debug(f"[3.6] <--label: {label}-->")
-    logging.info(f"[3.5].[{len(label)}] <--get case_label from query_jira_result-->")
-    return backlog_id, end_fb, label, case_name, qc_status
+        logging.info("[2.0] <--get result null-->")
+        return backlog_id, end_fb, label, case_name, qc_status
 
 
 # 取出唯一的backlog ID，并把对应的label个数累加
