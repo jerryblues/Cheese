@@ -1,14 +1,38 @@
 # coding=utf-8
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from datetime import datetime
 import time
 import pytz
 import re
 from retrying import retry
+import datetime
+import chinese_calendar as calendar
+
+
+# 获取今天日期
+def today_date():
+    t = datetime.date.today()
+    year = t.year
+    month = t.month
+    day = t.day
+    print(f"***Today is [{year}],[{month}],[{day}]***")
+    return year, month, day
+
+
+def is_holiday(d):
+    """
+    判断日期是否是休息日
+    """
+    if calendar.is_holiday(d):
+        # print("Holiday")
+        return True
+    else:
+        # print("Working Day")
+        return False
 
 # account = input('>>>>>:').strip()    # 本地调试时注释掉
 # password = input('>>>>>:').strip()   # 本地调试时注释掉
+
 
 account = "h4zhang"
 password = "Holmes-09"
@@ -24,14 +48,14 @@ my_reservations = ['https://cloud.ute.nsn-rdnet.net/user/reservations?status=1',
 def get_link(link):
     all_link = []
     tmp = []
-    my_link = []
+    tl_link = []
 
-    for link in link:
+    for tl in link:
         chrome_options = Options()
         chrome_options.add_argument('--headless')
         driver = webdriver.Chrome(options=chrome_options)
         driver.set_page_load_timeout(60)
-        driver.get(link)
+        driver.get(tl)
         driver.switch_to.window(driver.current_window_handle)
         driver.find_element_by_name("username").clear()
         driver.find_element_by_name("username").send_keys(account)
@@ -42,29 +66,29 @@ def get_link(link):
         time.sleep(1)
 
         find_href = driver.find_elements_by_tag_name('a')
-        for link in find_href:
-            all_link.append(link.get_attribute("href"))
+        for string in find_href:
+            all_link.append(string.get_attribute("href"))
         driver.quit()
 
     for i in all_link:
         if i != None:
             tmp.append(i)
-    str = 'show'
+    string = 'show'
     for j in tmp:
-        if str in j:
-            my_link.append(j)
-    return my_link
+        if string in j:
+            tl_link.append(j)
+    return tl_link
 
 
 @retry
 def extend_ute(link):
-    for link in link:
+    for tl in link:
         chrome_options = Options()
         chrome_options.add_argument('--headless')
         driver = webdriver.Chrome(options=chrome_options)
 
-        driver.get(link)
-        print(link)
+        driver.get(tl)
+        print(tl)
 
         driver.switch_to.window(driver.current_window_handle)
         driver.find_element_by_name("username").clear()
@@ -78,17 +102,17 @@ def extend_ute(link):
         print("Requested testline type:\n %s" % requested_testline_type)
 
         screen_text = driver.find_elements_by_xpath("/*")
-        for list in screen_text:
-            s = list.text
-            if "Reservation status Pending for testline" in list.text:
+        for lst in screen_text:
+            string = lst.text
+            if "Reservation status Pending for testline" in lst.text:
                 print("*Testline is pending* ...")
-            elif "Reservation status Canceled" in list.text:
+            elif "Reservation status Canceled" in lst.text:
                 print("*Testline is canceled* -_-")
-            elif "Reservation status Testline assigned" in list.text:
+            elif "Reservation status Testline assigned" in lst.text:
                 print("*Testline is assigned* `-`")
-            elif "Reservation status Finished" in list.text:
+            elif "Reservation status Finished" in lst.text:
                 print("*Testline is finished* '-'")
-            elif "Reservation status Confirmed" in list.text:
+            elif "Reservation status Confirmed" in lst.text:
                 print("*Testline is confirmed* ^-^")
                 driver.find_element_by_id("extend-button").click()
                 # reservation_end = driver.find_element_by_xpath(
@@ -96,51 +120,39 @@ def extend_ute(link):
                 # print("Current Reservation End Time:\n %s" % reservation_end)
             else:
                 print("Testline status not available")
-        for line in s.split('\n'):
+        for line in string.split('\n'):
             if re.match(r'Reservation end (.*)', line, re.M | re.I):
                 print("Reservation End Time:\n", line[15:])
             if re.match(r'Reservation owner (.*)', line, re.M | re.I):
                 print("Reservation Owner:\n", line[17:])
-        print("Current Time:\n", datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S"))
+        print("Current Time:\n", datetime.datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S"))
         driver.quit()
 
 
 script_count = 1
 extend_count = 1
-while script_count < 9999:
-    link = get_link(my_reservations)
-    if link:
-        extend_ute(link)
-        print("***UTE extended for %s time***" % extend_count)
-        print("***Script Running for %s time***\n" % script_count)
-        extend_count = extend_count + 1
-        script_count = script_count + 1
-        time.sleep(2400)
-    else:
-        print("***UTE not reserved***")
-        print("***Script Running for %s time***\n" % script_count)
-        script_count = script_count + 1
-        time.sleep(2400)
 
-'''
-count = 1
-while count < 9999:
-    try:
-        link = get_link(my_reservations)
-    except:
-        link = get_link(my_reservations)
+while script_count < 9999:
+    my_link = get_link(my_reservations)
+    today = today_date()
+    date = datetime.date(today[0], today[1], today[2])
+    if is_holiday(date):
+        print("***Today is Holiday***")
+        time.sleep(10800)  # sleep 3 hour
+        script_count = script_count + 1
     else:
-        if link:
-            try:
-                extend_ute(link)
-            except:
-                extend_ute(link)
-            else:
-                print("***Script Running for %s time***\n" % count)
-                count = count + 1
-                time.sleep(2400)
-        else:
-            print("***Testline has not been reserved***")
-            count = count + 1
+        print("***Today is Working Day***")
+        if my_link:
+            count = len(my_link)
+            print(f"***[{count}] TL reserved***")
+            extend_ute(my_link)
+            print("***UTE extended for %s time***" % extend_count)
+            print("***Script Running for %s time***\n" % script_count)
+            extend_count = extend_count + 1
+            script_count = script_count + 1
             time.sleep(2400)
-'''
+        else:
+            print("***UTE not reserved***")
+            print("***Script Running for %s time***\n" % script_count)
+            script_count = script_count + 1
+            time.sleep(2400)
