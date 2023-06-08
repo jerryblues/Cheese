@@ -10,8 +10,11 @@ from taf.pdu import pdu
 import time
 import socket
 import ET_ReP_Jira
+import ET_Feature_Report
 from flask import Flask, render_template, request
 import logging
+import re
+
 
 '''
 # lib to install
@@ -553,12 +556,12 @@ def web_server_tl_status():
 
 
 @app.route("/feature_info")
-def index():
+def feature_info_default():
     return render_template("et_rep_jira.html")
 
 
 @app.route("/feature_info", methods=["POST"])
-def process_input():
+def feature_info():
     global token
     if ET_ReP_Jira.validate_token(token):
         logging.info("[0.1] <--token is valid-->")
@@ -568,11 +571,13 @@ def process_input():
     logging.info("[0.2] <--token validated-->")
     feature = request.form.get("feature_id")  # get input from web
     if feature:
-        logging.info(f"[1.1] <--query feature id: [{feature}]-->")
+        logging.info(f"[1.0] <--query [{feature}] start-->")
     else:
-        logging.info("[1.1] <--get feature id failed-->")
-    source_data = ET_ReP_Jira.get_result(feature, token)
-    logging.info(f"[4.0] <--query [{feature}] done-->")
+        logging.info("[1.0] <--query feature id is [null]-->")
+    url_case_info = "https://rep-portal.ext.net.nokia.com/api/qc-beta/instances/report/?fields=id%2Cm_path%2Ctest_set__name%2Cbacklog_id%2Cname%2Curl%2Cstatus%2Cstatus_color%2Cfault_report_id_link%2Ccomment%2Csw_build%2Cres_tester%2Ctest_entity%2Cfunction_area%2Cca%2Corganization%2Crelease%2Cfeature%2Crequirement%2Clast_testrun__timestamp&limit=200&m_path__pos_neg=New_Features%5CRAN_L3_SW_CN_1&ordering=name&test_set__name__pos_neg_empty_str="
+    url_case_info_feature = url_case_info + feature
+    source_data = ET_ReP_Jira.get_result(url_case_info_feature, token)
+    logging.info(f"[2.0] <--query [{feature}] case status done-->")
     # source data order: backlog_id, end_fb, label, case_name, qc_status
     data = {
         'backlog_id': source_data[0],
@@ -588,6 +593,106 @@ def process_input():
     df = pd.DataFrame(data)
     # 表格数据由df传入，数值则直接传入html
     return render_template('et_rep_jira.html', data=df.to_dict('records'), total_label=total_label, total_case=total_case)
+
+
+@app.route("/Feature_Report")
+def feature_report_default():
+    return render_template("et_feature_report.html")
+
+
+@app.route('/Feature_Report', methods=['POST'])
+def feature_report():
+    global token
+    if ET_ReP_Jira.validate_token(token):
+        logging.info("[0.1] <--token is valid-->")
+    else:  # 如果token失效，就重新获取
+        token = ET_ReP_Jira.get_token()
+        logging.info("[0.1] <--get new token-->")
+    logging.info("[0.2] <--token validated-->")
+    feature = request.form.get("feature_id")  # get input from web
+    # 判断输入的值 非空和非空格时的处理
+    if feature and feature.strip():
+        logging.info(f"[1.0] <--query [{feature}] start-->")
+        url_case = "https://rep-portal.ext.net.nokia.com/api/qc-beta/instances/report/?fields=id%2Cm_path%2Ctest_set__name%2Cbacklog_id%2Cname%2Curl%2Cstatus%2Cstatus_color%2Cfault_report_id_link%2Ccomment%2Csw_build%2Cres_tester%2Ctest_entity%2Cfunction_area%2Cca%2Corganization%2Crelease%2Cfeature%2Crequirement%2Clast_testrun__timestamp&limit=200&m_path__pos_neg=New_Features%5CRAN_L3_SW_CN_1&ordering=name&test_set__name__pos_neg_empty_str="
+        url_case_feature = url_case + feature
+        url_pr = "https://rep-portal.ext.net.nokia.com/api/pronto/report/?fields=pronto_id,pronto_tool_url,title,rd_info,state,author,author_group,group_in_charge_name,fault_analysis_responsible_person,reported_date&limit=200&ordering=-reported_date&feature__pos_neg="
+        url_pr_feature = url_pr + feature
+        jql = 'project = 68296 AND type = Bug AND "Feature ID" ~ "{}*" ORDER BY key DESC'.format(feature)
+
+        # 第一个表格中的数据，case result统计
+        case_data = ET_Feature_Report.get_case_info_from_rep(feature, url_case_feature, token)
+        case_status = ET_Feature_Report.pivot_feature_report_qc_status(case_data[2], case_data[4], case_data[3])
+        logging.info(f"[2.0] <--query [{feature}] case status done-->")
+
+        # 第二个表格中的数据，pr 统计
+        pr_data = ET_Feature_Report.get_pr_info_from_rep(url_pr_feature, token)
+            # pr_id, pr_link, gic, fault_analysis_person, author, author_group, state, title, reported_date, rd_info
+        data_for_pr = {
+            'pr_id': pr_data[0],
+            'pr_link': pr_data[1],
+            'gic': pr_data[2],
+            'fault_analysis_person': pr_data[3],
+            'author': pr_data[4],
+            'author_group': pr_data[5],
+            'state': pr_data[6],
+            'title': pr_data[7],
+            'reported_date': pr_data[8],
+            'rd_info': pr_data[9]
+            }
+        df_pr = pd.DataFrame(data_for_pr)
+        logging.info(f"[3.0] <--query [{feature}] pr status done-->")
+
+        # 第三个表格中的数据，jira 统计
+        jira_data = ET_Feature_Report.get_jira_issue_from_jira(jql)
+            # jira_id, feature_id, title, assignee, reporter, created, status, comment
+        data_for_jira = {
+            'jira_id': jira_data[0],
+            'feature_id': jira_data[1],
+            'title': jira_data[2],
+            'assignee': jira_data[3],
+            'reporter': jira_data[4],
+            'created': jira_data[5],
+            'status': jira_data[6],
+            'comment': jira_data[7],
+            'jira_link': jira_data[8]
+             }
+        df_jira = pd.DataFrame(data_for_jira)
+        logging.info(f"[4.0] <--query [{feature}] jira status done-->")
+
+        if not case_status.empty:  # 输入非空，且查询结果也非空时，正常返回表格数据
+            return render_template(
+                "et_feature_report.html",
+                table_qc_status=case_status.to_html(classes="total", header="true", table_id="table"),
+                data_pr=df_pr.to_dict('records'),
+                data_jira=df_jira.to_dict('records'),
+                feature_id=feature)
+        else:  # 输入非空，但查询结果为空时，返回默认表格
+            return render_template("et_feature_report.html")
+    else:  # 输入为空或空格时，返回默认表格
+        logging.info("[1.0] <--query feature id is [null]-->")
+        return render_template("et_feature_report.html")
+
+
+@app.route('/send_content', methods=['POST'])
+def send_content():
+    mail_sender = ET_Feature_Report.MailSender()
+    try:
+        # 获取 HTML 内容
+        data = request.get_json()
+        html_content = data['htmlContent']
+
+        # 设置收件人、主题和 HTML 内容
+        receiver = ['hao.6.zhang@nokia-sbell.com']
+        subject = 'HTML Email'
+        content = html_content
+
+        mail_sender.send_mail(receiver, subject, content)
+
+        return '', 200
+    except Exception as e:
+        logging.info(f"ERROR: {e}")
+        # print('ERROR:', e)
+        return '', 500
 
 
 if __name__ == '__main__':

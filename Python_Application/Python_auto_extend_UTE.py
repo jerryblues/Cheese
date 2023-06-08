@@ -138,8 +138,9 @@ while script_count < 9999:
     date = datetime.date(today[0], today[1], today[2])
     if is_holiday(date):
         print("***Today is Holiday***")
-        time.sleep(10800)  # sleep 3 hour
+        print("***Script Running for %s time***\n" % script_count)
         script_count = script_count + 1
+        time.sleep(10800)  # sleep 3 hour
     else:
         print("***Today is Working Day***")
         if my_link:

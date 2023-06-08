@@ -1,0 +1,174 @@
+body {
+    padding-left: 15px;
+}
+
+a, h1, h2{
+    color: #4472c4;
+}
+
+h1 {
+    margin-top:0;
+    padding-bottom: 10px; /* 设置实线边框与文字之间的间距为10像素 */
+}
+
+h2 {
+    border-bottom: 1px solid #a5d3ee;
+    font-size: 1.2em;
+}
+
+h3 {
+    font-size: 0.9em;
+    font-weight:normal;
+    color: #a0a0a0;
+}
+
+/* 表格样式 */
+table.dataframe,  .dataframe th,  .dataframe td {
+    border-bottom: 1px solid #C8C8C8;
+    border-right: 1px solid #C8C8C8;
+    border-left: 1px solid #C8C8C8;
+    border-top: 1px solid #C8C8C8;
+    border-collapse: collapse;
+    text-align: left;
+    padding: 9px;
+    margin-bottom: 1px;
+    font-size: 0.9em;
+}
+
+/* 首行和首列的默认背景色是深蓝色 */
+th:first-child,
+tr:first-child th {
+  background-color: #5787d3;
+  color: white;
+}
+
+/* 有隔行效果，奇数行白色，偶数行谈蓝色 */
+tr:nth-child(odd) {
+  background-color: white;
+}
+tr:nth-child(even) {
+  background-color: #cee5fd;
+}
+
+/* 自定义类名样式 */
+.blocked {
+  background-color: yellow;
+}
+.failed {
+  background-color: red;
+  color: white;
+}
+.no_run {
+  background-color: #72a1f8;
+}
+.passed {
+  background-color: #1ec21e;
+  color: white;
+}
+.na {
+  background-color: #e2d9d9;
+}
+
+/* 鼠标悬停的背景色效果 */
+tr:hover {
+background-color: #fff2cc;
+}
+
+/*
+.dataTables_length: 用于控制每页显示条目数量的下拉菜单区域，通常包括 "Show x entries" 文本和下拉菜单本身。
+.dataTables_filter: 用于搜索框的区域，通常包括 "Search" 文本和搜索输入框。
+.dataTables_info: 用于显示表格信息的区域，通常是在表格顶部或底部，显示当前显示的条目范围，例如 "Showing 1 to 10 of 100 entries"。
+.dataTables_processing: 用于显示加载过程中的处理状态的区域，通常显示 "Processing..." 或类似的文本。
+.dataTables_paginate: 用于显示分页器（翻页按钮）的区域，包括上一页、下一页等按钮。
+ */
+
+.dataTables_wrapper {    /* 设置为相对定位，使其成为定位的参考点 */
+    position: relative;
+}
+
+.dataTables_filter,
+.dataTables_info,
+.dataTables_length,
+.dataTables_paginate,
+.dataTables_processing,
+.dataTables_empty{
+  font-size: 12px;
+}
+
+.dataTables_length {   /* 设置每页显示个数到表格的左下角 */
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  margin-bottom: -25px;
+}
+
+.dataTables_info {    /* 设置当前总个数到表格的右上角 */
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin-top: 5px;
+}
+
+.dataTables_paginate {    /* 设置翻页按钮和页码到表格的右下角 */
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  margin-bottom: -25px;
+}
+
+/* 设置翻页按钮和页码的样式 */
+.dataTables_paginate .paginate_button {
+    box-sizing: border-box;
+    display: inline-block;
+    min-width: 1.5em;
+    padding: .5em 1em;
+    margin-left: 2px;
+    text-align: center;
+    text-decoration: none !important;
+    cursor: pointer;
+    *cursor: hand;
+    color: #333 !important;
+    border: 1px solid transparent;
+    border-radius: 2px;
+}
+
+.dataTables_paginate .paginate_button.current {      /* 当前页效果 */
+  background-color: #c9c9c9;
+  color: #ffffff;
+  padding: .1em .1em;
+}
+
+/* Tips 文本框设置 */
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip .tooltip-btn {    /* 设置Tips本身的字体颜色 */
+  font-size: 12px;
+  color: #72a1f8;
+}
+
+.tooltip .tooltiptext {    /* 设置Tips内容的字体颜色 */
+  visibility: hidden;
+  position: absolute;
+  bottom: -50px;
+  width: 200px;
+  height: 60px;
+  background-color: #313131;
+  color: #ffffff;
+  text-align: left;
+  padding: 5px;
+  font-size: 12px;
+  line-height: 20px;
+  transition: opacity 0.3s;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
+
+.send-button {    /* 设置 send mail 按钮 */
+  float: right;
+  margin-left: 10px;
+}

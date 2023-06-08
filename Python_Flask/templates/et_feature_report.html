@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Feature Report</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='report.css') }}">
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script type="text/javascript" src="../static/datatables.js"></script>
+<style>
+    #myTable {
+        font-size: 12px;
+        table-layout: auto;}    /* 自适应列宽 */
+    #myTable tr:first-child th {
+        font-size: 14px;}       /* 设置首行所有单元格的字体大小为 16px */
+    #myTable td {
+        word-break: break-word; /* 超过列宽换行显示 */
+        max-width: 500px;}      /* 单元格最大宽度 */
+    td.no-wrap {                /* 设置不换行 */
+    white-space: nowrap;}
+    .dt-dropdown {
+        display: none;      /* 默认隐藏下拉菜单 */
+        position: absolute;
+        z-index: 1;
+        height: 200px;      /* 调整下拉菜单高度 */
+        width: 150px;       /* 调整下拉菜单宽度 */
+        overflow-y: auto;}  /* 添加滚动条 */
+
+    #myTable_jira {
+        font-size: 12px;
+        table-layout: auto;}     /* 自适应列宽 */
+    #myTable_jira tr:first-child th {
+        font-size: 14px;}        /* 设置首行所有单元格的字体大小为 16px */
+    #myTable_jira td {
+        word-break: break-word;  /* 超过列宽换行显示 */
+        max-width: 400px;}
+    .dt-dropdown {
+        display: none;       /* 默认隐藏下拉菜单 */
+        position: absolute;
+        z-index: 1;
+        height: 200px;       /* 调整下拉菜单高度 */
+        width: 150px;        /* 调整下拉菜单宽度 */
+        overflow-y: auto;}   /* 添加滚动条 */
+</style>
+
+    <script>
+        $(document).ready(function () {
+            // 保存当前点击的列索引和表格对象
+            var currentColumnIndex = -1;
+            var currentTable = null;
+
+            // 表格初始化
+            var tables = $('.data-table').DataTable({
+                initComplete: function () {
+                    this.api().columns().every(function (columnIndex) {
+                        var column = this;
+                        var select = $('<select multiple><option value=""></option></select>')
+                            .appendTo($(column.header()))
+                            .addClass('dt-dropdown') // 添加类名 dt-dropdown
+                            .on('change', function () {
+                                var vals = $(this).val();
+                                column
+                                    .search(vals && vals.length > 0 && vals.indexOf("") === -1 ? '^(' + vals.join('|') + ')$' : '', true, false)
+                                    .draw();
+                            });
+
+                        // 添加 "All" 选项
+                        select.append($('<option></option>').val("").text("All"));
+
+                        column.data().unique().sort().each(function (d, j) {
+                            select.append($('<option></option>').val(d).html(d));
+                        });
+                    });
+                },
+                ordering: false,
+                autoWidth: true,
+                language: {
+                    "emptyTable": "No data available in table",
+                    "info": "Showing _START_ to _END_ of _TOTAL_ entries",
+                    "infoEmpty": "Showing 0 to 0 of 0 entries",
+                    "infoFiltered": "(filtered from _MAX_ total entries)",
+                    "lengthMenu": "Show _MENU_ entries",
+                    "loadingRecords": "Loading...",
+                    "processing": "Processing...",
+                    "search": "Search:",
+                    "zeroRecords": "No matching records found"
+                },
+                columnDefs: [{
+                    targets: 2, // State列
+                    render: function (data, type, row) {
+                        var colors = [];
+                        if (row[2] == 'Closed' || row[2] == 'Correction Not Needed') {
+                            colors.push('green');
+                        }
+                        if (row[2] == 'Investigating' || row[2] == 'New') {
+                            colors.push('red');
+                        }
+                        if (row[2] == 'First Correction Ready For Testing') {
+                            colors.push('orange');
+                        }
+                        if (colors.length > 0) {
+                            return '<span style="color:' + colors.join(',') + '">' + data + '</span>';
+                        } else {
+                            return data;
+                        }
+                    }
+                }]
+            });
+
+            // 监听表头点击事件，并支持多选
+            $('.data-table thead th').on('click', function () {
+                var columnIndex = tables.column(this).index();
+                var table = $(this).closest('.data-table');
+
+                // 判断当前点击的列是否为已显示下拉菜单的列
+                if (currentColumnIndex !== columnIndex || currentTable !== table) {
+                    table.find('.dt-dropdown').hide(); // 隐藏其他下拉菜单
+                }
+
+                // 切换当前列的下拉菜单显示状态
+                table.find('.dt-dropdown:eq(' + columnIndex + ')').toggle();
+
+                // 更新当前点击的列索引和表格对象
+                currentColumnIndex = columnIndex;
+                currentTable = table;
+            });
+
+            // 点击表格外部区域时隐藏下拉菜单
+            $(document).on('click', function (e) {
+                var target = e.target;
+                var isTableHeader = $(target).closest('.data-table thead').length > 0;
+
+                if (!isTableHeader) {
+                    $('.dt-dropdown').hide();
+                    currentColumnIndex = -1;
+                    currentTable = null;
+                }
+            });
+        });
+    </script>
+</head>
+
+<body>
+<form id="myForm" action="/Feature_Report" method="POST" onsubmit="return validateForm()">
+  {% if feature_id %}
+    <h1>Feature Report -- {{ feature_id|upper }}  <!--显示为大写字符-->
+      <input type="text" id="feature_id_1" name="feature_id">
+      <input type="submit" value="Submit" onclick="validateForm()">
+<!--      <button id="sendButton" class="send-button">Send Mail</button>-->  <!--发送邮件功能-->
+      <div class="tooltip">
+        <span class="tooltip-btn">Tips </span>
+        <span class="tooltiptext"> input full feature ID to search<br>
+         e.g. CB008285<br>
+         return limit is 200 for ReP</span>
+      </div>
+    </h1>
+  {% else %}
+    <h1 for="feature_id">Feature Report
+      <input type="text" id="feature_id_2" name="feature_id">
+      <input type="submit" value="Submit" onclick="validateForm()">
+      <div class="tooltip">
+        <span class="tooltip-btn">Tips </span>
+        <span class="tooltiptext"> input full feature ID to search<br>
+         e.g. CB008285<br>
+         return limit is 200 for ReP</span>
+      </div>
+    </h1>
+  {% endif %}
+</form>
+
+<script>
+  // feature_id 为空时，不查询
+  function validateForm() {
+    var featureId = document.getElementById("feature_id_1").value || document.getElementById("feature_id_2").value;
+    if (!featureId || featureId.trim() === "") {
+      // 阻止提交并使submit按钮无效
+      return false;
+    }
+    // 允许提交
+    return true;
+  }
+</script>
+
+  <h2>QC Status -- <a href="https://rep-portal.ext.net.nokia.com/reports/qc/?columns=%3Ahash%3A1278c84660e78364fe0ac89e7ccd924d&limit=200&ordering=name&path=s%5CRAN_L3_SW_CN_1&test_set__name={{ feature_id }}" target="_blank">Link</a></h2>
+<!-- 未查询时的默认显示 和 查询得到空值时的处理  -->
+{% if table_qc_status is defined %}
+    {% if table_qc_status.empty %}
+        <!-- 查询得到空值时的处理  -->
+        <p style="font-size: 12px;">No data available</p>
+    {% else %}
+        {{ table_qc_status | safe }}
+    {% endif %}
+{% else %}
+    <!-- 未查询时的默认显示  -->
+    <p style="font-size: 12px;">No data available</p>
+{% endif %}
+
+  <script>
+    // 获取表格的所有列标题单元格
+    const tableHeaderCells = document.querySelectorAll("table thead th");
+    // 遍历所有列标题单元格
+    tableHeaderCells.forEach((cell) => {
+      // 获取表格的所有行
+      const tableRows = document.querySelectorAll("table tbody tr");
+      // 获取所有列标题
+      const columnHeaders = document.querySelectorAll("table thead th");
+      // 遍历列标题
+      columnHeaders.forEach((header, index) => {
+        const columnIndex = index;
+        const columnName = header.textContent.trim().toLowerCase();
+        const lastRow = tableRows[tableRows.length - 1];
+        const targetCell = lastRow.cells[columnIndex];
+        // 根据列名设置相应的背景色
+        if (columnName === "passed") {
+          targetCell.classList.add("passed");
+        } else if (columnName === "failed") {
+          targetCell.classList.add("failed");
+        } else if (columnName === "blocked") {
+          targetCell.classList.add("blocked");
+        } else if (columnName === "no run") {
+          targetCell.classList.add("no_run");
+        } else if (columnName === "n/a") {
+          targetCell.classList.add("na");
+        }
+      })
+    });
+
+    // 发送邮件代码
+    document.getElementById('sendButton').addEventListener('click', function(event) {
+      // 阻止默认表单提交行为，不触发 submit 按钮的查询
+      event.preventDefault();
+
+      // 获取当前网页的内容
+      var htmlContent = document.documentElement.outerHTML;
+
+      // 发送网页内容到后端
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', '/send_content', true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            alert('网页内容已发送到指定邮箱！');
+          } else {
+            alert('发送网页内容失败！');
+          }
+        }
+      };
+      xhr.send(JSON.stringify({ htmlContent: htmlContent }));
+    });
+  </script>
+
+<br>
+<h2>Pronto Status -- <a href="https://rep-portal.ext.net.nokia.com/reports/pronto/?columns=%3Ahash%3Af0d35776db94b26d497ace58d74323d3&limit=200&ordering=-reported_date&feature={{ feature_id }}" target="_blank">Link</a></h2>
+
+<table id="myTable" class="data-table">    <!-- 两个表格设置为同一个class，以便统一设置script  -->
+    <thead>
+        <tr>
+            <th>PR ID</th>
+            <th>Title</th>
+            <th>State</th>
+            <th>Author Group</th>
+            <th>Author</th>
+            <th>GIC</th>
+            <th>PIC</th>
+            <th>Reported Date</th>
+            <th>Latest RD Info</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in data_pr %}
+        <tr>
+            <td class="no-wrap"><a href="{{ item['pr_link'] }}" target="_blank">{{ item['pr_id'] }}</a></td>    <!-- 带超链接的文字，且新建窗口 -->
+            <td>{{ item['title'] }}</td>
+            <td>{{ item['state'] }}</td>
+            <td>{{ item['author_group'] }}</td>
+            <td>{{ item['author'] }}</td>
+            <td>{{ item['gic'] }}</td>
+            <td>{{ item['fault_analysis_person'] }}</td>
+            <td>{{ item['reported_date'] }}</td>
+            <td>{{ item['rd_info'] }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<br>
+<br>
+
+<h2>Jira Status -- <a href="https://jiradc.ext.net.nokia.com/issues/?jql=project%20%3D%2068296%20AND%20%22Feature%20ID%22%20~%20%22{{ feature_id }}*%22%20AND%20type%20%3D%20Bug%20ORDER%20BY%20key%20DESC" target="_blank">Link</a></h2>
+<table id="myTable_jira" class="data-table">    <!-- 两个表格设置为同一个class  -->
+    <thead>
+        <tr>
+            <th>Jira ID</th>
+            <th>Feature</th>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Report</th>
+            <th>Assignee</th>
+            <th>Reported Date</th>
+            <th>Comment</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in data_jira %}
+        <tr>
+            <td><a href="{{ item['jira_link'] }}" target="_blank">{{ item['jira_id'] }}</a></td>    <!-- 带超链接的文字，且新建窗口，且该列不换行-->
+            <td>{{ item['feature_id'] }}</td>
+            <td>{{ item['title'] }}</td>
+            <td>{{ item['status'] }}</td>
+            <td>{{ item['reporter'] }}</td>
+            <td>{{ item['assignee'] }}</td>
+            <td>{{ item['created'] }}</td>
+            <td>{{ item['comment'] }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<br>
+<br>
+<br>
+
+</body>
+</html>
