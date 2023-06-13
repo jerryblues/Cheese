@@ -66,12 +66,29 @@ class MailSender:
 
 
 def query_jira_issue(jql, max_results=10000):
-    jira = JIRA(basic_auth=(jira_username, jira_password), options={'server': jira_server})
     try:
+        jira = JIRA(basic_auth=(jira_username, jira_password), options={'server': jira_server})
         issues = jira.search_issues(jql, maxResults=max_results)
-        return issues
     except Exception as e:
-        print(e)
+        logging.info(f"[Error] {e}")
+        return None
+    else:
+        return issues
+
+
+def filter_string(feature, test_set):
+    # feature 需要转为大写，否则小写输入的feature会匹配不到ReP中大写的original_test_set
+    # 第一个if，过滤掉 CNI-xxx 开头的test set，比如输入CB008140，会过滤掉CNI-72007-C_CB008140-
+    if test_set.startswith(feature.upper() + '-') or test_set.startswith(feature.upper() + ' '):
+        parts = test_set.split('-', maxsplit=2)
+        filtered = (parts[0] + '-' + parts[1])
+        return filtered
+    # 在第一个if中，输入的feature与test set完全一样的也会被过滤掉，这里用这个elif，获取这些应该显示的值
+    elif feature.upper() == test_set:
+        return feature.upper()
+    else:
+        # 不满足上述条件，返回none，用于调用这个函数时进行判断
+        return None
 
 
 def get_case_info_from_rep(feature, url, t):
@@ -79,12 +96,11 @@ def get_case_info_from_rep(feature, url, t):
     backlog_id = []
     case_name = []
     qc_status = []
-    end_fb = []
     sub_feature = []
     # query backlog ID and case name from reporting portal, 'feature' is from input on web
     query_rep_result = ET_ReP_Jira.query_rep(url, t)
 
-    if len(query_rep_result['results']):
+    if len(query_rep_result['results']):  # 查询Rep得到结果
         logging.debug("<--get result from rep done-->")
         '''
         data format
@@ -95,20 +111,14 @@ def get_case_info_from_rep(feature, url, t):
         print(type(data), type(data['results']), type(data['results'][1]))
         print(len(data['results']))
         '''
-        # 查询jira前，先登录和鉴权
-        jira_login_auth = JIRA(basic_auth=(jira_username, jira_password), options={'server': jira_server})
+
         while i < len(query_rep_result['results']):
-            # 获取sub-feature, 且对非法值处理，比如'CNI-72007-C_CB008290-A-1'
             test_set = query_rep_result['results'][i]['test_set']['name']
-            # feature 需要转为大写，否则与小写输入的feature匹配时，下面的match就匹配不到
-            pattern = r'^{}-[^-]*'.format(re.escape(feature.upper()))
-            filtered_test_set = ""
-            match = re.match(pattern, test_set)
+            # 获取sub-feature, 且对非法值处理，比如'CNI-72007-C_CB008290-A-1'
+            match = filter_string(feature, test_set)
             if match:
-                filtered_test_set = match.group()
-                # print(filtered_test_set)
-                sub_feature.append(filtered_test_set)
-                # get case status result from rep
+                # 如果能正常匹配，才把sub_feature，backlog_id 这些进行append
+                sub_feature.append(match)
                 backlog_id.append(query_rep_result['results'][i]['backlog_id'][0]['id'])
                 # 完整的case name
                 fullname = query_rep_result['results'][i]['name']
@@ -118,30 +128,18 @@ def get_case_info_from_rep(feature, url, t):
                 i = i + 1
             else:
                 # 如果test set匹配不到，则不统计这项，比如 'CNI-72007-C_CB008290-A-1' 会被过滤掉
+                logging.info(f"[test set not matched]: {test_set}")
                 i = i + 1
-                # print(test_set)
 
         logging.debug(f"[{i}] <--get sub_feature from query_rep_result-->")
         logging.debug(f"[{i}] <--get backlog_id from query_rep_result-->")
         logging.debug(f"[{i}] <--get case_name from query_rep_result-->")
         logging.debug(f"[{i}] <--get qc_status from query_rep_result-->")
+        return backlog_id, sub_feature, case_name, qc_status
 
-        # query end FB and label from Jira, according to backlog_id
-        query_link = "key in ({})".format(', '.join("{}".format(item) for item in backlog_id))
-        logging.debug(f"[jql] {query_link}")
-        query_jira_result = ET_ReP_Jira.query_jira(query_link, jira_login_auth)
-        logging.debug(f"{query_jira_result}")
-        for element in backlog_id:
-            value1, value2 = query_jira_result[element]
-            logging.debug(f"{value1}")
-            logging.debug(f"{value2}")
-            end_fb.append(value1)
-            # no need to filter label
-        return backlog_id, end_fb, sub_feature, case_name, qc_status
-
-    else:
+    else:  # 查询ReP结果为空
         logging.debug("<--get result[null] from rep-->")
-        return backlog_id, end_fb, sub_feature, case_name, qc_status
+        return backlog_id, sub_feature, case_name, qc_status
 
 
 def get_pr_info_from_rep(url, t):
@@ -211,7 +209,7 @@ def pivot_feature_report_qc_status(sub_feature, qc_status, case):
     if not sub_feature or not qc_status or not case:
         # 当入参为空时，返回none，同时在调用处对none进行判断，html中也需要处理
         logging.debug("<--get result[null] from source data-->")
-        return None
+        return pd.DataFrame({})
     else:
         logging.debug("<--get result done and pivot table start-->")
         df0 = pd.DataFrame({'Test Set': sub_feature, 'QC Status': qc_status, 'Sum': case})

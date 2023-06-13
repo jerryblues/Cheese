@@ -569,7 +569,7 @@ def feature_info():
         token = ET_ReP_Jira.get_token()
         logging.info("[0.1] <--get new token-->")
     logging.info("[0.2] <--token validated-->")
-    feature = request.form.get("feature_id")  # get input from web
+    feature = request.form.get("feature_id").strip()  # 从网页输入获得feature，并去掉前后的空格
     if feature:
         logging.info(f"[1.0] <--query [{feature}] start-->")
     else:
@@ -609,9 +609,9 @@ def feature_report():
         token = ET_ReP_Jira.get_token()
         logging.info("[0.1] <--get new token-->")
     logging.info("[0.2] <--token validated-->")
-    feature = request.form.get("feature_id")  # get input from web
+    feature = request.form.get("feature_id").strip()  # 从网页输入获得feature，并去掉前后的空格
     # 判断输入的值 非空和非空格时的处理
-    if feature and feature.strip():
+    if feature:
         logging.info(f"[1.0] <--query [{feature}] start-->")
         url_case = "https://rep-portal.ext.net.nokia.com/api/qc-beta/instances/report/?fields=id%2Cm_path%2Ctest_set__name%2Cbacklog_id%2Cname%2Curl%2Cstatus%2Cstatus_color%2Cfault_report_id_link%2Ccomment%2Csw_build%2Cres_tester%2Ctest_entity%2Cfunction_area%2Cca%2Corganization%2Crelease%2Cfeature%2Crequirement%2Clast_testrun__timestamp&limit=200&m_path__pos_neg=New_Features%5CRAN_L3_SW_CN_1&ordering=name&test_set__name__pos_neg_empty_str="
         url_case_feature = url_case + feature
@@ -621,7 +621,8 @@ def feature_report():
 
         # 第一个表格中的数据，case result统计
         case_data = ET_Feature_Report.get_case_info_from_rep(feature, url_case_feature, token)
-        case_status = ET_Feature_Report.pivot_feature_report_qc_status(case_data[2], case_data[4], case_data[3])
+        # return backlog_id, sub_feature, case_name, qc_status and as input to pivot_feature_report_qc_status(sub_feature, qc_status, case)
+        case_status = ET_Feature_Report.pivot_feature_report_qc_status(case_data[1], case_data[3], case_data[2])
         logging.info(f"[2.0] <--query [{feature}] case status done-->")
 
         # 第二个表格中的数据，pr 统计
@@ -659,15 +660,21 @@ def feature_report():
         df_jira = pd.DataFrame(data_for_jira)
         logging.info(f"[4.0] <--query [{feature}] jira status done-->")
 
-        if not case_status.empty:  # 输入非空，且查询结果也非空时，正常返回表格数据
+        if not case_status.empty:  # 输入非空，且查询结果也非空时，正常返回所有表格数据
             return render_template(
                 "et_feature_report.html",
                 table_qc_status=case_status.to_html(classes="total", header="true", table_id="table"),
                 data_pr=df_pr.to_dict('records'),
                 data_jira=df_jira.to_dict('records'),
                 feature_id=feature)
-        else:  # 输入非空，但查询结果为空时，返回默认表格
-            return render_template("et_feature_report.html")
+        else:  # 输入非空，但case_status查询结果为空时，table_qc_status无返回值
+            logging.info("[5.0] <--query case status is [null]-->")
+            return render_template(
+                "et_feature_report.html",
+                # table_qc_status=case_status.to_html(classes="total", header="true", table_id="table"),
+                data_pr=df_pr.to_dict('records'),
+                data_jira=df_jira.to_dict('records'),
+                feature_id=feature)
     else:  # 输入为空或空格时，返回默认表格
         logging.info("[1.0] <--query feature id is [null]-->")
         return render_template("et_feature_report.html")

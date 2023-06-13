@@ -2,7 +2,8 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Feature Report</title>
+<!--    <title>Feature Report</title>-->
+    <title>{% if feature_id %}{{ feature_id|upper }} Report{% else %}Feature Report{% endif %}</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='report.css') }}">
     <script type="text/javascript" src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script type="text/javascript" src="../static/datatables.js"></script>
