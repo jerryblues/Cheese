@@ -60,6 +60,7 @@ tr:nth-child(even) {
 }
 .no_run {
   background-color: #72a1f8;
+  color: white;
 }
 .passed {
   background-color: #1ec21e;

@@ -7,6 +7,7 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='report.css') }}">
     <script type="text/javascript" src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script type="text/javascript" src="../static/datatables.js"></script>
+    <script type="text/javascript" src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <style>
     #myTable {
         font-size: 12px;
@@ -181,7 +182,58 @@
   }
 </script>
 
-  <h2>QC Status -- <a href="https://rep-portal.ext.net.nokia.com/reports/qc/?columns=%3Ahash%3A1278c84660e78364fe0ac89e7ccd924d&limit=200&ordering=name&path=s%5CRAN_L3_SW_CN_1&test_set__name={{ feature_id }}" target="_blank">Link</a></h2>
+<script src="html2canvas.js"></script>
+<script>
+  // 按下按钮，对表格截图，保存到剪贴板
+  function copyTableToClipboard(tableId, buttonId) {
+  var tableElement = document.getElementById(tableId);
+  var copyButton = document.getElementById(buttonId);
+  html2canvas(tableElement).then(function(canvas) {
+    canvas.toBlob(function(blob) {
+      var clipboardItems = [
+        new ClipboardItem({ 'image/png': blob })
+      ];
+      navigator.clipboard.write(clipboardItems).then(function() {
+        console.log('截图已保存到剪贴板');
+        // 更新按钮文本为 "Copied"
+        copyButton.textContent = 'Copied';
+        // 5秒后将按钮文本恢复为初始值
+        setTimeout(function() {
+          copyButton.textContent = 'Copy Table';
+        }, 5000); // 5000毫秒 = 5秒
+      }).catch(function(err) {
+        console.error('无法将截图保存到剪贴板:', err);
+      });
+    });
+  });
+}
+</script>
+
+<style>
+  .title-container {
+    display: flex;
+    align-items: center;
+  }
+  .title-container a {
+    margin-right: 1em;
+  }
+  .title-container button {
+    text-align: center;
+  }
+</style>
+
+<div class="title-container">
+  <h2>QC Status -- <a href="https://rep-portal.ext.net.nokia.com/reports/qc/?columns=%3Ahash%3A1278c84660e78364fe0ac89e7ccd924d&limit=200&ordering=name&path=s%5CRAN_L3_SW_CN_1&test_set__name={{ feature_id }}" target="_blank">Link</a><button id="copy_table_qc">Copy Table</button></h2>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var copyButton = document.getElementById('copy_table_qc');
+  copyButton.addEventListener('click', function() {
+    copyTableToClipboard('table', 'copy_table_qc');
+  });
+});
+</script>
+
 <!-- 未查询时的默认显示 和 查询得到空值时的处理  -->
 {% if table_qc_status is defined %}
     {% if table_qc_status.empty %}
@@ -251,7 +303,17 @@
   </script>
 
 <br>
-<h2>Pronto Status -- <a href="https://rep-portal.ext.net.nokia.com/reports/pronto/?columns=%3Ahash%3Af0d35776db94b26d497ace58d74323d3&limit=200&ordering=-reported_date&feature={{ feature_id }}" target="_blank">Link</a></h2>
+<div class="title-container">
+  <h2>Pronto Status -- <a href="https://rep-portal.ext.net.nokia.com/reports/pronto/?columns=%3Ahash%3Af0d35776db94b26d497ace58d74323d3&limit=200&ordering=-reported_date&feature={{ feature_id }}" target="_blank">Link</a><button id="copy_table_pr">Copy Table</button></h2>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var copyButton = document.getElementById('copy_table_pr');
+  copyButton.addEventListener('click', function() {
+    copyTableToClipboard('myTable', 'copy_table_pr');
+  });
+});
+</script>
 
 <table id="myTable" class="data-table">    <!-- 两个表格设置为同一个class，以便统一设置script  -->
     <thead>
@@ -286,8 +348,18 @@
 
 <br>
 <br>
+<div class="title-container">
+  <h2>Jira Status -- <a href="https://jiradc.ext.net.nokia.com/issues/?jql=project%20%3D%2068296%20AND%20%22Feature%20ID%22%20~%20%22{{ feature_id }}*%22%20AND%20type%20%3D%20Bug%20ORDER%20BY%20key%20DESC" target="_blank">Link</a><button id="copy_table_jira">Copy Table</button></h2>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var copyButton = document.getElementById('copy_table_jira');
+  copyButton.addEventListener('click', function() {
+    copyTableToClipboard('myTable_jira', 'copy_table_jira');
+  });
+});
+</script>
 
-<h2>Jira Status -- <a href="https://jiradc.ext.net.nokia.com/issues/?jql=project%20%3D%2068296%20AND%20%22Feature%20ID%22%20~%20%22{{ feature_id }}*%22%20AND%20type%20%3D%20Bug%20ORDER%20BY%20key%20DESC" target="_blank">Link</a></h2>
 <table id="myTable_jira" class="data-table">    <!-- 两个表格设置为同一个class  -->
     <thead>
         <tr>

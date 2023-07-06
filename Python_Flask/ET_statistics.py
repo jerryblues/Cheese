@@ -78,10 +78,10 @@ def get_data(issues):  # 处理数据
     feature_blues, feature_jazz, feature_rock, feature_shield = [], [], [], []
     remaining_effort_blues, remaining_effort_jazz, remaining_effort_rock, remaining_effort_shield = [], [], [], []
     end_fb_blues, end_fb_jazz, end_fb_rock, end_fb_shield = [], [], [], []
-    squad_jazz_hc = 7
+    squad_jazz_hc = 6
     squad_blues_hc = 7
-    squad_rock_hc = 7
-    squad_shield_hc = 7
+    squad_rock_hc = 6
+    squad_shield_hc = 6
     squad_c_hc = 8
     squad_jazz_cap = squad_jazz_hc * 60 - 20 - 15 - 15
     squad_blues_cap = squad_blues_hc * 60 - 20 - 15 - 15

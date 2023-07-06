@@ -133,7 +133,10 @@ def get_result(url, t):
         # 查询jira前，先登录和鉴权
         # jira_login_auth = JIRA(basic_auth=(jira_username, jira_password), options={'server': jira_server})
         while i < len(query_rep_result['results']):
-            backlog_id.append(query_rep_result['results'][i]['backlog_id'][0]['id'])
+            if query_rep_result['results'][i]['backlog_id']:
+                backlog_id.append(query_rep_result['results'][i]['backlog_id'][0]['id'])
+            else:
+                backlog_id.append(i)
 
             # 完整的case name
             fullname = query_rep_result['results'][i]['name']
