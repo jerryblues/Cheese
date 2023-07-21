@@ -588,7 +588,8 @@ def feature_info():
     }
     total_label = ET_ReP_Jira.summary(source_data[0], source_data[2])
     # print("total label", total_label)
-    total_case = len(source_data[0])
+    # 按 QC status 统计case个数，除去 N/A case 个数
+    total_case = sum(1 for item in source_data[4] if item != "N/A")
     # print("total case", total_case)
     df = pd.DataFrame(data)
     # 表格数据由df传入，数值则直接传入html

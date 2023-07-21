@@ -9,6 +9,18 @@
     <script type="text/javascript" src="../static/datatables.js"></script>
     <script type="text/javascript" src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <style>
+    .dt-dropdown {           /* 下拉菜单最大宽度内按文字长度自动调整，并且文字不会换行显示，超出部分会隐藏 */
+        display: none;       /* 默认隐藏下拉菜单 */
+        position: absolute;
+        z-index: 1;
+        height: 200px;       /* 调整下拉菜单高度 */
+        max-width: 200px;    /* 最大宽度为 200px */
+        overflow-y: auto;   /* 添加滚动条 */
+        white-space: nowrap; /* 不换行显示 */
+        overflow: hidden;    /* 超出部分隐藏 */
+        /* 其他共享的样式属性 */
+    }
+
     #myTable {
         font-size: 12px;
         table-layout: auto;}    /* 自适应列宽 */
@@ -19,13 +31,7 @@
         max-width: 500px;}      /* 单元格最大宽度 */
     td.no-wrap {                /* 设置不换行 */
     white-space: nowrap;}
-    .dt-dropdown {
-        display: none;      /* 默认隐藏下拉菜单 */
-        position: absolute;
-        z-index: 1;
-        height: 200px;      /* 调整下拉菜单高度 */
-        width: 150px;       /* 调整下拉菜单宽度 */
-        overflow-y: auto;}  /* 添加滚动条 */
+
 
     #myTable_jira {
         font-size: 12px;
@@ -35,13 +41,6 @@
     #myTable_jira td {
         word-break: break-word;  /* 超过列宽换行显示 */
         max-width: 400px;}
-    .dt-dropdown {
-        display: none;       /* 默认隐藏下拉菜单 */
-        position: absolute;
-        z-index: 1;
-        height: 200px;       /* 调整下拉菜单高度 */
-        width: 150px;        /* 调整下拉菜单宽度 */
-        overflow-y: auto;}   /* 添加滚动条 */
 </style>
 
     <script>
