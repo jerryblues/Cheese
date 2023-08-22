@@ -14,6 +14,7 @@ import ET_Feature_Report
 from flask import Flask, render_template, request
 import logging
 import re
+from flask import redirect, url_for
 
 
 '''
@@ -603,6 +604,16 @@ def feature_report_default():
 
 @app.route('/Feature_Report', methods=['POST'])
 def feature_report():
+    feature = request.form.get("feature_id").strip()  # 从网页输入获得feature，并去掉前后的空格
+    if feature:
+        return redirect(url_for('feature_report_with_id', feature_name=feature))  # 将feature作为参数传给feature_report_with_id，可以做为url的一部分
+    else:
+        logging.info("[1.0] <--query feature id is [null]-->")
+        return render_template("et_feature_report.html")
+
+
+@app.route('/Feature_Report/<feature_name>', methods=['GET'])
+def feature_report_with_id(feature_name):  # feature_name 可以来自手动输入的url，也可以来自网页上输入的 feature id
     global token
     if ET_ReP_Jira.validate_token(token):
         logging.info("[0.1] <--token is valid-->")
@@ -610,7 +621,7 @@ def feature_report():
         token = ET_ReP_Jira.get_token()
         logging.info("[0.1] <--get new token-->")
     logging.info("[0.2] <--token validated-->")
-    feature = request.form.get("feature_id").strip()  # 从网页输入获得feature，并去掉前后的空格
+    feature = feature_name.strip()
     # 判断输入的值 非空和非空格时的处理
     if feature:
         logging.info(f"[1.0] <--query [{feature}] start-->")
@@ -669,7 +680,7 @@ def feature_report():
                 data_jira=df_jira.to_dict('records'),
                 feature_id=feature)
         else:  # 输入非空，但case_status查询结果为空时，table_qc_status无返回值
-            logging.info("[5.0] <--query case status is [null]-->")
+            # logging.info("[5.0] <--query case status is [null]-->")
             return render_template(
                 "et_feature_report.html",
                 # table_qc_status=case_status.to_html(classes="total", header="true", table_id="table"),
