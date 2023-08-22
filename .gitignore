@@ -20,3 +20,5 @@ deploy_key_rsa
 .cache
 assets
 /.idea/
+/Python_Application/pkg.pcap
+/Python_Application/pkg.txt
