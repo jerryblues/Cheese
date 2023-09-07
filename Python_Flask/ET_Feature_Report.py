@@ -119,7 +119,11 @@ def get_case_info_from_rep(feature, url, t):
             if match:
                 # 如果能正常匹配，才把sub_feature，backlog_id 这些进行append
                 sub_feature.append(match)
-                backlog_id.append(query_rep_result['results'][i]['backlog_id'][0]['id'])
+                # 对 backlog 空值的处理
+                if query_rep_result['results'][i]['backlog_id']:
+                    backlog_id.append(query_rep_result['results'][i]['backlog_id'][0]['id'])
+                else:
+                    backlog_id.append(0)
                 # 完整的case name
                 fullname = query_rep_result['results'][i]['name']
                 # 截取fullname中第一个英文字符开始的100个字符

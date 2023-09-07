@@ -13,7 +13,6 @@ from flask import Flask, jsonify, render_template
 import re
 import logging
 
-
 # token = "first token is invalid"
 
 logging.basicConfig(level=logging.INFO,
@@ -136,21 +135,20 @@ def get_result(url, t):
             if query_rep_result['results'][i]['backlog_id']:
                 backlog_id.append(query_rep_result['results'][i]['backlog_id'][0]['id'])
             else:
-                backlog_id.append(i)
+                backlog_id.append('FPB-484682')  # 这里 backlog id 给了一个默认值，如果给0的话，下面无法批量查询
 
             # 完整的case name
             fullname = query_rep_result['results'][i]['name']
             # 截取fullname中第一个英文字符开始的100个字符
             case_name.append(fullname[re.search('[a-zA-Z]', fullname).start():100] + '...')
-
             qc_status.append(query_rep_result['results'][i]['status'])
-
             i += 1
         logging.debug(f"[{i}] <--get backlog_id from query_rep_result-->")
         logging.debug(f"[{i}] <--get case_name from query_rep_result-->")
         logging.debug(f"[{i}] <--get qc_status from query_rep_result-->")
 
         # query end FB and label from Jira, according to backlog_id
+        # 将获取到的 backlog_id 组装成 jira 查询链接，供批量查询
         query_link = "key in ({})".format(', '.join("{}".format(item) for item in backlog_id))
         logging.debug(f"{query_link}")
         query_jira_result = query_jira(query_link)
@@ -186,6 +184,8 @@ def get_result(url, t):
 
 # 取出唯一的backlog ID，并把对应的label个数累加
 def summary(lst1, lst2):
+    logging.debug(f"<--backlog_id: {lst1}-->")
+    logging.debug(f"<--label: {lst2}-->")
     distinct_indexes = []
     seen = set()
     for i, x in enumerate(lst1):
@@ -198,7 +198,6 @@ def summary(lst1, lst2):
         total = total + lst2[i]
     # print(total)
     return total
-
 
 # app = Flask(__name__)
 #
