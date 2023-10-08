@@ -67,11 +67,14 @@ def search_data(jql, max_results=10000):  # 抓取数据
         print(e)
 
 
+# no need to convert after parameter change -- 230926
 def convert_data(string):  # 转换格式 xxh转换为数字
     if string is None:
         return 0
-    else:
+    elif isinstance(string, str):  # 检查string是否为字符串类型
         return float(string.replace(',', '').replace('h', ''))
+    else:
+        return string  # 如果不是字符串，直接返回
 
 
 def get_data(issues):  # 处理数据
@@ -90,43 +93,47 @@ def get_data(issues):  # 处理数据
     squad_shield_cap = squad_shield_hc * 60 - 20 - 15
     squad_c_cap = squad_c_hc * 60 - 20 - 15
 
-    squad_name = ["Jazz", "Blues", "Rock", "Shield", "Squad C"]
+    squad_name = ["Jazz", "Blues", "Rock", "Shield", "HZ64_SG2"]
     squad_hc = [squad_jazz_hc, squad_blues_hc, squad_rock_hc, squad_shield_hc, squad_c_hc]
     squad_cap = [squad_jazz_cap, squad_blues_cap, squad_rock_cap, squad_shield_cap, squad_c_cap]
 
     for issue in issues:
         end_fb.append(issue.fields.customfield_38693)
-        converted_data_remain = convert_data(issue.fields.customfield_39192)
-        remaining_effort.append(converted_data_remain)
-        converted_data_origin = convert_data(issue.fields.customfield_39191)
-        original_effort.append(converted_data_origin)
-        if issue.fields.customfield_29790 == '5253':
+        data_remain = issue.fields.customfield_43291    # from time remaining[39192] change to time remaining(h)[43291] -- 230926
+        remaining_effort.append(data_remain)
+        data_origin = issue.fields.customfield_43292    # from original esitimate[39191] change to original esitimate(h)[43292] -- 230926
+        original_effort.append(data_origin)
+
+        # get team info should use: issue.fields.customfield_29790.name -- 23/10/08
+
+        if issue.fields.customfield_29790.name == 'L3_5GL3ET_HZH_Jazz':
             team.append('L3_5GL3ET_HZH_Jazz')
-            remaining_effort_percentage.append(converted_data_remain / squad_jazz_cap)
+            remaining_effort_percentage.append(data_remain / squad_jazz_cap)
             feature_jazz.append(issue.fields.customfield_37381)
-            remaining_effort_jazz.append(converted_data_remain)
+            remaining_effort_jazz.append(data_remain)
             end_fb_jazz.append(issue.fields.customfield_38693)
-        elif issue.fields.customfield_29790 == '5254':
+        elif issue.fields.customfield_29790.name == 'L3_5GL3ET_HZH_Blues':
             team.append('L3_5GL3ET_HZH_Blues')
-            remaining_effort_percentage.append(converted_data_remain / squad_blues_cap)
+            remaining_effort_percentage.append(data_remain / squad_blues_cap)
             feature_blues.append(issue.fields.customfield_37381)
-            remaining_effort_blues.append(converted_data_remain)
+            remaining_effort_blues.append(data_remain)
             end_fb_blues.append(issue.fields.customfield_38693)
-        elif issue.fields.customfield_29790 == '5351':
+        elif issue.fields.customfield_29790.name == 'L3_5GL3ET_HZH_Rock':
             team.append('L3_5GL3ET_HZH_Rock')
-            remaining_effort_percentage.append(converted_data_remain / squad_rock_cap)
+            remaining_effort_percentage.append(data_remain / squad_rock_cap)
             feature_rock.append(issue.fields.customfield_37381)
-            remaining_effort_rock.append(converted_data_remain)
+            remaining_effort_rock.append(data_remain)
             end_fb_rock.append(issue.fields.customfield_38693)
-        elif issue.fields.customfield_29790 == '6261':
+        elif issue.fields.customfield_29790.name == 'L3_5GL3ET_HZH_SHIELD':
             team.append('L3_5GL3ET_HZH_SHIELD')
-            remaining_effort_percentage.append(converted_data_remain / squad_shield_cap)
+            remaining_effort_percentage.append(data_remain / squad_shield_cap)
             feature_shield.append(issue.fields.customfield_37381)
-            remaining_effort_shield.append(converted_data_remain)
+            remaining_effort_shield.append(data_remain)
             end_fb_shield.append(issue.fields.customfield_38693)
-        elif issue.fields.customfield_29790 == '5255':
-            team.append('L3_5GL3ET_HZH_Squad C')
-            remaining_effort_percentage.append(converted_data_remain / squad_c_cap)
+        elif issue.fields.customfield_29790.name == 'L3_5G L3 ET_HZ64_SG2':
+            team.append('L3_5G L3 ET_HZ64_SG2')
+            remaining_effort_percentage.append(data_remain / squad_c_cap)
+
     return team, end_fb, remaining_effort, remaining_effort_percentage, original_effort, \
            feature_blues, feature_jazz, feature_rock, feature_shield, \
            remaining_effort_blues, remaining_effort_jazz, remaining_effort_rock, remaining_effort_shield, \
