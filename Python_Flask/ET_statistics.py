@@ -568,8 +568,18 @@ def feature_info_default():
     return render_template("et_rep_jira.html")
 
 
-@app.route("/feature_info", methods=["POST"])
+@app.route('/feature_info', methods=['POST'])
 def feature_info():
+    feature = request.form.get("feature_id").strip()  # 从网页输入获得feature，并去掉前后的空格
+    if feature:
+        return redirect(url_for('feature_info_with_id', feature_name=feature))  # 将feature作为参数传给feature_report_with_id，可以做为url的一部分
+    else:
+        logging.info("[1.0] <--query feature id is [null]-->")
+        return render_template("et_rep_jira.html")
+
+
+@app.route('/feature_info/<feature_name>', methods=['GET'])
+def feature_info_with_id(feature_name):  # feature_name 可以来自手动输入的url，也可以来自网页上输入的 feature id
     global token
     if ET_ReP_Jira.validate_token(token):
         logging.info("[0.1] <--token is valid-->")
@@ -577,7 +587,7 @@ def feature_info():
         token = ET_ReP_Jira.get_token()
         logging.info("[0.1] <--get new token-->")
     logging.info("[0.2] <--token validated-->")
-    feature = request.form.get("feature_id").strip()  # 从网页输入获得feature，并去掉前后的空格
+    feature = feature_name.strip()
     if feature:
         logging.info(f"[1.0] <--query [{feature}] start-->")
     else:

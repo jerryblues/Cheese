@@ -139,8 +139,9 @@ def get_result(url, t):
 
             # 完整的case name
             fullname = query_rep_result['results'][i]['name']
-            # 截取fullname中第一个英文字符开始的100个字符
-            case_name.append(fullname[re.search('[a-zA-Z]', fullname).start():100] + '...')
+            # 如果截取fullname中第一个英文字符开始的100个字符
+            case_name.append(fullname[re.search('[a-zA-Z]', fullname).start():120] + '...')
+
             qc_status.append(query_rep_result['results'][i]['status'])
             i += 1
         logging.debug(f"[{i}] <--get backlog_id from query_rep_result-->")
