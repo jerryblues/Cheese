@@ -12,38 +12,9 @@ body{ font-family: "微软雅黑"}
 </style>
 
 <h1>FB Effort</h1>
+{{ total_percentage|safe }}
 
-<h2>FB Effort Per Team</h2>
-{{ total|safe }}
-<h3> Current FB: Origin Effort and Remaining Effort, Future FB: only Remaining Effort
-    <br> FB=End FB, Effort=Remaining Effort(h)
-</h3>
-
-<h2>FB Effort Per Team Percentage</h2>
-{{ percentage|safe }}
-<h3> Percentage = Remaining Effort / Team Capacity
-</h3>
-
-<h2>Team Info</h2>
-{{ squad|safe }}
-<h3> Team Capacity=HC*60h-SM*20h-TO*15h (20h: SM, 15h: Test Owner)
-    <br> New comer included
-</h3>
-
-<h2>FB Effort -- Blues</h2>
-{{ total_blues|safe }}
-
-<h2>FB Effort -- Jazz</h2>
-{{ total_jazz|safe }}
-
-<h2>FB Effort -- Rock</h2>
-{{ total_rock|safe }}
-
-<h2>FB Effort -- Shield</h2>
-{{ total_shield|safe }}
-
-
-<h3><a href="https://jiradc.ext.net.nokia.com/issues/?filter=332653" target="_blank">Jira filter link</a>
+<h3><a href="https://jiradc.ext.net.nokia.com/secure/StructureBoard.jspa?s=%7B%22sQuery%22%3A%7B%22query%22%3A%22issuetype%20%3D%20Epic%20AND%20status%20not%20in%20(done%2C%20Obsolete)%20and%20cf%5B29790%5D%20%3D%2011150%20ORDER%20BY%20%5C%22Item%20ID%5C%22%20ASC%22%2C%22type%22%3A%22jql%22%7D%7D#" target="_blank">Jira filter link</a>
 </h3>
 
 </body>

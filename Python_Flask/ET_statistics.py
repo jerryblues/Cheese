@@ -33,11 +33,11 @@ token = "first token is invalid"
 
 jira_server = 'https://jiradc.ext.net.nokia.com'  # jira地址
 jira_username = 'h4zhang'  # 用户名，本地调试时，可用明文代替
-jira_password = 'Holmes-09'  # 密码，本地调试时，可用明文代替
+jira_password = 'Holmes=-0'  # 密码，本地调试时，可用明文代替
 
 # jira = JIRA(basic_auth=(jira_username, jira_password), options={'server': jira_server})
 jira_filter_ET = '''
-    project = FCA_5G_L2L3 AND issuetype in (epic) AND resolution = Unresolved AND status not in (Done, obsolete) AND cf[29790] in (5253, 5254, 5255, 5351, 6261) ORDER BY cf[38693] ASC, key ASC
+    issuetype = Epic AND status not in (done, Obsolete) and cf[29790] = 11150 ORDER BY "Item ID" ASC
 '''
 
 jira_filter_ET_Jazz = '''project = FCA_5G_L2L3 AND issuetype in (epic) AND resolution = Unresolved AND status not in (Done, obsolete) AND cf[29790] in (5253) ORDER BY cf[38693] ASC, key ASC'''
@@ -50,6 +50,8 @@ jira_filter_issues_this_year = '''project = 68296 AND reporter in (membersOf(I_M
 jira_filter_issues_this_month = '''project = 68296 AND reporter in (membersOf(I_MN_RAN_L3_SW_1_CN_ET)) AND created >= startOfMonth() and issuetype = Bug AND status != CNN ORDER BY key DESC'''
 
 jira_filter_long_open_issue = '''project = 68296 AND reporter in (membersOf(I_MN_RAN_L3_SW_1_CN_ET)) AND status not in (Done, CNN, FNR, "Transferred out") ORDER BY created ASC, key DESC'''
+
+team_cap = 1200
 
 
 def search_data(jql, max_results=10000):  # 抓取数据
@@ -77,80 +79,39 @@ def convert_data(string):  # 转换格式 xxh转换为数字
         return string  # 如果不是字符串，直接返回
 
 
-def get_data(issues):  # 处理数据
-    team, end_fb, remaining_effort, remaining_effort_percentage, original_effort = [], [], [], [], []
-    feature_blues, feature_jazz, feature_rock, feature_shield = [], [], [], []
-    remaining_effort_blues, remaining_effort_jazz, remaining_effort_rock, remaining_effort_shield = [], [], [], []
-    end_fb_blues, end_fb_jazz, end_fb_rock, end_fb_shield = [], [], [], []
-    squad_jazz_hc = 6
-    squad_blues_hc = 7
-    squad_rock_hc = 6
-    squad_shield_hc = 6
-    squad_c_hc = 8
-    squad_jazz_cap = squad_jazz_hc * 60 - 20 - 15 - 15
-    squad_blues_cap = squad_blues_hc * 60 - 20 - 15 - 15
-    squad_rock_cap = squad_rock_hc * 60 - 20 - 15 - 15
-    squad_shield_cap = squad_shield_hc * 60 - 20 - 15
-    squad_c_cap = squad_c_hc * 60 - 20 - 15
-
-    squad_name = ["Jazz", "Blues", "Rock", "Shield", "HZ64_SG2"]
-    squad_hc = [squad_jazz_hc, squad_blues_hc, squad_rock_hc, squad_shield_hc, squad_c_hc]
-    squad_cap = [squad_jazz_cap, squad_blues_cap, squad_rock_cap, squad_shield_cap, squad_c_cap]
+def get_data(issues):  # update due to team change -- 240218
+    team, feature, end_fb, remaining_effort, = [], [], [], []
 
     for issue in issues:
+        team.append(issue.fields.customfield_29790.name)
+        feature.append(issue.fields.customfield_37381)
         end_fb.append(issue.fields.customfield_38693)
-        data_remain = issue.fields.customfield_43291    # from time remaining[39192] change to time remaining(h)[43291] -- 230926
-        remaining_effort.append(data_remain)
-        data_origin = issue.fields.customfield_43292    # from original esitimate[39191] change to original esitimate(h)[43292] -- 230926
-        original_effort.append(data_origin)
+        remaining_effort.append(issue.fields.customfield_43291)
 
-        # get team info should use: issue.fields.customfield_29790.name -- 23/10/08
-
-        if issue.fields.customfield_29790.name == 'L3_5GL3ET_HZH_Jazz':
-            team.append('L3_5GL3ET_HZH_Jazz')
-            remaining_effort_percentage.append(data_remain / squad_jazz_cap)
-            feature_jazz.append(issue.fields.customfield_37381)
-            remaining_effort_jazz.append(data_remain)
-            end_fb_jazz.append(issue.fields.customfield_38693)
-        elif issue.fields.customfield_29790.name == 'L3_5GL3ET_HZH_Blues':
-            team.append('L3_5GL3ET_HZH_Blues')
-            remaining_effort_percentage.append(data_remain / squad_blues_cap)
-            feature_blues.append(issue.fields.customfield_37381)
-            remaining_effort_blues.append(data_remain)
-            end_fb_blues.append(issue.fields.customfield_38693)
-        elif issue.fields.customfield_29790.name == 'L3_5GL3ET_HZH_Rock':
-            team.append('L3_5GL3ET_HZH_Rock')
-            remaining_effort_percentage.append(data_remain / squad_rock_cap)
-            feature_rock.append(issue.fields.customfield_37381)
-            remaining_effort_rock.append(data_remain)
-            end_fb_rock.append(issue.fields.customfield_38693)
-        elif issue.fields.customfield_29790.name == 'L3_5GL3ET_HZH_SHIELD':
-            team.append('L3_5GL3ET_HZH_SHIELD')
-            remaining_effort_percentage.append(data_remain / squad_shield_cap)
-            feature_shield.append(issue.fields.customfield_37381)
-            remaining_effort_shield.append(data_remain)
-            end_fb_shield.append(issue.fields.customfield_38693)
-        elif issue.fields.customfield_29790.name == 'L3_5G L3 ET_HZ64_SG2':
-            team.append('L3_5G L3 ET_HZ64_SG2')
-            remaining_effort_percentage.append(data_remain / squad_c_cap)
-
-    return team, end_fb, remaining_effort, remaining_effort_percentage, original_effort, \
-           feature_blues, feature_jazz, feature_rock, feature_shield, \
-           remaining_effort_blues, remaining_effort_jazz, remaining_effort_rock, remaining_effort_shield, \
-           end_fb_blues, end_fb_jazz, end_fb_rock, end_fb_shield, squad_name, squad_hc, squad_cap
+    return team, feature, end_fb, remaining_effort
 
 
-def pivot_data_sum(team, end_fb, remaining_effort):  # 汇总数据
+def pivot_data_sum(feature, end_fb, remaining_effort):  # 汇总数据
     pd.set_option(  # 设置参数：精度，最大行，最大列，最大显示宽度
         'precision', 1,
         'display.max_rows', 500,
         'display.max_columns', 500,
         'display.width', 1000)
-    df0 = pd.DataFrame((list(zip(team, end_fb, remaining_effort))))
-    df0.columns = ['Team', 'FB', 'Remaining EE']
-    pivoted_fb_effort = pd.pivot_table(df0[['Team', 'FB', 'Remaining EE']], values='Remaining EE',
-                                       index=['Team'], columns=['FB'], aggfunc='sum', fill_value=0)
-    return pivoted_fb_effort
+    df0 = pd.DataFrame((list(zip(feature, end_fb, remaining_effort))))
+    df0.columns = ['Feature', 'FB', 'Remaining EE']
+    pivoted_fb_effort = pd.pivot_table(df0[['Feature', 'FB', 'Remaining EE']], values='Remaining EE',
+                                       index=['Feature'], columns=['FB'], aggfunc='sum', fill_value=0, margins=True)
+    pivoted_fb_effort.index.name = None
+
+    # 计算百分比数据并带上百分号, 总capacity=1200h
+    percentage_data = pivoted_fb_effort.iloc[-1] / team_cap * 100
+    percentage_data = percentage_data.apply(lambda x: "{:.1f}%".format(x))  # 添加百分号
+    # 创建包含百分比数据的 DataFrame
+    percentage_df = pd.DataFrame(percentage_data).transpose()
+    percentage_df.index = ['Percentage']  # 设置索引名称
+    # 将百分比数据合并到原始数据中
+    merged_df = pd.concat([pivoted_fb_effort, percentage_df])
+    return merged_df
 
 
 def pivot_data_percentage(team, end_fb, remaining_effort_percentage):  # 汇总数据
@@ -164,6 +125,7 @@ def pivot_data_percentage(team, end_fb, remaining_effort_percentage):  # 汇总�
     pivoted_fb_effort_percentage = pd.pivot_table(df[['Team', 'FB', 'Percentage']], values='Percentage',
                                                   index=['Team'], columns=['FB'], aggfunc='sum', fill_value=0) \
         .applymap(lambda x: "{0:.1f}%".format(100 * x))  # show as percentage
+    pivoted_fb_effort_percentage.index.name = None
     return pivoted_fb_effort_percentage
 
 
@@ -194,14 +156,10 @@ def pivot_data_team(feature, end_fb, remaining_effort):
 
 
 def filter_issues(issues):
-    team_shield = ['Damon Lei', 'Jun 15. Zhang', 'Jiangping Cao', 'Ping 3. Li', 'Susana Yan', 'Alex 2. Wang',
-                   'Jun 3. Ye']
-    team_jazz = ['Jolin Fan', 'Dandan Chen', 'Delun Li', 'Lingyan Zhou', 'Zheng Tang', 'Lijun J. Jia',
-                 'Chunjian Yang', 'Jean Jing']
-    team_blues = ['Nanxiao Ge', 'Sherry Zhang', 'Yige G. Zhang', 'Ruifang Zhu', 'Hao 6. Zhang', 'Ha Zheng',
-                  'Zora Wang', 'Tingjian Mao']
-    team_rock = ['Lena Zhuo', 'Jiadan Wu', 'Christine Chen', 'Xiaowen Xu', 'Liupei Fang',
-                 'Jing Ye', 'Jia Pan']
+    team_shield = ['Damon Lei', 'Jun 15. Zhang', 'Jiangping Cao', 'Susana Yan', 'Alex 2. Wang', 'Jun 3. Ye']
+    team_jazz = ['Jolin Fan', 'Dandan Chen', 'Delun Li', 'Lingyan Zhou', 'Zheng Tang',  'Jia Pan', 'Jean Jing']
+    team_blues = ['Lena Zhuo', 'Yige G. Zhang', 'Ruifang Zhu', 'Hao 6. Zhang', 'Ha Zheng', 'Zora Wang', 'Tingjian Mao']
+    team_rock = ['Lijun J. Jia', 'Sherry Zhang', 'Jiadan Wu', 'Christine Chen', 'Xiaowen Xu', 'Liupei Fang', 'Jing Ye']
     counter_shield = 0
     counter_jazz = 0
     counter_blues = 0
@@ -446,41 +404,12 @@ def web_server():
 def web_server_effort():
     print("=== current time:", datetime.datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S"), "===")
     data = get_data(search_data(jira_filter_ET))
-    # get_data return:
-    # team, end_fb, remaining_effort, remaining_effort_percentage, original_effort, \ 01234
-    # feature_blues, feature_jazz, feature_rock, feature_shield, \ 5678
-    # remaining_effort_blues, remaining_effort_jazz, remaining_effort_rock, remaining_effort_shield, \ 9 10 11 12
-    # end_fb_blues, end_fb_jazz, end_fb_rock, end_fb_shield \ 13 14 15 16
-    # squad_name, squad_hc, squad_cap \ 17 18 19
-    dic = Counter(data[1])
-    length = dic[data[1][0]]  # 计算第一个FB有几个数据
-    origin = '0rigin_' + data[1][0]
-
-    # 在原始数据中插入数据用于展示 Origin Effort 插入的个数=第一个FB数据的个数
-    new_team = data[0][:length] + data[0]
-    new_fb = [origin] * length + data[1]
-    new_ee = data[4][:length] + data[2]
-
-    # 总effort 和 effort百分比
-    table_sum = pivot_data_sum(new_team, new_fb, new_ee)
-    table_percentage = pivot_data_percentage(data[0], data[1], data[3])
-    # Team Info
-    table_squad = pivot_squad(data[17], data[18], data[19])
-    # 每个Team每个FB的feature和effort
-    table_blues = pivot_data_team(data[5], data[13], data[9])
-    table_jazz = pivot_data_team(data[6], data[14], data[10])
-    table_rock = pivot_data_team(data[7], data[15], data[11])
-    table_shield = pivot_data_team(data[8], data[16], data[12])
+    # get_data return: team, feature, end_fb, remaining_effort
+    table_total_percentage = pivot_data_sum(data[1], data[2], data[3])
 
     return render_template(
         "effort_template.html",
-        total=table_sum.to_html(classes="total", header="true", table_id="table"),
-        percentage=table_percentage.to_html(classes="percentage", header="true", table_id="table"),
-        squad=table_squad.to_html(classes="team", header="true", table_id="table"),
-        total_jazz=table_jazz.to_html(classes="team", header="true", table_id="table"),
-        total_blues=table_blues.to_html(classes="team", header="true", table_id="table"),
-        total_rock=table_rock.to_html(classes="team", header="true", table_id="table"),
-        total_shield=table_shield.to_html(classes="team", header="true", table_id="table")
+        total_percentage=table_total_percentage.to_html(classes="total", header="true", table_id="table")
     )
 
 
@@ -646,7 +575,9 @@ def feature_report_with_id(feature_name):  # feature_name 可以来自手动输�
         url_case_feature = url_case + feature
         url_pr = "https://rep-portal.ext.net.nokia.com/api/pronto/report/?fields=pronto_id,pronto_tool_url,title,rd_info,state,author,author_group,group_in_charge_name,fault_analysis_responsible_person,reported_date&limit=200&ordering=-reported_date&feature__pos_neg="
         url_pr_feature = url_pr + feature
-        jql = 'project = 68296 AND type = Bug AND "Feature ID" ~ "{}*" ORDER BY key DESC'.format(feature)
+        # jql = 'project = 68296 AND type = Bug AND "Feature ID" ~ "{}*" ORDER BY key DESC'.format(feature)
+        # jql new link
+        jql = 'project = RAY AND reporter in (membersOf(I_NSB_MN_RAN_RD_VRF_HAZ3_06)) and description ~ "{}*" ORDER BY key DESC'.format(feature)
 
         # 第一个表格中的数据，case result统计
         case_data = ET_Feature_Report.get_case_info_from_rep(feature, url_case_feature, token)
@@ -677,7 +608,8 @@ def feature_report_with_id(feature_name):  # feature_name 可以来自手动输�
             # jira_id, feature_id, title, assignee, reporter, created, status, comment
         data_for_jira = {
             'jira_id': jira_data[0],
-            'feature_id': jira_data[1],
+            # 'feature_id': jira_data[1],
+            'feature_id': feature_name,
             'title': jira_data[2],
             'assignee': jira_data[3],
             'reporter': jira_data[4],
