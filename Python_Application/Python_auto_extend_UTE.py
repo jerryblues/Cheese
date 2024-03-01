@@ -35,23 +35,24 @@ def is_holiday(d):
 
 
 account = "h4zhang"
-password = "Holmes-09"
+password = "Holmes=-0"
 
-my_reservations = ['https://cloud.ute.nsn-rdnet.net/user/reservations?status=1',
-                   'https://cloud.ute.nsn-rdnet.net/user/reservations?status=2',
-                   'https://cloud.ute.nsn-rdnet.net/user/reservations?status=3']
+my_reservations = ['https://cloud.ute.nsn-rdnet.net/user/reservations?status=3']
+# pending, assigned, confirmed link = [
+#                    'https://cloud.ute.nsn-rdnet.net/user/reservations?status=1',
+#                    'https://cloud.ute.nsn-rdnet.net/user/reservations?status=2',
+#                    'https://cloud.ute.nsn-rdnet.net/user/reservations?status=3'
+#                    ]
 #  default link: https://cloud.ute.nsn-rdnet.net/reservation/current
-#  pending, assigned, confirmed
 
 
 @retry
 def get_link(link):
-    all_link = []
-    tmp = []
     tl_link = []
 
     for tl in link:
         chrome_options = Options()
+        # run chrome in background
         chrome_options.add_argument('--headless')
         driver = webdriver.Chrome(options=chrome_options)
         driver.set_page_load_timeout(60)
@@ -61,23 +62,19 @@ def get_link(link):
         driver.find_element_by_name("username").send_keys(account)
         driver.find_element_by_name("password").clear()
         driver.find_element_by_name("password").send_keys(password)
-
         driver.find_element_by_id("id_login_btn").click()
-        time.sleep(1)
-
+        # wait until all the link updated in the page
+        time.sleep(10)
+        # find all link in the page
         find_href = driver.find_elements_by_tag_name('a')
-        for string in find_href:
-            all_link.append(string.get_attribute("href"))
+        # save the link that contain "show" in all the link
+        for link in find_href:
+            href = link.get_attribute("href")
+            if href is not None and "show" in href:
+                tl_link.append(href)
         driver.quit()
-
-    for i in all_link:
-        if i != None:
-            tmp.append(i)
-    string = 'show'
-    for j in tmp:
-        if string in j:
-            tl_link.append(j)
-    return tl_link
+        # print("Link:", link)
+        return tl_link
 
 
 @retry
@@ -147,13 +144,14 @@ while script_count < 9999:
             count = len(my_link)
             print(f"***[{count}] TL reserved***")
             extend_ute(my_link)
-            print("***UTE extended for %s time***" % extend_count)
-            print("***Script Running for %s time***\n" % script_count)
+            print(f"***UTE extended for [{extend_count}] time***")
+            print(f"***Script Running for [{script_count}] time***\n")
             extend_count = extend_count + 1
             script_count = script_count + 1
             time.sleep(2400)
         else:
+            print("Link:", my_link)
             print("***UTE not reserved***")
-            print("***Script Running for %s time***\n" % script_count)
+            print(f"***Script Running for [{script_count}] time***\n")
             script_count = script_count + 1
             time.sleep(2400)

@@ -5,11 +5,11 @@ def read_and_export_csv_to_text(csv_file_path):
     # Read the CSV file into a DataFrame
     df_from_csv = pd.read_csv(csv_file_path)
 
-    # Print the first 5 rows of the DataFrame
-    print(df_from_csv.head())
+    # Round the values in the DataFrame to the nearest integer
+    df_rounded = df_from_csv.round()
 
     # Export the DataFrame to a string representation
-    text_representation = df_from_csv.to_string(index=False, col_space=8)
+    text_representation = df_rounded.to_string(index=False, col_space=8)
 
     # Print the text representation of the DataFrame
     print(text_representation)
