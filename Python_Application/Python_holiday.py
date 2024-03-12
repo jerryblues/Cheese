@@ -22,11 +22,11 @@ def get_country_holidays(country_code):
 
 def main():
     # 获取今天的日期
-    today = datetime.date.today()
+    # today = datetime.date.today()
     # print(today)
 
     # for test
-    today = '2024-05-01'
+    today = '2024-04-01'
 
     # 获取所有国家的节假日信息
     all_countries = ['CN', 'IN', 'DE', 'PL', 'FR', 'FI']

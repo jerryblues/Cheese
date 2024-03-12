@@ -169,7 +169,7 @@ def get_result_retest(url, t):
         print(len(data['results']))
         '''
     while i < len(query_rep_result['results']):
-        case_name.append(query_rep_result['results'][i]['name'])
+        case_name.append(re.sub(r'^[^a-zA-Z]*(?=[a-zA-Z])', '', query_rep_result['results'][i]['name']))  # 去掉第一个英文字母前的字符
         qc_status.append(query_rep_result['results'][i]['status'])
         test_entity.append(query_rep_result['results'][i]['test_entity'])
         # case_owner.append(query_rep_result['results'][i]['res_tester'])
@@ -329,9 +329,13 @@ additional_html_case_planned_in_this_fb = f"<p>{additional_text_case_planned_in_
 
 # mail receiver
 mail_receiver = ['hao.6.zhang@nokia-sbell.com']
+# mail_receiver = ['i_nsb_mn_ran_rd_vrf_haz3_06@internal.nsn.com', 'hao.6.zhang@nokia-sbell.com']
 
 # Webhook URL
+# link only to me
 webhook_url = 'https://nokia.webhook.office.com/webhookb2/8a514e5f-105f-44eb-8695-74950f6c2862@5d471751-9675-428d-917b-70f44f9630b0/IncomingWebhook/57929b2325b04cc195e8cb121016422a/24b4cd6e-4864-4fba-b2d1-92fea3819e65'
+# link to VRF306
+# webhook_url = 'https://nokia.webhook.office.com/webhookb2/479b1e71-9c4d-4554-bff0-5d55b77c538b@5d471751-9675-428d-917b-70f44f9630b0/IncomingWebhook/f2f88b8e5bcd45bb9a718716bbdaf95f/24b4cd6e-4864-4fba-b2d1-92fea3819e65'
 
 token = get_token()
 
@@ -357,8 +361,10 @@ def data_summary(t):
 
     builds_for_cit_yesterday = get_latest_build(build_progress_f12, validated_token, yesterday_yy_mm_dd)  # 一般不为空
     print(f'=== [{yesterday_yyyy_mm_dd}] CIT build: [{builds_for_cit_yesterday}] ===')
-    no_run_cit_url = "https://rep-portal.ext.net.nokia.com/reports/qc/?ca=RAN_L3_SW_CN_1&columns=%3Ahash%3A43209d55dad2c7d1680622cf6b33db36&daily_build=" + builds_for_cit_yesterday + "&daily_status=not%20analyzed&daily_test_type=CIT&limit=25&ordering=name&organization=RAN_L3_SW_CN_1_TA"
-    no_run_cit_url_f12 = "https://rep-portal.ext.net.nokia.com/api/qc-beta/instances/report/?ca__pos_neg=RAN_L3_SW_CN_1&daily_build=" + builds_for_cit_yesterday + "&daily_status=not%20analyzed&daily_test_type=CIT&fields=id%2Cm_path%2Ctest_set__name%2Cbacklog_id%2Cname%2Curl%2Cstatus%2Cstatus_color%2Cfault_report_id_link%2Ccomment%2Csw_build%2Cplanned_test_set_ends%2Cdet_auto_lvl%2Ctest_entity%2Cres_tester%2Crequirement%2Cpi_id%2Ctest_subarea%2Ctest_lvl_area%2Cfunction_area%2Cca%2Corganization%2Crelease%2Cfeature%2Clast_testrun__timestamp%2Cwall_status&limit=25&ordering=name&organization__pos_neg=RAN_L3_SW_CN_1_TA"
+    no_run_cit_url = "https://rep-portal.ext.net.nokia.com/reports/qc/?ca=RAN_L3_SW_CN_1&columns=%3Ahash%3A43209d55dad2c7d1680622cf6b33db36&daily_build=" + builds_for_cit_yesterday + "&st_on_build=-Passed%2C-Failed&daily_test_type=CIT&limit=25&ordering=name&organization=RAN_L3_SW_CN_1_TA"
+    # print(f'no_run_cit_url:', no_run_cit_url)
+    no_run_cit_url_f12 = "https://rep-portal.ext.net.nokia.com/api/qc-beta/instances/report/?ca__pos_neg=RAN_L3_SW_CN_1&daily_build=" + builds_for_cit_yesterday + "&daily_test_type=CIT&fields=id%2Cm_path%2Ctest_set__name%2Cbacklog_id%2Cname%2Curl%2Cstatus%2Cstatus_color%2Cfault_report_id_link%2Ccomment%2Csw_build%2Cplanned_test_set_ends%2Cdet_auto_lvl%2Ctest_entity%2Cres_tester%2Crequirement%2Cpi_id%2Ctest_subarea%2Ctest_lvl_area%2Cfunction_area%2Cca%2Corganization%2Crelease%2Cfeature%2Clast_testrun__timestamp%2Cwall_status&limit=25&ordering=name&organization__pos_neg=RAN_L3_SW_CN_1_TA&wall_status=-Passed%2C-Failed"
+    # print(f'no_run_cit_url_f12', no_run_cit_url_f12)
     additional_text_no_run_case_list_on_cit_build = f"<span style='font-family: 微软雅黑;'>[CIT/CDRT] No run case list on build: </span> <a href='{no_run_cit_url}' class='link'>{builds_for_cit_yesterday}</a>"
     additional_html_no_run_case_list_on_cit_build = f"<p>{additional_text_no_run_case_list_on_cit_build}</p>"
 
@@ -594,6 +600,32 @@ def send_to_teams(df1, df2, df3, df4, msg1, msg2):
         print('=== Send message to Teams failed, error code: ===', response.status_code)
 
 
+def send_to_teams_exception():
+    # 创建消息内容
+    message_text0 = "ReP data not available"
+    message = {
+        "@type": "MessageCard",
+        "@context": "http://schema.org/extensions",
+        "themeColor": "0076D7",
+        "summary": "Your Assistant",
+        "sections": [{
+            "activityTitle": "Daily News",
+            "text": f"{message_text0}\n\n",
+            "markdown": True
+        }]
+    }
+
+    # 发送POST请求到Webhook URL
+    headers = {'Content-Type': 'application/json'}
+    response = requests.post(webhook_url, data=json.dumps(message), headers=headers)
+
+    # 检查请求是否成功
+    if response.status_code == 200:
+        print('=== Send message to Teams successfully ===')
+    else:
+        print('=== Send message to Teams failed, error code: ===', response.status_code)
+
+
 def format_df(df):
     # 设置索引从1开始
     df.index = range(1, len(df) + 1)
@@ -655,10 +687,15 @@ def trigger_send_to_mail():
 
 
 def trigger_send_to_teams():
-    msg_day_info, msg_holiday_info = today_detail_info()
-    result = data_summary(token)
-    send_to_teams(result[4], result[5], result[6], result[7], msg_day_info, msg_holiday_info)
-    print("=== Current time:", datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S"), "===\n")
+    try:
+        msg_day_info, msg_holiday_info = today_detail_info()
+        result = data_summary(token)
+        send_to_teams(result[4], result[5], result[6], result[7], msg_day_info, msg_holiday_info)
+        print("=== Current time:", datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S"), "===\n")
+    except Exception as e:
+        send_to_teams_exception()
+        print(e)
+        print("=== Current time:", datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S"), "===\n")
 
 
 # test in local
