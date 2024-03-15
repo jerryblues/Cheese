@@ -306,25 +306,22 @@ logging.basicConfig(level=logging.INFO,
 # global parameter
 count = 1
 
-case_not_analyzed = "https://rep-portal.ext.net.nokia.com/reports/test-runs/?end_ft=2024-02-28%2000%3A00%3A00%2Cnow&limit=200&org=RAN_L3_SW_CN_1_TA&path=%3Ahash%3A403a03937f5a2c9f3463d990ab3498df&result=not%20analyzed"
-case_not_analyzed_f12 = "https://rep-portal.ext.net.nokia.com/api/automatic-test/runs/report/?end__ft=2024-02-28%2000%3A00%3A00%2Cnow&fields=id%2Cqc_test_instance__m_path%2Cqc_test_set%2Ctest_case__name%2Curl%2Cresult%2Cresult_color%2Corigin_result%2Cbuilds%2Cqc_test_instance__test_entity%2Cqc_test_instance__res_tester%2Chyperlink_set%2Cend%2Cpronto%2Ccomment%2Ctest_col__testline_type%2Cqc_test_instance__organization&limit=200&qc_test_instance__m_path__pos_neg_empty_str=%3Ahash%3A403a03937f5a2c9f3463d990ab3498df&qc_test_instance__organization__pos_neg=RAN_L3_SW_CN_1_TA&result__name__pos_neg=not%20analyzed"
-crt_cit_retest = "https://rep-portal.ext.net.nokia.com/reports/qc/?columns=%3Ahash%3A61bc3fcc83f04ab0b3589c26b9744c7b&limit=200&ordering=name&organization=RAN_L3_SW_CN_1_TA&path=k%5CRAN_L3_SW_CN_1&ready_for_retest=true&status=-N%2FA"
-crt_cit_retest_f12 = "https://rep-portal.ext.net.nokia.com/api/qc-beta/instances/report/?fields=id%2Cm_path%2Ctest_set__name%2Cbacklog_id%2Cname%2Curl%2Cstatus%2Cstatus_color%2Cfault_report_id_link%2Ccomment%2Csw_build%2Cplanned_test_set_ends%2Cdet_auto_lvl%2Ctest_entity%2Cres_tester%2Crequirement%2Cpi_id%2Ctest_subarea%2Ctest_lvl_area%2Cfunction_area%2Cca%2Corganization%2Crelease%2Cready_for_retest%2Cfeature%2Clast_testrun__timestamp%2Cautomation_options&limit=200&m_path__pos_neg=k%5CRAN_L3_SW_CN_1&ordering=name&organization__pos_neg=RAN_L3_SW_CN_1_TA&ready_for_retest=true&status__pos_neg=-N%2FA"
-
 link_text_not_analyzed = "Test Run Link"
-test_run_url = "https://rep-portal.ext.net.nokia.com/reports/test-runs/?end_ft=2024-02-28%2000%3A00%3A00%2Cnow&limit=200&org=RAN_L3_SW_CN_1_TA&path=%3Ahash%3A403a03937f5a2c9f3463d990ab3498df&result=not%20analyzed"
-additional_text_not_analyzed = f"<span style='font-family: 微软雅黑;'>[CIT/CRT] Not analyzed case list: </span> <a href='{test_run_url}' class='link'>{link_text_not_analyzed}</a>"
+case_not_analyzed_url = "https://rep-portal.ext.net.nokia.com/reports/test-runs/?end_ft=2024-02-28%2000%3A00%3A00%2Cnow&limit=200&org=VRF_HAZ3_T06_VRF_RRM&path=Trunk&result=not%20analyzed"
+case_not_analyzed_f12 = "https://rep-portal.ext.net.nokia.com/api/automatic-test/runs/report/?end__ft=2024-02-28%2000%3A00%3A00%2Cnow&fields=id%2Cqc_test_instance__m_path%2Cqc_test_set%2Ctest_case__name%2Curl%2Cresult%2Cresult_color%2Corigin_result%2Cbuilds%2Cqc_test_instance__test_entity%2Cqc_test_instance__res_tester%2Chyperlink_set%2Cend%2Cpronto%2Ccomment%2Ctest_col__testline_type%2Cqc_test_instance__organization&limit=200&qc_test_instance__m_path__pos_neg_empty_str=Trunk&qc_test_instance__organization__pos_neg=VRF_HAZ3_T06_VRF_RRM&result__name__pos_neg=not%20analyzed"
+additional_text_not_analyzed = f"<span style='font-family: 微软雅黑;'>[CIT/CRT] Not analyzed case list: </span> <a href='{case_not_analyzed_url}' class='link'>{link_text_not_analyzed}</a>"
 additional_html_not_analyzed = f"<p>{additional_text_not_analyzed}</p>"
 
 link_text_retest = "Retest Case List"
-qc_instance_url = "https://rep-portal.ext.net.nokia.com/reports/qc/?columns=%3Ahash%3A61bc3fcc83f04ab0b3589c26b9744c7b&limit=200&ordering=name&organization=RAN_L3_SW_CN_1_TA&path=k%5CRAN_L3_SW_CN_1&ready_for_retest=true&status=-N%2FA"
-additional_text_retest = f"<span style='font-family: 微软雅黑;'>[CIT/CRT] Retest case list: </span> <a href='{qc_instance_url}' class='link'>{link_text_retest}</a>"
+crt_cit_retest_url = "https://rep-portal.ext.net.nokia.com/reports/qc/?columns=%3Ahash%3A61bc3fcc83f04ab0b3589c26b9744c7b&limit=200&ordering=name&organization=%3Ahash%3Af1247220ab48578d24136d6e9c48dd80&path=Trunk&ready_for_retest=true&status=-N%2FA"
+crt_cit_retest_f12 = "https://rep-portal.ext.net.nokia.com/api/qc-beta/instances/report/?fields=id%2Cm_path%2Ctest_set__name%2Cbacklog_id%2Cname%2Curl%2Cstatus%2Cstatus_color%2Cfault_report_id_link%2Ccomment%2Csw_build%2Cplanned_test_set_ends%2Cdet_auto_lvl%2Ctest_entity%2Cres_tester%2Crequirement%2Cpi_id%2Ctest_subarea%2Ctest_lvl_area%2Cfunction_area%2Cca%2Corganization%2Crelease%2Cready_for_retest%2Cfeature%2Clast_testrun__timestamp%2Cautomation_options&limit=200&m_path__pos_neg=Trunk&ordering=name&organization__pos_neg=%3Ahash%3Af1247220ab48578d24136d6e9c48dd80&ready_for_retest=true&status__pos_neg=-N%2FA"
+additional_text_retest = f"<span style='font-family: 微软雅黑;'>[CIT/CRT] Retest case list: </span> <a href='{crt_cit_retest_url}' class='link'>{link_text_retest}</a>"
 additional_html_retest = f"<p>{additional_text_retest}</p>"
 
 link_text_case_planned_in_this_fb = "FB Planned Case List"
-case_planned_in_this_fb = "https://rep-portal.ext.net.nokia.com/reports/qc/?columns=%3Ahash%3A840c26f65271ed10e1f00e7daf59a916&limit=200&ordering=planned_test_set_ends&organization=RAN_L3_SW_CN_1_TA&path=s%5CRAN_L3_SW_CN_1&status=-N%2FA%2C%20-Passed"
-case_planned_in_this_fb_f12 = "https://rep-portal.ext.net.nokia.com/api/qc-beta/instances/report/?fields=id%2Cm_path%2Ctest_set__name%2Cbacklog_id%2Cname%2Curl%2Cstatus%2Cstatus_color%2Cfault_report_id_link%2Ccomment%2Csw_build%2Cplanned_test_set_ends%2Cdet_auto_lvl%2Ctest_entity%2Cres_tester%2Crequirement%2Cpi_id%2Ctest_subarea%2Ctest_lvl_area%2Cfunction_area%2Cca%2Corganization%2Crelease%2Cfeature%2Clast_testrun__timestamp%2Cautomation_options&limit=200&m_path__pos_neg=s%5CRAN_L3_SW_CN_1&ordering=planned_test_set_ends&organization__pos_neg=RAN_L3_SW_CN_1_TA&status__pos_neg=-N%2FA%2C%20-Passed"
-additional_text_case_planned_in_this_fb = f"<span style='font-family: 微软雅黑;'>FB Planned Case List: </span> <a href='{case_planned_in_this_fb}' class='link'>{link_text_case_planned_in_this_fb}</a>"
+case_planned_in_this_fb_url = "https://rep-portal.ext.net.nokia.com/reports/qc/?ca=VRF_HAZ3&limit=200&ordering=planned_test_set_ends&organization=%3Ahash%3Af1247220ab48578d24136d6e9c48dd80&path=New_Features&status=-Passed%2C%20-N%2FA"
+case_planned_in_this_fb_f12 = "https://rep-portal.ext.net.nokia.com/api/qc-beta/instances/report/?ca__pos_neg=VRF_HAZ3&fields=id%2Cm_path%2Ctest_set__name%2Cbacklog_id%2Cname%2Curl%2Cstatus%2Cstatus_color%2Cfault_report_id_link%2Ccomment%2Csw_build%2Cplanned_test_set_ends%2Cdet_auto_lvl%2Ctest_entity%2Cres_tester%2Crequirement%2Cpi_id%2Ctest_subarea%2Ctest_lvl_area%2Cfunction_area%2Cca%2Corganization%2Crelease%2Cfeature%2Clast_testrun__timestamp%2Cautomation_options&limit=200&m_path__pos_neg=New_Features&ordering=planned_test_set_ends&organization__pos_neg=%3Ahash%3Af1247220ab48578d24136d6e9c48dd80&status__pos_neg=-Passed%2C%20-N%2FA"
+additional_text_case_planned_in_this_fb = f"<span style='font-family: 微软雅黑;'>FB Planned Case List: </span> <a href='{case_planned_in_this_fb_url}' class='link'>{link_text_case_planned_in_this_fb}</a>"
 additional_html_case_planned_in_this_fb = f"<p>{additional_text_case_planned_in_this_fb}</p>"
 
 # mail receiver
@@ -356,20 +353,19 @@ def data_summary(t):
     yesterday_yy_mm_dd = yesterday.strftime('%y%m%d')
     yesterday_yyyy_mm_dd = yesterday.strftime('%Y-%m-%d')
 
-    build_progress = "https://rep-portal.ext.net.nokia.com/charts/build-progress/?branch=SBTS00&ca=RAN_L3_SW_CN_1&date_ft=2024-03-02%2Ctoday&organization=RAN_L3_SW_CN_1_TA&show_empty=true&test_type=cit"
-    build_progress_f12 = "https://rep-portal.ext.net.nokia.com/api/charts/build_progress/?branch__pos_neg=SBTS00&chart_creator=amcharts&date__ft=" + yesterday_yyyy_mm_dd + "%2Ctoday&show_empty=true&test_instance__ca__pos_neg=RAN_L3_SW_CN_1&test_instance__organization__pos_neg=RAN_L3_SW_CN_1_TA&test_type=cit"
-
+    build_progress_url = "https://rep-portal.ext.net.nokia.com/charts/build-progress/?branch=SBTS00&date_ft=2024-03-02%2Ctoday&organization=%22VRF_HAZ3_T06_VRF_RRM%22&show_empty=true&test_type=cit"
+    build_progress_f12 = "https://rep-portal.ext.net.nokia.com/api/charts/build_progress/?branch__pos_neg=SBTS00&chart_creator=amcharts&date__ft=" + yesterday_yyyy_mm_dd + "%2Ctoday&show_empty=true&test_instance__organization__pos_neg=%22VRF_HAZ3_T06_VRF_RRM%22&test_type=cit"
     builds_for_cit_yesterday = get_latest_build(build_progress_f12, validated_token, yesterday_yy_mm_dd)  # 一般不为空
     print(f'=== [{yesterday_yyyy_mm_dd}] CIT build: [{builds_for_cit_yesterday}] ===')
-    no_run_cit_url = "https://rep-portal.ext.net.nokia.com/reports/qc/?ca=RAN_L3_SW_CN_1&columns=%3Ahash%3A43209d55dad2c7d1680622cf6b33db36&daily_build=" + builds_for_cit_yesterday + "&st_on_build=-Passed%2C-Failed&daily_test_type=CIT&limit=25&ordering=name&organization=RAN_L3_SW_CN_1_TA"
+    no_run_cit_url = "https://rep-portal.ext.net.nokia.com/reports/qc/?ca=VRF_HAZ3&columns=%3Ahash%3A43209d55dad2c7d1680622cf6b33db36&daily_build=" + builds_for_cit_yesterday + "&daily_test_type=CIT&limit=50&ordering=name&organization=%3Ahash%3Af1247220ab48578d24136d6e9c48dd80&st_on_build=-Passed%2C-Failed"
     # print(f'no_run_cit_url:', no_run_cit_url)
-    no_run_cit_url_f12 = "https://rep-portal.ext.net.nokia.com/api/qc-beta/instances/report/?ca__pos_neg=RAN_L3_SW_CN_1&daily_build=" + builds_for_cit_yesterday + "&daily_test_type=CIT&fields=id%2Cm_path%2Ctest_set__name%2Cbacklog_id%2Cname%2Curl%2Cstatus%2Cstatus_color%2Cfault_report_id_link%2Ccomment%2Csw_build%2Cplanned_test_set_ends%2Cdet_auto_lvl%2Ctest_entity%2Cres_tester%2Crequirement%2Cpi_id%2Ctest_subarea%2Ctest_lvl_area%2Cfunction_area%2Cca%2Corganization%2Crelease%2Cfeature%2Clast_testrun__timestamp%2Cwall_status&limit=25&ordering=name&organization__pos_neg=RAN_L3_SW_CN_1_TA&wall_status=-Passed%2C-Failed"
-    # print(f'no_run_cit_url_f12', no_run_cit_url_f12)
+    no_run_cit_f12 = "https://rep-portal.ext.net.nokia.com/api/qc-beta/instances/report/?ca__pos_neg=VRF_HAZ3&daily_build=" + builds_for_cit_yesterday + "&daily_test_type=CIT&fields=id%2Cm_path%2Ctest_set__name%2Cbacklog_id%2Cname%2Curl%2Cstatus%2Cstatus_color%2Cfault_report_id_link%2Ccomment%2Csw_build%2Cplanned_test_set_ends%2Cdet_auto_lvl%2Ctest_entity%2Cres_tester%2Crequirement%2Cpi_id%2Ctest_subarea%2Ctest_lvl_area%2Cfunction_area%2Cca%2Corganization%2Crelease%2Cfeature%2Clast_testrun__timestamp%2Cwall_status&limit=50&ordering=name&organization__pos_neg=%3Ahash%3Af1247220ab48578d24136d6e9c48dd80&wall_status=-Passed%2C-Failed"
+    # print(f'no_run_cit_f12', no_run_cit_f12)
     additional_text_no_run_case_list_on_cit_build = f"<span style='font-family: 微软雅黑;'>[CIT/CDRT] No run case list on build: </span> <a href='{no_run_cit_url}' class='link'>{builds_for_cit_yesterday}</a>"
     additional_html_no_run_case_list_on_cit_build = f"<p>{additional_text_no_run_case_list_on_cit_build}</p>"
 
     # get case list: no_run_case_list_on_cit_build
-    source_data_no_run_case_list_on_cit_build = get_no_run_case_list_on_cit_build(no_run_cit_url_f12, validated_token)
+    source_data_no_run_case_list_on_cit_build = get_no_run_case_list_on_cit_build(no_run_cit_f12, validated_token)
     no_run_case_list_on_cit_build_for_mail = {
         'Case Name': short_case_name(source_data_no_run_case_list_on_cit_build[0], 100),
         'QC Status': source_data_no_run_case_list_on_cit_build[1],
