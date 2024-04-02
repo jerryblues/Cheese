@@ -6,17 +6,17 @@ url = "https://one.caifree.com/v1/chat/completions"
 "Authorization": "Bearer sk-sg9w4LAuHPCm9Fq408F5679d46F44d02A485B96aB5041685"
 
 https://burn.hair/log
-url = "https://burn.hair/v1/chat/completions"
-"Authorization": "Bearer sk-ySOZXKC68tIwP6e8Bb3689Cb914044Bc90B51c8a321e6c15"
+url = "https://burn.hair/v1/chat/completions" or "https://burn.hair/v1"
+"Authorization": "Bearer sk-ySOZXKC68tIwP6e8Bb3689Cb914044Bc90B51c8a321e6c15" or "sk-ySOZXKC68tIwP6e8Bb3689Cb914044Bc90B51c8a321e6c15"
 '''
 
 
 def ask_question(question):
     # API URL
-    url = "https://one.caifree.com/v1/chat/completions"
+    url = "https://burn.hair/v1/chat/completions"
 
     headers = {
-        "Authorization": "Bearer sk-sg9w4LAuHPCm9Fq408F5679d46F44d02A485B96aB5041685"
+        "Authorization": "Bearer sk-ySOZXKC68tIwP6e8Bb3689Cb914044Bc90B51c8a321e6c15"
     }
 
     # 构造请求体

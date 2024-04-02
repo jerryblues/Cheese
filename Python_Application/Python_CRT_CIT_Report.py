@@ -347,6 +347,7 @@ def data_summary(t):
         validated_token = t
     else:  # 如果token失效，就重新获取
         validated_token = get_token()
+        validate_token(validated_token)
 
     # 获取昨天的日期
     yesterday = datetime.now() - timedelta(days=1)
