@@ -521,8 +521,8 @@ def feature_info_with_id(feature_name):  # feature_name 可以来自手动输入
         logging.info(f"[1.0] <--query [{feature}] start-->")
     else:
         logging.info("[1.0] <--query feature id is [null]-->")
-    url_case_info = "https://rep-portal.ext.net.nokia.com/api/qc-beta/instances/report/?fields=id%2Cm_path%2Ctest_set__name%2Cbacklog_id%2Cname%2Curl%2Cstatus%2Cstatus_color%2Cfault_report_id_link%2Ccomment%2Csw_build%2Cres_tester%2Ctest_entity%2Cfunction_area%2Cca%2Corganization%2Crelease%2Cfeature%2Crequirement%2Clast_testrun__timestamp&limit=200&m_path__pos_neg=New_Features%5CRAN_L3_SW_CN_1&ordering=name&test_set__name__pos_neg_empty_str="
-    url_case_info_feature = url_case_info + feature
+    url_case_info_f12 = "https://rep-portal.ext.net.nokia.com/api/qc-beta/instances/report/?fields=id%2Cm_path%2Ctest_set__name%2Cbacklog_id%2Cname%2Curl%2Cstatus%2Cstatus_color%2Cfault_report_id_link%2Ccomment%2Csw_build%2Cplanned_test_set_ends%2Cdet_auto_lvl%2Ctest_entity%2Cres_tester%2Crequirement%2Cpi_id%2Ctest_subarea%2Ctest_lvl_area%2Cfunction_area%2Cca%2Corganization%2Crelease%2Cfeature%2Clast_testrun__timestamp%2Cautomation_options&limit=200&m_path__pos_neg=New_Features%2C%20-Archive%2C%20-RecycleBin&ordering=planned_test_set_ends&organization__pos_neg=RAN_L3_SW_CN_1_TA%2C%20VRF_HAZ3_T06&test_set__name__pos_neg_empty_str="
+    url_case_info_feature = url_case_info_f12 + feature
     source_data = ET_ReP_Jira.get_result(url_case_info_feature, token)
     logging.info(f"[2.0] <--query [{feature}] case status done-->")
     # source data order: backlog_id, end_fb, label, case_name, qc_status
@@ -571,8 +571,9 @@ def feature_report_with_id(feature_name):  # feature_name 可以来自手动输�
     # 判断输入的值 非空和非空格时的处理
     if feature:
         logging.info(f"[1.0] <--query [{feature}] start-->")
-        url_case = "https://rep-portal.ext.net.nokia.com/api/qc-beta/instances/report/?fields=id%2Cm_path%2Ctest_set__name%2Cbacklog_id%2Cname%2Curl%2Cstatus%2Cstatus_color%2Cfault_report_id_link%2Ccomment%2Csw_build%2Cres_tester%2Ctest_entity%2Cfunction_area%2Cca%2Corganization%2Crelease%2Cfeature%2Crequirement%2Clast_testrun__timestamp&limit=200&m_path__pos_neg=New_Features%5CRAN_L3_SW_CN_1&ordering=name&test_set__name__pos_neg_empty_str="
-        url_case_feature = url_case + feature
+        url = "https://rep-portal.ext.net.nokia.com/reports/qc/?limit=200&ordering=planned_test_set_ends&organization=RAN_L3_SW_CN_1_TA%2C%20VRF_HAZ3_T06&path=New_Features%2C%20-Archive%2C%20-RecycleBin&test_set__name="
+        url_case_f12 = "https://rep-portal.ext.net.nokia.com/api/qc-beta/instances/report/?fields=id%2Cm_path%2Ctest_set__name%2Cbacklog_id%2Cname%2Curl%2Cstatus%2Cstatus_color%2Cfault_report_id_link%2Ccomment%2Csw_build%2Cplanned_test_set_ends%2Cdet_auto_lvl%2Ctest_entity%2Cres_tester%2Crequirement%2Cpi_id%2Ctest_subarea%2Ctest_lvl_area%2Cfunction_area%2Cca%2Corganization%2Crelease%2Cfeature%2Clast_testrun__timestamp%2Cautomation_options&limit=200&m_path__pos_neg=New_Features%2C%20-Archive%2C%20-RecycleBin&ordering=planned_test_set_ends&organization__pos_neg=RAN_L3_SW_CN_1_TA%2C%20VRF_HAZ3_T06&test_set__name__pos_neg_empty_str="
+        url_case_feature = url_case_f12 + feature
         url_pr = "https://rep-portal.ext.net.nokia.com/api/pronto/report/?fields=pronto_id,pronto_tool_url,title,rd_info,state,author,author_group,group_in_charge_name,fault_analysis_responsible_person,reported_date&limit=200&ordering=-reported_date&feature__pos_neg="
         url_pr_feature = url_pr + feature
         # jql = 'project = 68296 AND type = Bug AND "Feature ID" ~ "{}*" ORDER BY key DESC'.format(feature)
