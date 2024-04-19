@@ -15,6 +15,11 @@ import pytz
 import re
 import holidays
 
+proxies = {
+    "http": "http://10.144.1.10:8080",
+    "https": "http://10.144.1.10:8080",
+}
+
 
 def get_token():
     # 定义请求的URL
@@ -25,7 +30,7 @@ def get_token():
         "password": "Holmes=-0"
     }
     # send POST request
-    response = requests.post(url, json=data)
+    response = requests.post(url, json=data, proxies=proxies)
     # Convert the JSON string to a Python dictionary
     result = json.loads(response.text)
     # Get the value of the "token" key
@@ -44,7 +49,7 @@ def validate_token(t):
         "pk": 1606902367,
         "token": t}
     # 发送POST请求
-    res = requests.post(url, json=data)
+    res = requests.post(url, json=data, proxies=proxies)
     # If the token is invalid, the server will respond with status 400 and JSON object that contains further details of the error.
     # print(type(res))
     # print(res.status_code)
@@ -62,7 +67,7 @@ def query_rep(url, t):
     headers = {"Authorization": "JWT " + t}
     # url 获取方式：edge打开rep，输入feature ID，打开F12，刷新页面，在网络页签中，获取请求url(最长的那个)，然后去掉feature ID
     logging.debug(f"<--{url}-->")
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=headers, proxies=proxies)
     logging.debug(f"<--response status: {response.status_code}-->")
     # print("status:", response.status_code)
     # print("headers:", response.headers)
@@ -72,10 +77,11 @@ def query_rep(url, t):
 
 
 # 用 get_latest_build 获取昨天的 CIT build，用 get_no_run_case_list_on_cit_build 获取这个包上 no run case list
-def get_latest_build(url, t, yesterday_date_yyyy_mm_dd):
+def get_latest_build(url, t):
     i = 0
     build = ""
     builds = []
+    is_cdrt = ''
     # query source data from rep
     query_rep_result = query_rep(url, t)
     if len(query_rep_result['data']):
@@ -83,19 +89,31 @@ def get_latest_build(url, t, yesterday_date_yyyy_mm_dd):
     while i < len(query_rep_result['data']):
         builds.append(query_rep_result['data'][i]['Builds'])
         i += 1
+    print("builds:", builds)
+    # - "No Build Promoted" 匹配字面字符串 "No Build Promoted"
+    # - "SBTS00_ENB_\d{4}_\d{6}_\d{6}" 匹配以 "SBTS00_ENB_" 开头，后跟三组数字的模式
+    pattern = r"No Build Promoted|SBTS00_ENB_\d{4}_\d{6}_\d{6}"
 
+    # 遍历列表，匹配并打印结果
     for element in builds:
-        if yesterday_date_yyyy_mm_dd in element:
-            build = element[:-11]
+        is_cdrt = '⭐' if '⭐' in element else ''
+        match = re.search(pattern, element)
+        if match:
+            build = match.group()
+            if is_cdrt:
+                print(f'{build} is {is_cdrt}')
+            else:
+                print(f'{build} is not {is_cdrt}')
             break
+
     # 输出结果
     if build:
         # print(f"CIT build: [{build}]")
         # build = valid build or "No Build Promoted"
-        return build
+        return build, is_cdrt
     else:
         # print(f"CIT build not found")
-        return None
+        return None, is_cdrt
 
 
 def get_no_run_case_list_on_cit_build(url, t):
@@ -359,13 +377,13 @@ def data_summary(t):
 
     build_progress_url = "https://rep-portal.ext.net.nokia.com/charts/build-progress/?branch=SBTS00&date_ft=2024-03-02%2Ctoday&organization=%22VRF_HAZ3_T06%22&show_empty=true&test_type=cit"
     build_progress_f12 = "https://rep-portal.ext.net.nokia.com/api/charts/build_progress/?branch__pos_neg=SBTS00&chart_creator=amcharts&date__ft=" + yesterday_yyyy_mm_dd + "%2Ctoday&show_empty=true&test_instance__organization__pos_neg=%22VRF_HAZ3_T06%22&test_type=cit"
-    builds_for_cit_yesterday = get_latest_build(build_progress_f12, validated_token, yesterday_yyyy_mm_dd)
+    builds_for_cit_yesterday, is_cdrt = get_latest_build(build_progress_f12, validated_token)
     print(f'=== [{yesterday_yyyy_mm_dd}] CIT build: [{builds_for_cit_yesterday}] ===')
     no_run_cit_url = "https://rep-portal.ext.net.nokia.com/reports/qc/?ca=VRF_HAZ3&columns=%3Ahash%3A43209d55dad2c7d1680622cf6b33db36&daily_build=" + builds_for_cit_yesterday + "&daily_test_type=CIT&limit=50&ordering=name&organization=RAN_L3_SW_CN_1_TA%2C%20VRF_HAZ3_T06&st_on_build=-Passed%2C-Failed"
     # print(f'no_run_cit_url:', no_run_cit_url)
     no_run_cit_f12 = "https://rep-portal.ext.net.nokia.com/api/qc-beta/instances/report/?ca__pos_neg=VRF_HAZ3&daily_build=" + builds_for_cit_yesterday + "&daily_test_type=CIT&fields=id%2Cm_path%2Ctest_set__name%2Cbacklog_id%2Cname%2Curl%2Cstatus%2Cstatus_color%2Cfault_report_id_link%2Ccomment%2Csw_build%2Cplanned_test_set_ends%2Cdet_auto_lvl%2Ctest_entity%2Cres_tester%2Crequirement%2Cpi_id%2Ctest_subarea%2Ctest_lvl_area%2Cfunction_area%2Cca%2Corganization%2Crelease%2Cfeature%2Clast_testrun__timestamp%2Cwall_status&limit=50&ordering=name&organization__pos_neg=VRF_HAZ3_T06&wall_status=-Passed%2C-Failed"
     # print(f'no_run_cit_f12', no_run_cit_f12)
-    additional_text_no_run_case_list_on_cit_build = f"<span style='font-family: 微软雅黑;'>[CIT/CDRT] No run case list on build: </span> <a href='{no_run_cit_url}' class='link'>{builds_for_cit_yesterday}</a>"
+    additional_text_no_run_case_list_on_cit_build = f"<span style='font-family: 微软雅黑;'>[CIT/CDRT] No run case list on build: </span> <a href='{no_run_cit_url}' class='link'>{builds_for_cit_yesterday}</a>{is_cdrt}"
     additional_html_no_run_case_list_on_cit_build = f"<p>{additional_text_no_run_case_list_on_cit_build}</p>"
 
     # get case list: no_run_case_list_on_cit_build
@@ -445,7 +463,7 @@ def data_summary(t):
 
     return df_no_run_case_list_on_cit_build_for_mail, df_not_analyzed_for_mail, df_retest_for_mail, df_case_planned_in_this_fb_for_mail, \
            df_no_run_case_list_on_cit_build_for_teams, df_not_analyzed_for_teams, df_retest_for_teams, df_case_planned_in_this_fb_for_teams, \
-           additional_html_no_run_case_list_on_cit_build, builds_for_cit_yesterday
+           additional_html_no_run_case_list_on_cit_build, builds_for_cit_yesterday+is_cdrt
 
 
 def find_first_wednesday(year):
@@ -557,7 +575,7 @@ def send_to_teams(df1, df2, df3, df4, build, msg1, msg2):
     else:
         # 将每行数据连接成字符串，并在每行末尾添加换行符
         df_string1 = df_to_text(df1)
-        message_text1 = f"1.[CIT/CDRT] No run case list for for {build}:\n\n{df_string1}\n\n------"
+        message_text1 = f"1.[CIT/CDRT] No run case list for {build}:\n\n{df_string1}\n\n------"
 
     # 对于第二个DataFrame
     if df2.empty:
@@ -598,7 +616,7 @@ def send_to_teams(df1, df2, df3, df4, build, msg1, msg2):
 
     # 发送POST请求到Webhook URL
     headers = {'Content-Type': 'application/json'}
-    response = requests.post(webhook_url, data=json.dumps(message), headers=headers)
+    response = requests.post(webhook_url, data=json.dumps(message), headers=headers, proxies=proxies)
 
     # 检查请求是否成功
     if response.status_code == 200:
@@ -624,7 +642,7 @@ def send_to_teams_exception():
 
     # 发送POST请求到Webhook URL
     headers = {'Content-Type': 'application/json'}
-    response = requests.post(webhook_url, data=json.dumps(message), headers=headers)
+    response = requests.post(webhook_url, data=json.dumps(message), headers=headers, proxies=proxies)
 
     # 检查请求是否成功
     if response.status_code == 200:
@@ -708,6 +726,7 @@ def trigger_send_to_teams():
 # test in local
 trigger_send_to_mail()
 trigger_send_to_teams()
+# data_summary(token)
 
 # 定时收数据并发邮件
 # scheduler = BlockingScheduler()
