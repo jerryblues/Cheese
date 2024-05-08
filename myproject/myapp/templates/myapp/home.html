@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Local CIT Report</title>
+     {% load static %}
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'myapp/images/favicon.ico' %}" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse; /* 使边框更加紧凑，去掉双边框 */
+        }
+        table th {
+            font-size: 1rem;  /* 表头字体 */
+            text-align: left;
+            white-space: nowrap; /* 保持内容在一行显示，避免换行 */
+        }
+        table td {
+            font-size: 0.8rem;  /* 单元格字体 */
+            text-align: left;
+            white-space: nowrap; /* 保持内容在一行显示，避免换行 */
+        }
+        th, td {
+            border: 1px solid black;  /* 给单元格添加边框 */
+            padding: 0.2rem;  /* 单元格内边距 */
+            text-align: left;  /* 文本左对齐 */
+        }
+        th {
+            background-color: #0471d9; /* 蓝色背景 */
+            color: white; /* 文本颜色为白色 */
+        }
+        /* 鼠标悬停在行上时改变背景色，增加用户体验 */
+        tr:hover {
+            background-color: #e9eefc;
+        }
+        /* 为保存按钮添加一些样式 */
+        button {
+            background-color: #4CAF50; /* 绿色背景 */
+            color: white; /* 文本颜色为白色 */
+            padding: 5px 20px; /* 内边距 */
+            margin: 4px 2px; /* 外边距 */
+            border: none; /* 无边框 */
+            cursor: pointer; /* 鼠标悬停时显示手型图标 */
+            border-radius: 5px; /* 圆角边框 */
+        }
+        /* 当按钮被点击时，改变背景色 */
+        button:active {
+            background-color: #3e8e41;
+        }
+        /* 条件格式的CSS类 */
+        .passed {
+            background-color: #00dc00; /* passed背景色设置为绿色 */
+            color: white; /* 文本颜色设置为白色以提高可读性 */
+        }
+        .failed {
+            background-color: red; /* failed背景色设置为红色 */
+            color: white; /* 文本颜色设置为白色以提高可读性 */
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Local CIT Report</h2>
+
+    <!-- 日期选择表单 -->
+    <form action="" method="get">
+        <label for="date-select">Select Date </label>
+        <select name="selected_date" id="date-select">
+            {% for date in dates %}
+            <option value="{{ date|date:"Y-m-d" }}" {% if date|date:"Y-m-d" == selected_date_str %}selected{% endif %}>{{ date|date:"Y-m-d" }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Query</button>
+    </form>
+
+    <table>
+        <tr>
+            <th>Index</th>
+            <th>Case_Name</th>
+            <th>Triggered_By</th>
+            <th>Test_Result</th>
+            <th>Log_Link</th>
+            <th>Comment</th>
+            <th>Action</th>
+        </tr>
+        {% for test_case in test_cases %}
+        <tr>
+            <td>{{ test_case.index }}</td>
+            <td>{{ test_case.case_name }}</td>
+            <td>{{ test_case.triggered_by }}</td>
+            <td>{{ test_case.test_result }}</td>
+            <td><a href="{{ test_case.log_link }}" target="_blank">Link</a></td>
+            <td>
+                <input type="text" id="comment-{{ test_case.id }}" value="{{ test_case.comment|default_if_none:'' }}">
+            </td>
+            <td>
+                <button onclick="saveComment({{ test_case.id }})">Save</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+        // 选择表格中所有的行
+        document.querySelectorAll('table tr').forEach(tr => {
+            // 对每一行，获取第四个单元格（Test_Result 列）
+            const testResultTd = tr.cells[3]; // 注意：cells 索引从0开始，所以第四个单元格的索引是3
+            if (testResultTd) { // 确保单元格存在，比如跳过表头
+                const testResult = testResultTd.textContent.trim().toLowerCase();
+                if (testResult === 'passed') {
+                    testResultTd.classList.add('passed');
+                } else if (testResult === 'failed') {
+                    testResultTd.classList.add('failed');
+                    }
+                }
+            });
+        });
+    </script>
+
+    <script>
+    function saveComment(caseId) {
+        var comment = document.getElementById('comment-' + caseId).value;
+        $.ajax({
+            url: '',  // 当前页面地址
+            type: 'post',
+            data: {
+                'case_id': caseId,
+                'comment': comment,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+                alert("Comment saved successfully!");
+            }
+        });
+    }
+    </script>
+</body>
+</html>

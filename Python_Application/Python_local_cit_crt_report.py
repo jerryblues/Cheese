@@ -138,9 +138,9 @@ def get_single_run_id(session):
     yesterday = datetime.now() - timedelta(days=1)
     yesterday_yyyy_mm_dd = yesterday.strftime('%Y-%m-%d')
 
-    # 获取昨天16点之后的 single run，换算过来就是当天凌晨开始的 single run
-    url_single_run_filter = "https://cloud.ute.nsn-rdnet.net/execution/search/ajax?format=json&test_path=testsuite%2FHangzhou%2FRRM%2FRAN_L3_SW_CN_HZ%2Ftrunk_sbts%2FCRT%2FCN1%2F&topology=&status=&queue=&user=&start_date__gte=&start_date__lte=&end_date__gte=&end_date__lte=&add_date__gte=" + yesterday_yyyy_mm_dd + "+16%3A00&add_date__lte=&execution_count=&test_repository_revision=&skiprun=&state=&additional_parameters=&ordering=-id&limit=50&offset=0&no_cache=9761"
-    url_single_run_for_web = "https://cloud.ute.nsn-rdnet.net/execution/search/?test_path=testsuite%2FHangzhou%2FRRM%2FRAN_L3_SW_CN_HZ%2Ftrunk_sbts%2FCRT%2FCN1%2F&topology=&status=&queue=&user=&start_date__gte=&start_date__lte=&end_date__gte=&end_date__lte=&add_date__gte=" + yesterday_yyyy_mm_dd + "+16%3A00&add_date__lte=&execution_count=&test_repository_revision=&skiprun=&state=&additional_parameters="
+    # 获取昨天16点之后的 single run，换算过来就是当天00:00开始到7：59结束的，且phase=SingleRun (排除Reported Single run) 的 single run
+    url_single_run_filter = "https://cloud.ute.nsn-rdnet.net/execution/search/ajax?format=json&test_path=testsuite%2FHangzhou%2FRRM%2FRAN_L3_SW_CN_HZ%2Ftrunk_sbts%2FCRT%2FCN1%2F&topology=&status=&queue=&phase__in=SingleRun&user=&start_date__gte=&start_date__lte=&end_date__gte=&end_date__lte=&add_date__gte=" + yesterday_yyyy_mm_dd + "+16%3A00&add_date__lte=" + yesterday_yyyy_mm_dd + "+23%3A59&execution_count=&test_repository_revision=&skiprun=&state=&additional_parameters=&ordering=-id&limit=50&offset=0&no_cache=9761"
+    url_single_run_for_web = "https://cloud.ute.nsn-rdnet.net/execution/search/?test_path=testsuite%2FHangzhou%2FRRM%2FRAN_L3_SW_CN_HZ%2Ftrunk_sbts%2FCRT%2FCN1%2F&topology=&status=&queue=&phase__in=SingleRun&user=&start_date__gte=&start_date__lte=&end_date__gte=&end_date__lte=&add_date__gte=" + yesterday_yyyy_mm_dd + "+16%3A00&add_date__lte=" + yesterday_yyyy_mm_dd + "+23%3A59&execution_count=&test_repository_revision=&skiprun=&state=&additional_parameters="
 
     # 使用 session 获取 response
     response = session.get(url_single_run_filter, headers=headers, proxies=proxies)
@@ -164,17 +164,22 @@ def get_single_run_result(session):
     case_result = []
     case_name = []
     log_links = []
+    single_run_links = []
+    owner_name = []
     pass_case_num, fail_case_num, running_case_num, total_case_num = 0, 0, 0, 0
     ids, url_single_run_for_web = get_single_run_id(session)
 
     for single_run_id in ids:
-        url_single_run = "https://cloud.ute.nsn-rdnet.net/execution/" + str(single_run_id) + "/show"
+        url_single_run = "https://cloud.ute.nsn-rdnet.net/cm/execution/" + str(single_run_id) + "/show"
         # print(url_single_run)
 
         response = session.get(url_single_run, headers=headers, proxies=proxies)
 
         # 使用 BeautifulSoup 解析 HTML
         soup = BeautifulSoup(response.text, 'lxml')  # 或者使用 'html.parser' 作为解析器
+        # print("soup:", soup)
+        # print("url_single_run:", url_single_run)
+
         # 提取状态和描述
         status_elements = soup.select('td.status')
 
@@ -188,11 +193,20 @@ def get_single_run_result(session):
             case_name.append(status.find_next_sibling('td').text.strip())
 
             # 提取链接和链接文本
-            execution_log_link = soup.find('a', string='Execution logs')
-            if execution_log_link:
-                # print("link:", execution_log_link['href'])  # 打印链接
-                # print("text:", execution_log_link.text)  # 打印链接文本
-                log_links.append(execution_log_link['href'])
+            # execution_log_link = soup.find('a', string='Execution logs')
+            # if execution_log_link:
+            #     # print("link:", execution_log_link['href'])  # 打印链接
+            #     # print("text:", execution_log_link.text)  # 打印链接文本
+            #     log_links.append(execution_log_link['href'])
+
+            # 获取 single run links
+            single_run_links.append(url_single_run)
+
+            # 提取 owner name
+            owner_td = soup.find('td', string='Owner')
+            next_td = owner_td.find_next_sibling('td')
+            owner_name.append(next_td.text.strip())
+
     # print("\n", case_result, case_name, log_links)
     # print(len(case_result), len(case_name), len(log_links))
 
@@ -206,15 +220,16 @@ def get_single_run_result(session):
 
     total_case_num = len(case_result)
 
-    return case_result, case_name, log_links, url_single_run_for_web, pass_case_num, fail_case_num, running_case_num, total_case_num
+    return case_result, case_name, owner_name, single_run_links, url_single_run_for_web, pass_case_num, fail_case_num, running_case_num, total_case_num
 
 
 def data_summary(session):
-    case_result, case_name, log_links, url_single_run_for_web, pass_case_num, fail_case_num, running_case_num, total_case_num = get_single_run_result(session)
+    case_result, case_name, owner_name, single_run_links, url_single_run_for_web, pass_case_num, fail_case_num, running_case_num, total_case_num = get_single_run_result(session)
     result_summary = {
         'Case Name': case_name,
+        'Triggered By': owner_name,
         'Test Result': case_result,
-        'Log Link': log_links,
+        'Log Link': single_run_links,
     }
 
     df_result_summary = pd.DataFrame(result_summary)
@@ -222,11 +237,17 @@ def data_summary(session):
 
 
 def send_to_mail(session):
-    df_result_summary, url_single_run_for_web, pass_case_num, fail_case_num, running_case_num, total_case_num = data_summary(session)
+    today = datetime.now()
+    toda_yyyy_mm_dd = today.strftime('%Y-%m-%d')
+    local_cit_report_on_web = "http://10.57.195.35:10001/?selected_date=" + toda_yyyy_mm_dd
+    here = "Here"
     text = "UTE Cloud"
-    additional_text = f"<span style='font-family: 微软雅黑;'>Hi,<br>Please check the local CIT test result: " \
+    df_result_summary, url_single_run_for_web, pass_case_num, fail_case_num, running_case_num, total_case_num = data_summary(session)
+
+    additional_text = f"<span style='font-family: Calibri; font-size: 16px;'>Hi,<br>Please check the local CIT test result: " \
                       f"{total_case_num} cases triggered, {pass_case_num} cases passed, {fail_case_num} cases failed, {running_case_num} cases running.<br>" \
-                      f"Check result in </span> <a href='{url_single_run_for_web}' class='link'>{text}</a>"
+                      f"Check result in <a href='{url_single_run_for_web}' class='link' style='font-family: Calibri; font-size: 16px;'>{text}</a>. " \
+                      f"Add your comment for failed case </span><a href='{local_cit_report_on_web}' class='link' style='font-family: Calibri; font-size: 16px;'>{here}</a>.<br>"
     additional_html = f"<p>{additional_text}</p>"
 
     # 将DataFrame转换格式以在Email中显示
@@ -254,24 +275,22 @@ def send_to_mail(session):
 
 
 def trigger_send_to_mail():
-    # 创建一个Session对象
     session = requests.Session()
-    # 登录URL
-    login_url = 'https://cloud.ute.nsn-rdnet.net/user/login?'
-    # 获取登录页面，确保Cookies被设置
-    session.get(login_url, proxies=proxies)
-    # 从Cookies中获取CSRF令牌
-    csrf_token = session.cookies.get('csrftoken')
-    # 登录信息，包括用户名、密码和CSRF令牌
-    login_data = {
-        'username': 'h4zhang',
-        'password': 'Holmes=-0',
-        'csrfmiddlewaretoken': csrf_token  # 添加CSRF令牌到请求数据中
-    }
-    print(f"[1.0] <-- CSRF token: [{csrf_token}] -->")
+    login_url = 'https://cloud.ute.nsn-rdnet.net/api/v1/auth/login'
+    login_data = {'username': 'h4zhang', 'password': 'Holmes=-0'}
     # 发送登录请求
-    response = session.post(login_url, data=login_data, proxies=proxies)
-    # print(response.text)
+    try:
+        response = session.post(login_url, json=login_data, proxies=proxies)
+        response.raise_for_status()  # 将触发异常，如果状态码是 4XX 或 5XX
+        print("response", response.json())
+    except requests.exceptions.HTTPError as errh:
+        print("Http Error:", errh)
+    except requests.exceptions.ConnectionError as errc:
+        print("Error Connecting:", errc)
+    except requests.exceptions.Timeout as errt:
+        print("Timeout Error:", errt)
+    except requests.exceptions.RequestException as err:
+        print("OOps: Something Else", err)
 
     # data_summary(session)
     send_to_mail(session)
