@@ -19,7 +19,7 @@ url = drive.current_window_handle
 drive.switch_to.window(url)
 
 drive.find_element_by_name("username").clear()
-drive.find_element_by_name("username").send_keys("h4zhang@nsn-intra")
+drive.find_element_by_name("username").send_keys("xxx@nsn-intra")
 drive.find_element_by_name("password").clear()
 drive.find_element_by_name("password").send_keys("xxxxxx")
 

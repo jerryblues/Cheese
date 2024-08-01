@@ -34,8 +34,10 @@ def main(target_ip, start_port, end_port):
 
 if __name__ == "__main__":
     target = "10.57.195.35"  # Example IP address
-    startPort = 8080
-    endPort = 10001
-    # 8080 and 10001 is open in 10.57.195.35
+    startPort = 1
+    endPort = 65535
+    # open port for 10.57.195.35
+    # 22, 2000, 5060, 8080, 10001
+    #
 
     main(target, startPort, endPort)

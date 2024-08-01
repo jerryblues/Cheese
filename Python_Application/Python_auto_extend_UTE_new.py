@@ -51,7 +51,7 @@ def is_holiday(d):
 def ute_login():
     session = requests.Session()
     login_url = 'https://cloud.ute.nsn-rdnet.net/api/v1/auth/login'
-    login_data = {'username': 'h4zhang', 'password': 'Holmes=-0'}
+    login_data = {'username': 'xxx', 'password': 'xxx'}
     try:
         response = session.post(login_url, json=login_data, proxies=proxies)
         response.raise_for_status()

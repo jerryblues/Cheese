@@ -37,7 +37,7 @@ def get_data_example():
 def get_data(date):
     session = requests.Session()
     login_url = 'https://cloud.ute.nsn-rdnet.net/api/v1/auth/login'
-    login_data = {'username': 'h4zhang', 'password': 'Holmes=-0'}
+    login_data = {'username': 'xxx', 'password': 'xxx'}
     # 发送登录请求
     try:
         response = session.post(login_url, json=login_data, proxies=proxies)

@@ -29,8 +29,8 @@ logging.basicConfig(level=logging.INFO,
 
 # Jira configuration
 jira_server = 'https://jiradc.ext.net.nokia.com'  # jira地址
-jira_username = 'h4zhang'  # 用户名，本地调试时，可用明文代替
-jira_password = 'Holmes-09'  # 密码，本地调试时，可用明文代替
+jira_username = 'xxx'  # 用户名，本地调试时，可用明文代替
+jira_password = 'xxx'  # 密码，本地调试时，可用明文代替
 
 
 class MailSender:

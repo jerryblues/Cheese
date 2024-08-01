@@ -221,7 +221,7 @@
 </style>
 
 <div class="title-container">
-  <h2>QC Status -- <a href="https://rep-portal.ext.net.nokia.com/reports/qc/?columns=%3Ahash%3A1278c84660e78364fe0ac89e7ccd924d&limit=200&ordering=name&path=s%5CRAN_L3_SW_CN_1&test_set__name={{ feature_id }}" target="_blank">Link</a><button id="copy_table_qc">Copy Table</button></h2>
+  <h2>QC Status -- <a href="https://rep-portal.ext.net.nokia.com/reports/qc/?columns=%3Ahash%3A1278c84660e78364fe0ac89e7ccd924d&limit=200&ordering=name&organization=RAN_L3_SW_CN_1_TA%2C%20VRF_HAZ3_T06&path=New_Features&test_set__name={{ feature_id }}" target="_blank">Link</a><button id="copy_table_qc">Copy Table</button></h2>
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <br>
 <br>
 <div class="title-container">
-  <h2>Jira Status -- <a href="https://jiradc.ext.net.nokia.com/issues/?jql=project%20%3D%2068296%20AND%20%22Feature%20ID%22%20~%20%22{{ feature_id }}*%22%20AND%20type%20%3D%20Bug%20ORDER%20BY%20key%20DESC" target="_blank">Link</a><button id="copy_table_jira">Copy Table</button></h2>
+  <h2>Jira Status -- <a href="https://jiradc.ext.net.nokia.com/issues/?filter=479721&jql=project%20%3D%20RAY%20AND%20reporter%20in%20(membersOf(I_NSB_MN_RAN_RD_VRF_HAZ3_06))%20AND%20description%20~%20%22{{ feature_id }}*%22%20ORDER%20BY%20created%20DESC" target="_blank">Link</a><button id="copy_table_jira">Copy Table</button></h2>
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {

@@ -8,7 +8,7 @@
 from jira import JIRA
 
 # 连接到 JIRA 服务器
-jira = JIRA(server='https://jiradc.ext.net.nokia.com', basic_auth=('h4zhang', 'Holmes-09'))
+jira = JIRA(server='https://jiradc.ext.net.nokia.com', basic_auth=('xxx', 'xxx'))
 
 # 获取特定的 Issue
 issues = jira.issue('FCA_5G_L2L3-171921')

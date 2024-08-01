@@ -18,9 +18,9 @@ drive.switch_to.window(url)
 
 # login
 drive.find_element_by_name("account").clear()
-drive.find_element_by_name("account").send_keys("h4zhang")
+drive.find_element_by_name("account").send_keys("xxx")
 drive.find_element_by_name("password").clear()
-drive.find_element_by_name("password").send_keys("sdfsdf-0")
+drive.find_element_by_name("password").send_keys("xxx")
 drive.find_element_by_id("login_btn").click()
 time.sleep(5)
 

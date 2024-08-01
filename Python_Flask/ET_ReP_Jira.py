@@ -23,8 +23,8 @@ logging.basicConfig(level=logging.INFO,
 
 # Jira configuration
 jira_server = 'https://jiradc.ext.net.nokia.com'  # jira地址
-jira_username = 'h4zhang'  # 用户名，本地调试时，可用明文代替
-jira_password = 'Holmes-09'  # 密码，本地调试时，可用明文代替
+jira_username = 'xxx'  # 用户名，本地调试时，可用明文代替
+jira_password = 'xxx'  # 密码，本地调试时，可用明文代替
 
 
 def get_token():
@@ -32,8 +32,8 @@ def get_token():
     url = 'https://rep-portal.wroclaw.nsn-rdnet.net/jwt/obtain/'
     # 定义POST请求的数据（字典形式）
     data = {
-        "username": "h4zhang",
-        "password": "Holmes-09"
+        "username": "xxx",
+        "password": "xxx"
     }
     # 发送POST请求
     response = requests.post(url, json=data)

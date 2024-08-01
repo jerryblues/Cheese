@@ -26,8 +26,8 @@ def get_token():
     url = 'https://rep-portal.wroclaw.nsn-rdnet.net/jwt/obtain/'
     # 定义POST请求的数据（字典形式）
     data = {
-        "username": "h4zhang",
-        "password": "Holmes=-0"
+        "username": "xxx",
+        "password": "xxx"
     }
     # send POST request
     response = requests.post(url, json=data, proxies=proxies)

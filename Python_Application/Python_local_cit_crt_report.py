@@ -139,7 +139,7 @@ def get_single_run_id(session):
     yesterday_yyyy_mm_dd = yesterday.strftime('%Y-%m-%d')
 
     # 获取昨天16点之后的 single run，换算过来就是当天00:00开始到7：59结束的，且phase=SingleRun (排除Reported Single run) 的 single run
-    url_single_run_filter = "https://cloud.ute.nsn-rdnet.net/execution/search/ajax?format=json&test_path=testsuite%2FHangzhou%2FRRM%2FRAN_L3_SW_CN_HZ%2Ftrunk_sbts%2FCRT%2FCN1%2F&topology=&status=&queue=&phase__in=SingleRun&user=&start_date__gte=&start_date__lte=&end_date__gte=&end_date__lte=&add_date__gte=" + yesterday_yyyy_mm_dd + "+16%3A00&add_date__lte=" + yesterday_yyyy_mm_dd + "+23%3A59&execution_count=&test_repository_revision=&skiprun=&state=&additional_parameters=&ordering=-id&limit=50&offset=0&no_cache=9761"
+    url_single_run_filter = "https://cloud.ute.nsn-rdnet.net/execution/search/ajax?format=json&test_path=testsuite%2FHangzhou%2FRRM%2FRAN_L3_SW_CN_HZ%2Ftrunk_sbts%2FCRT%2FCN1%2F&topology=&status=&queue=&phase__in=SingleRun&user=&start_date__gte=&start_date__lte=&end_date__gte=&end_date__lte=&add_date__gte=" + yesterday_yyyy_mm_dd + "+16%3A00&add_date__lte=" + yesterday_yyyy_mm_dd + "+23%3A59&execution_count=&test_repository_revision=&skiprun=&state=&additional_parameters=&ordering=-id&limit=100&offset=0&no_cache=9761"
     url_single_run_for_web = "https://cloud.ute.nsn-rdnet.net/execution/search/?test_path=testsuite%2FHangzhou%2FRRM%2FRAN_L3_SW_CN_HZ%2Ftrunk_sbts%2FCRT%2FCN1%2F&topology=&status=&queue=&phase__in=SingleRun&user=&start_date__gte=&start_date__lte=&end_date__gte=&end_date__lte=&add_date__gte=" + yesterday_yyyy_mm_dd + "+16%3A00&add_date__lte=" + yesterday_yyyy_mm_dd + "+23%3A59&execution_count=&test_repository_revision=&skiprun=&state=&additional_parameters="
 
     # 使用 session 获取 response
@@ -277,7 +277,7 @@ def send_to_mail(session):
 def trigger_send_to_mail():
     session = requests.Session()
     login_url = 'https://cloud.ute.nsn-rdnet.net/api/v1/auth/login'
-    login_data = {'username': 'h4zhang', 'password': 'Holmes=-0'}
+    login_data = {'username': 'xxx', 'password': 'xxx'}
     # 发送登录请求
     try:
         response = session.post(login_url, json=login_data, proxies=proxies)

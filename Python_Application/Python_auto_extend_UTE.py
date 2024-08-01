@@ -41,8 +41,8 @@ def is_holiday(d):
 # password = input('>>>>>:').strip()   # 本地调试时注释掉
 
 
-account = "h4zhang"
-password = "Holmes=-0"
+account = "xxx"
+password = "xxx"
 
 my_reservations = ['https://cloud.ute.nsn-rdnet.net/user/reservations?status=3']
 # pending, assigned, confirmed link = [

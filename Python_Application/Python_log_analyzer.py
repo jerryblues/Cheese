@@ -66,8 +66,8 @@ def get_log_content():
     csrf_token = session.cookies.get('csrftoken')
     # 登录信息，包括用户名、密码和CSRF令牌
     login_data = {
-        'username': 'h4zhang',
-        'password': 'Holmes=-0',
+        'username': 'xxx',
+        'password': 'xxx',
         'csrfmiddlewaretoken': csrf_token  # 添加CSRF令牌到请求数据中
     }
     print(f"[1.0] <-- CSRF token: [{csrf_token}] -->")
