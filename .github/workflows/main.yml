@@ -10,10 +10,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3  # 更新到 v3
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4  # 更新到 v4
         with:
           python-version: '3.x'
 
@@ -23,10 +23,10 @@ jobs:
           pip install requests beautifulsoup4
 
       - name: Cache last_content.json
-        uses: actions/cache@v3
+        uses: actions/cache@v3  # 保持使用 v3
         with:
           path: last_content.json
-          key: ${{ runner.os }}-last-content-${{ hashFiles('last_content.json') }}
+          key: ${{ runner.os }}-last-content
 
       - name: Run script
         run: python workflows/get_latest_item_for_GET.py
@@ -34,7 +34,8 @@ jobs:
       - name: Save last_content.json
         run: |
           if [ -f last_content.json ]; then
-            echo "last_content.json exists, saving to cache."
+            mv last_content.json ${{ github.workspace }}/last_content.json
+            echo "last_content.json saved."
           else
             echo "last_content.json does not exist, skipping save."
           fi
