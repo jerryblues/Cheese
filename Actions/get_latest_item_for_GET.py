@@ -4,6 +4,7 @@ import re
 from datetime import datetime
 import json
 import os
+import pytz
 
 # 监控的网页URL
 url = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F06-%E6%AF%8F%E5%A4%A9%E5%90%AC%E4%B9%A6%EF%BC%88VIP%EF%BC%89365%E5%85%83%2F2024%E5%B9%B4&tag=65&ts=65&recursion=2"
@@ -22,6 +23,11 @@ def load_last_content():
 def save_last_content(content):
     with open(last_content_file, 'w') as f:
         json.dump(list(content), f)
+
+# 获取中国时区的当前时间
+def get_current_time():
+    china_tz = pytz.timezone('Asia/Shanghai')  # 设置中国时区
+    return datetime.now(china_tz).strftime("%Y-%m-%d %H:%M:%S")  # 获取当前时间
 
 def fetch_content():
     last_content = load_last_content()  # 读取上次内容
@@ -49,7 +55,8 @@ def fetch_content():
 
         # 检查内容是否有变化
         new_content = current_files - last_content
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # 获取当前时间
+        current_time = get_current_time()  # 获取中国时区的当前时间
+        # current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # 获取当前时间
         if new_content:
             print(f"[{current_time}] - [new update]:")
             for item in sorted(new_content):
