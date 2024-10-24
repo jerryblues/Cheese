@@ -1,4 +1,4 @@
-name: Fetch Content and Notify
+name: Get Latest Item
 
 on:
   schedule:
