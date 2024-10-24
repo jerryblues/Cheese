@@ -34,13 +34,17 @@ jobs:
       - name: Save last_content.json
         run: |
           if [ -f last_content.json ]; then
+            # Define target file path
+            target_file="${{ github.workspace }}/last_content.json"
+
             # Check if the target file already exists
-            if [ -f ${{ github.workspace }}/last_content.json ]; then
+            if [ -f "$target_file" ]; then
               # Remove the target file if it exists
-              rm ${{ github.workspace }}/last_content.json
+              rm "$target_file"
             fi
-            # Move the file
-            mv last_content.json ${{ github.workspace }}/last_content.json
+
+            # Move the file to target path
+            mv last_content.json "$target_file"
             echo "last_content.json saved."
           else
             echo "last_content.json does not exist, skipping save."
