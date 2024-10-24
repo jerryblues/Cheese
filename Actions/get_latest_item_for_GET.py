@@ -11,7 +11,7 @@ url = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F06-%E
 # 存储上次内容的文件
 last_content_file = 'last_content.json'
 
-# 从文件读取上次内容
+# 从环境变量加载上次内容
 def load_last_content():
     if os.path.exists(last_content_file):
         with open(last_content_file, 'r') as f:
