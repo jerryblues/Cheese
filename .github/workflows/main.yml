@@ -1,0 +1,40 @@
+name: Fetch Content and Notify
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # 每小时触发一次
+
+jobs:
+  fetch_and_notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4
+
+      - name: Cache last_content.json
+        uses: actions/cache@v3
+        with:
+          path: last_content.json
+          key: ${{ runner.os }}-last-content-${{ hashFiles('last_content.json') }}
+
+      - name: Run script
+        run: python workflows/get_latest_item_for_GET.py
+
+      - name: Save last_content.json
+        run: |
+          if [ -f last_content.json ]; then
+            echo "last_content.json exists, saving to cache."
+          else
+            echo "last_content.json does not exist, skipping save."
+          fi
