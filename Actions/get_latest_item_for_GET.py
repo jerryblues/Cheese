@@ -17,7 +17,7 @@ def load_last_content():
     if os.path.exists(last_content_file):
         with open(last_content_file, 'r', encoding='utf-8') as f:
             content = set(json.load(f))
-            print("Loaded content:", content)  # 打印加载的内容
+            print("[Loaded content] -", content)  # 打印加载的内容
             return content
     print("last_content.json not found.")  # 文件不存在时的提示
     return set()
@@ -26,7 +26,7 @@ def load_last_content():
 def save_last_content(content):
     with open(last_content_file, 'w', encoding='utf-8') as f:
         json.dump(list(content), f, ensure_ascii=False)
-        print("Saved content:", content)  # 打印保存的内容
+        print("[Saved content] -", content)  # 打印保存的内容
 
 # 获取中国时区的当前时间
 def get_current_time():
@@ -56,6 +56,9 @@ def fetch_content():
             match = re.search(pattern, text)
             if match:
                 current_files.add(match.group(1))
+
+        # 打印当前文件集合
+        print("[Current files] -", current_files)
 
         # 检查内容是否有变化
         new_content = current_files - last_content
