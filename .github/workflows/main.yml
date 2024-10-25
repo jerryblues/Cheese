@@ -2,7 +2,7 @@ name: Get Latest Item
 
 on:
   schedule:
-    - cron: '5 23-16 * * *'  # UTC 时间，从前一天的 23 点到当天的 16 点（对应中国时间的 早上 7 点到 晚上 0 点）
+    - cron: '5 0-16 * * *'   # UTC 时间 0 点到 15 点（对应中国时间 8 点到 0 点）
   workflow_dispatch:  # 允许手动触发
 
 jobs:
