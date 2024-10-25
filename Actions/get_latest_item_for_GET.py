@@ -68,7 +68,12 @@ def fetch_content():
             print(f"[{current_time}] - [new update]:")
             for item in sorted(new_content):
                 print(f"- {item}")
-            save_last_content(current_files)  # 保存当前内容
+
+            # 保存当前内容，并立即加载以确认
+            save_last_content(current_files)
+            last_content = load_last_content()  # 重新加载以确认
+            print("[Loaded content after save] -", last_content)
+
             notify_user()
 
             message1 = f"[{current_time}] - [new update]:\n" + "\n".join(f"- {item}" for item in sorted(new_content))

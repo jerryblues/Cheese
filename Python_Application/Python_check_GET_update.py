@@ -52,7 +52,7 @@ def fetch_content():
                 last_content = current_files
                 notify_user()
 
-                message1 = f"[{current_time}] - [new update]:\n" + "\n".join(f"- {item}" for item in sorted(new_content))
+                message1 = f"[{current_time}] - [new update in local]:\n" + "\n".join(f"- {item}" for item in sorted(new_content))
                 send_notification_to_feishu(message1)
 
             else:
