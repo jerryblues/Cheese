@@ -2,7 +2,7 @@ name: Get Latest Item
 
 on:
   schedule:
-    - cron: '0 * * * *'  # 每小时执行一次
+    - cron: '0 0-15 * * *'  # UTC 时间，从 0 点到 15 点（对应中国时间的 8 点到 23 点）
   workflow_dispatch:  # 允许手动触发
 
 jobs:
@@ -38,3 +38,12 @@ jobs:
         with:
           path: last_content.json
           key: content-cache
+
+      - name: Print cache last_content
+        run: |
+            if [ -f last_content.json ]; then
+              echo "Contents of last_content.json:"
+              cat last_content.json
+            else
+              echo "last_content.json not found."
+            fi
