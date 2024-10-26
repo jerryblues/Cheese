@@ -1,41 +1,17 @@
 import requests
 from bs4 import BeautifulSoup
 import re
-from datetime import datetime
-import json
-import os
+from datetime import datetime, timedelta
 import pytz
 
 # 监控的网页URL
 url = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F06-%E6%AF%8F%E5%A4%A9%E5%90%AC%E4%B9%A6%EF%BC%88VIP%EF%BC%89365%E5%85%83%2F2024%E5%B9%B4&tag=65&ts=65&recursion=2"
 
-# 存储上次内容的文件
-last_content_file = 'last_content.json'
-
-# 从环境变量加载上次内容
-def load_last_content():
-    if os.path.exists(last_content_file):
-        with open(last_content_file, 'r', encoding='utf-8') as f:
-            content = set(json.load(f))
-            print("[Loaded content] -", content)  # 打印加载的内容
-            return content
-    print("last_content.json not found.")  # 文件不存在时的提示
-    return set()
-
-# 将当前内容写入文件
-def save_last_content(content):
-    with open(last_content_file, 'w', encoding='utf-8') as f:
-        json.dump(list(content), f, ensure_ascii=False)
-        print("[Saved content] -", content)  # 打印保存的内容
-
-# 获取中国时区的当前时间
 def get_current_time():
     china_tz = pytz.timezone('Asia/Shanghai')  # 设置中国时区
     return datetime.now(china_tz).strftime("%Y-%m-%d %H:%M:%S")  # 获取当前时间
 
 def fetch_content():
-    last_content = load_last_content()  # 读取上次内容
-
     try:
         response = requests.get(url)
         response.raise_for_status()  # 检查请求是否成功
@@ -57,38 +33,41 @@ def fetch_content():
             if match:
                 current_files.add(match.group(1))
 
-        # 打印当前文件集合
-        print("[Current files] -", current_files)
+        # 排序并打印当前文件集合
+        print("[Current files]:")
+        for file in sorted(current_files):
+            print(file)
 
-        # 检查内容是否有变化
-        new_content = current_files - last_content
-        current_time = get_current_time()  # 获取中国时区的当前时间
-        # current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # 获取当前时间
-        if new_content:
-            print(f"[{current_time}] - [new update]:")
-            for item in sorted(new_content):
-                print(f"- {item}")
+        # 获取当前和前一天的日期
+        today = datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%m%d")  # 格式为 MMDD
+        yesterday = (datetime.now(pytz.timezone('Asia/Shanghai')) - timedelta(days=1)).strftime("%m%d")
+        message_content_today, message_content_yesterday = [], []
 
-            # 保存当前内容，并立即加载以确认
-            save_last_content(current_files)
-            last_content = load_last_content()  # 重新加载以确认
-            print("[Loaded content after save] -", last_content)
+        # 检查文件名中是否包含当天和昨天的日期
+        for file in current_files:
+            if today in file:
+                message_content_today.append(file)
+            if yesterday in file:
+                message_content_yesterday.append(file)
 
-            notify_user()
-
-            message1 = f"[{current_time}] - [new update]:\n" + "\n".join(f"- {item}" for item in sorted(new_content))
-            send_notification_to_feishu(message1)
-
+        # 发送通知
+        if message_content_today:
+            current_time = get_current_time()  # 获取当前时间
+            message_today = f"[{current_time}] - Today's update:\n" + "\n".join(f"- {item}" for item in message_content_today)
+            print(f"[{current_time}] - Today's update:\n" + "\n".join(f"- {item}" for item in message_content_today))
+            send_notification_to_feishu(message_today)
         else:
-            print(f"[{current_time}] - [no update]")
+            print(f"[{get_current_time()}] - [no update for today]")
+
+        if message_content_yesterday:
+            current_time = get_current_time()  # 获取当前时间
+            message_yesterday = f"[{current_time}] - Yesterday's update:\n" + "\n".join(f"- {item}" for item in message_content_yesterday)
+            print(f"[{current_time}] - Yesterday's update:\n" + "\n".join(f"- {item}" for item in message_content_yesterday))
+        else:
+            print(f"[{get_current_time()}] - [no update for yesterday]")
 
     except Exception as e:
         print(f"err: {e}")
-
-
-def notify_user():
-    print("New update notification triggered.")
-
 
 def send_notification_to_feishu(message):
     webhook_url = 'https://open.feishu.cn/open-apis/bot/v2/hook/8b2f29c3-1ef2-4c61-8996-e9a98dc0e92e'  # 替换为你的 Webhook URL
@@ -110,7 +89,6 @@ def send_notification_to_feishu(message):
         print("Notification sent successfully!")
     else:
         print(f"Failed to send notification: {response.status_code}, {response.text}")
-
 
 if __name__ == "__main__":
     fetch_content()

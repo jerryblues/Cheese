@@ -22,28 +22,6 @@ jobs:
         run: |
           pip install requests beautifulsoup4 pytz
 
-      - name: Restore cache
-        id: cache
-        uses: actions/cache@v3
-        with:
-          path: last_content.json
-          key: content-cache
-
       - name: Run script
         run: |
           python Actions/get_latest_item_for_GET.py
-
-      - name: Save cache
-        uses: actions/cache@v3
-        with:
-          path: last_content.json
-          key: content-cache
-
-      - name: Print cache last_content
-        run: |
-            if [ -f last_content.json ]; then
-              echo "Contents of last_content.json:"
-              cat last_content.json
-            else
-              echo "last_content.json not found."
-            fi
