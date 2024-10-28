@@ -23,7 +23,7 @@ jobs:
           pip install requests beautifulsoup4 pytz
 
       - name: Download previous result
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: previous-result
           path: .  # 下载到当前工作目录
