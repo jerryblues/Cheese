@@ -2,7 +2,7 @@ name: Get Latest Item
 
 on:
   schedule:
-    - cron: '5 * * * * *'   # 每小时5分触发
+    - cron: '5 * * * *'   # 每小时5分触发
   workflow_dispatch:  # 允许手动触发
 
 jobs:
