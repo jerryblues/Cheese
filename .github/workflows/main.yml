@@ -27,6 +27,7 @@ jobs:
         with:
           name: previous-result
           path: .  # 下载到当前工作目录
+        continue-on-error: true  # 如果没有找到 artifact，继续执行
 
       - name: Run script
         run: |
