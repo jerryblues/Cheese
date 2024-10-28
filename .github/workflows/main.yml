@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -32,6 +32,20 @@ jobs:
       - name: Run script
         run: |
           python Actions/get_latest_item_for_GET.py
+
+      - name: Check if previous result file exists
+        run: |
+          if [ -f previous_result.json ]; then
+            if [ -s previous_result.json ]; then
+              echo "File exists and is not empty."
+            else
+              echo "File exists but is empty."
+              exit 1  # 退出并标记为失败
+            fi
+          else
+            echo "File does not exist."
+            exit 1  # 退出并标记为失败
+          fi
 
       - name: Upload current result
         uses: actions/upload-artifact@v4
