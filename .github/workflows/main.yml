@@ -33,7 +33,7 @@ jobs:
           python Actions/get_latest_item_for_GET.py
 
       - name: Upload current result
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: previous-result
           path: previous_result.json  # 上传当前结果
