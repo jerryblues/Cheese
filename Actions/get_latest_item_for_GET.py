@@ -66,8 +66,8 @@ def load_previous_result():
     return set()
 
 def save_current_result(current_files):
-    with open("previous_result.json", "w") as f:
-        json.dump(list(current_files), f)
+    with open("previous_result.json", "w", encoding="utf-8") as f:
+        json.dump(list(current_files), f, ensure_ascii=False)  # 确保中文字符以可读形式保存
 
 def send_notification_to_feishu(message):
     webhook_url = 'https://open.feishu.cn/open-apis/bot/v2/hook/8b2f29c3-1ef2-4c61-8996-e9a98dc0e92e'  # 替换为你的 Webhook URL

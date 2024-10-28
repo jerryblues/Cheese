@@ -1,3 +1,4 @@
+# .github/workflows/main.yml
 name: Get Latest Item
 
 on:
@@ -22,13 +23,6 @@ jobs:
         run: |
           pip install requests beautifulsoup4 pytz
 
-      - name: Download previous result
-        uses: actions/download-artifact@v4
-        with:
-          name: previous-result
-          path: .  # 下载到当前工作目录
-        continue-on-error: true  # 如果没有找到 artifact，继续执行
-
       - name: Run script
         run: |
           python Actions/get_latest_item_for_GET.py
@@ -47,8 +41,12 @@ jobs:
             exit 1  # 退出并标记为失败
           fi
 
-      - name: Upload current result
-        uses: actions/upload-artifact@v4
-        with:
-          name: previous-result
-          path: previous_result.json  # 上传当前结果
+      - name: Commit and push previous result
+        run: |
+          git config --local user.name "jerryblues"
+          git config --local user.email "jerry_0a@163.com"
+          git add previous_result.json
+          git commit -m "Update previous result file"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # 使用 GitHub 提供的 token
