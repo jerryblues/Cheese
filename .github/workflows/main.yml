@@ -22,6 +22,18 @@ jobs:
         run: |
           pip install requests beautifulsoup4 pytz
 
+      - name: Download previous result
+        uses: actions/download-artifact@v2
+        with:
+          name: previous-result
+          path: .  # 下载到当前工作目录
+
       - name: Run script
         run: |
           python Actions/get_latest_item_for_GET.py
+
+      - name: Upload current result
+        uses: actions/upload-artifact@v2
+        with:
+          name: previous-result
+          path: previous_result.json  # 上传当前结果
