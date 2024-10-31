@@ -19,7 +19,10 @@ url_wujun = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2
 url_wangweigang = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89%2F%EF%BF%A5299%E5%85%83-%E4%B8%87%E7%BB%B4%E9%92%A2%C2%B7%E3%80%8A%E7%B2%BE%E8%8B%B1%E6%97%A5%E8%AF%BE%C2%B7%E7%AC%AC%E5%85%AD%E5%AD%A3%E3%80%8B%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
 url_xiongtaihang = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89%2F%EF%BF%A5299%E5%85%83-%E7%86%8A%E5%A4%AA%E8%A1%8C%C2%B7%E3%80%8A%E5%85%B3%E7%B3%BB%E6%94%BB%E7%95%A52%E3%80%8B%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
 url_zhuoke = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89%2F%EF%BF%A5299%E5%85%83-%E5%8D%93%E5%85%8B%C2%B7%E3%80%8A%E7%A7%91%E6%8A%80%E5%8F%82%E8%80%834%E3%80%8B%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
-urls = [url_xinli, url_zhichang, url_ai, url_tingshu, url_hegang, url_liuyi, url_wujun, url_wangweigang, url_xiongtaihang, url_zhuoke]
+
+url_gengxinzhong = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
+
+urls = [url_xinli, url_zhichang, url_ai, url_tingshu, url_hegang, url_liuyi, url_wujun, url_wangweigang, url_xiongtaihang, url_zhuoke, url_gengxinzhong]
 
 def get_current_time():
     china_tz = pytz.timezone('Asia/Shanghai')  # 设置中国时区
@@ -43,11 +46,16 @@ def fetch_content():
             # 正则表达式模式
             pattern = r'(\d{4}丨[^/]+\.mp3)'
 
-            # 使用正则表达式筛选出符合格式的文件名
-            for text in current_texts:
-                match = re.search(pattern, text)
-                if match:
-                    all_current_files.add(match.group(1))
+            # 根据 URL 判断是否需要使用正则表达式
+            if url != url_gengxinzhong:
+                # 使用正则表达式筛选出符合格式的文件名
+                for text in current_texts:
+                    match = re.search(pattern, text)
+                    if match:
+                        all_current_files.add(match.group(1))
+            else:
+                # 对于不需要正则处理的 URL，直接添加所有文本内容
+                all_current_files.update(current_texts)
 
         except Exception as e:
             print(f"Error fetching from {url}: {e}")
