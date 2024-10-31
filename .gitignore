@@ -22,3 +22,4 @@ assets
 /.idea/
 /Python_Application/pkg.pcap
 /Python_Application/pkg.txt
+/Actions/previous_result.json
