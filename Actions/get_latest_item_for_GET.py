@@ -44,18 +44,15 @@ def fetch_content():
             current_texts = [item.get_text(strip=True) for item in current_content]
 
             # 正则表达式模式
-            pattern = r'(\d{4}丨[^/]+\.mp3)'
+            # pattern = r'(\d{4}丨[^/]+\.mp3)'
+            pattern = r'([^/]+\.mp3)'  # 只匹配后缀是mp3的文件
 
-            # 根据 URL 判断是否需要使用正则表达式
-            if url != url_gengxinzhong:
-                # 使用正则表达式筛选出符合格式的文件名
-                for text in current_texts:
-                    match = re.search(pattern, text)
-                    if match:
-                        all_current_files.add(match.group(1))
-            else:
-                # 对于不需要正则处理的 URL，直接添加所有文本内容
-                all_current_files.update(current_texts)
+
+            # 使用正则表达式筛选出符合格式的文件名
+            for text in current_texts:
+                match = re.search(pattern, text)
+                if match:
+                    all_current_files.add(match.group(1))
 
         except Exception as e:
             print(f"Error fetching from {url}: {e}")
