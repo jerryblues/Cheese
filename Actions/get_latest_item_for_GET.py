@@ -9,20 +9,25 @@ import json
 import os
 
 # 监控的网页 URL 列表
-url_xinli = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F09-%E3%80%8A%E5%BF%83%E7%90%86%E6%88%90%E9%95%BF%E5%9C%88%E3%80%8B%EF%BF%A5399%E5%85%83%2F%EF%BC%8800%E4%B8%A8%E6%AF%8F%E5%A4%A9%E6%87%82%E7%82%B9%E5%BF%83%E7%90%86%E5%AD%A6%E4%B8%A8%E6%97%A5%E6%9B%B4%E5%A4%B4%E6%9D%A1%EF%BC%89&tag=65&ts=65&recursion=2"
-url_zhichang = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F08-%E3%80%8A%E8%81%8C%E5%9C%BA%E5%AD%A6%E4%B9%A0%E5%9C%88%E3%80%8B399%E5%85%83%2F%EF%BC%8800%E4%B8%A8%E8%8A%B1%E5%A7%90%E4%BF%A1%E7%AE%B1%EF%BC%89&tag=65&ts=65&recursion=2"
 url_ai = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F07-%E3%80%8AAI%E5%AD%A6%E4%B9%A0%E5%9C%88%E3%80%8B399%E5%85%83%2F01%E4%B8%A8%E5%BF%AB%E5%88%80%E5%B9%BF%E6%92%AD%E7%AB%99%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
+url_zhichang = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F08-%E3%80%8A%E8%81%8C%E5%9C%BA%E5%AD%A6%E4%B9%A0%E5%9C%88%E3%80%8B399%E5%85%83%2F%EF%BC%8800%E4%B8%A8%E8%8A%B1%E5%A7%90%E4%BF%A1%E7%AE%B1%EF%BC%89&tag=65&ts=65&recursion=2"
+url_xinli = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F09-%E3%80%8A%E5%BF%83%E7%90%86%E6%88%90%E9%95%BF%E5%9C%88%E3%80%8B%EF%BF%A5399%E5%85%83%2F%EF%BC%8800%E4%B8%A8%E6%AF%8F%E5%A4%A9%E6%87%82%E7%82%B9%E5%BF%83%E7%90%86%E5%AD%A6%E4%B8%A8%E6%97%A5%E6%9B%B4%E5%A4%B4%E6%9D%A1%EF%BC%89&tag=65&ts=65&recursion=2"
 url_tingshu = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F06-%E6%AF%8F%E5%A4%A9%E5%90%AC%E4%B9%A6%EF%BC%88VIP%EF%BC%89365%E5%85%83%2F2024%E5%B9%B4&tag=65&ts=65&recursion=2"
-url_hegang = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89%2F%EF%BF%A5399%E5%85%83-%E4%BD%95%E5%88%9A%C2%B7%E3%80%8A%E6%8A%95%E8%B5%84%E5%8F%82%E8%80%832024-2025%E3%80%8B%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
-url_liuyi = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89%2F%EF%BF%A5299%E5%85%83-%E5%88%98%E6%80%A1%C2%B7%E3%80%8A%E5%85%A8%E7%90%83%E5%A4%A7%E4%BA%8B%E6%8A%A5%E5%91%8A%E3%80%8B%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
-url_wujun = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89%2F%EF%BF%A5299%E5%85%83-%E5%90%B4%E5%86%9B%C2%B7%E3%80%8A%E5%90%B4%E5%86%9B%E6%9D%A5%E4%BF%A12%E3%80%8B%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
+
 url_wangweigang = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89%2F%EF%BF%A5299%E5%85%83-%E4%B8%87%E7%BB%B4%E9%92%A2%C2%B7%E3%80%8A%E7%B2%BE%E8%8B%B1%E6%97%A5%E8%AF%BE%C2%B7%E7%AC%AC%E5%85%AD%E5%AD%A3%E3%80%8B%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
-url_xiongtaihang = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89%2F%EF%BF%A5299%E5%85%83-%E7%86%8A%E5%A4%AA%E8%A1%8C%C2%B7%E3%80%8A%E5%85%B3%E7%B3%BB%E6%94%BB%E7%95%A52%E3%80%8B%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
+url_wujun = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89%2F%EF%BF%A5299%E5%85%83-%E5%90%B4%E5%86%9B%C2%B7%E3%80%8A%E5%90%B4%E5%86%9B%E6%9D%A5%E4%BF%A12%E3%80%8B%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
 url_zhuoke = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89%2F%EF%BF%A5299%E5%85%83-%E5%8D%93%E5%85%8B%C2%B7%E3%80%8A%E7%A7%91%E6%8A%80%E5%8F%82%E8%80%834%E3%80%8B%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
+url_hegang = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89%2F%EF%BF%A5399%E5%85%83-%E4%BD%95%E5%88%9A%C2%B7%E3%80%8A%E6%8A%95%E8%B5%84%E5%8F%82%E8%80%832024-2025%E3%80%8B%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
+url_xiongtaihang = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89%2F%EF%BF%A5299%E5%85%83-%E7%86%8A%E5%A4%AA%E8%A1%8C%C2%B7%E3%80%8A%E5%85%B3%E7%B3%BB%E6%94%BB%E7%95%A52%E3%80%8B%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
+
+url_xiangshuai = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89%2F%EF%BF%A599%E5%85%83-%E9%A6%99%E5%B8%85%C2%B7%E3%80%8A2025%E5%B9%B4%E5%BA%A6%E5%BE%97%E5%88%B0%C2%B7%E9%A6%99%E5%B8%85%E4%B8%AD%E5%9B%BD%E8%B4%A2%E5%AF%8C%E6%8A%A5%E5%91%8A%E3%80%8B%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
+url_hefan = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89%2F%EF%BF%A599%E5%85%83-%E4%BD%95%E5%B8%86%C2%B7%E3%80%8A2025%E5%B9%B4%E5%BA%A6%E5%BE%97%E5%88%B0%C2%B7%E4%BD%95%E5%B8%86%E4%B8%AD%E5%9B%BD%E7%BB%8F%E6%B5%8E%E6%8A%A5%E5%91%8A%E3%80%8B%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
+url_laoyu = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89%2F%EF%BF%A5229%E5%85%83-%E8%80%81%E5%96%BB%C2%B7%E3%80%8A%E5%86%B3%E7%AD%96%E7%AE%97%E6%B3%95100%E8%AE%B2%E3%80%8B%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
+url_liuyi = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89%2F%EF%BF%A5299%E5%85%83-%E5%88%98%E6%80%A1%C2%B7%E3%80%8A%E5%85%A8%E7%90%83%E5%A4%A7%E4%BA%8B%E6%8A%A5%E5%91%8A%E3%80%8B%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
 
 url_gengxinzhong = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
 
-urls = [url_xinli, url_zhichang, url_ai, url_tingshu, url_hegang, url_liuyi, url_wujun, url_wangweigang, url_xiongtaihang, url_zhuoke, url_gengxinzhong]
+urls = [url_ai, url_zhichang, url_xinli, url_tingshu, url_wangweigang, url_wujun, url_zhuoke, url_hegang, url_xiongtaihang, url_xiangshuai, url_hefan, url_laoyu, url_liuyi, url_gengxinzhong]
 
 def get_current_time():
     china_tz = pytz.timezone('Asia/Shanghai')  # 设置中国时区
@@ -42,17 +47,24 @@ def fetch_content():
 
             # 提取文本内容
             current_texts = [item.get_text(strip=True) for item in current_content]
+            # print(current_content)
 
             # 正则表达式模式
             # pattern = r'(\d{4}丨[^/]+\.mp3)'
-            pattern = r'([^/]+\.mp3)'  # 只匹配后缀是mp3的文件
+            pattern_mp3 = r'([^/]+\.mp3)'  # 只匹配后缀是mp3的文件
+            pattern_text = r'(￥.*)'
 
 
             # 使用正则表达式筛选出符合格式的文件名
             for text in current_texts:
-                match = re.search(pattern, text)
-                if match:
-                    all_current_files.add(match.group(1))
+                if url != url_gengxinzhong:
+                    match = re.search(pattern_mp3, text)
+                    if match:
+                        all_current_files.add(match.group(1))
+                else:
+                    match = re.search(pattern_text, text)
+                    if match:
+                        all_current_files.add(match.group(1))
 
         except Exception as e:
             print(f"Error fetching from {url}: {e}")
