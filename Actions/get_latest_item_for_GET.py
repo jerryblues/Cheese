@@ -1,13 +1,14 @@
 from base64 import urlsafe_b64decode
-
 import requests
 from bs4 import BeautifulSoup
 import re
 from datetime import datetime
+from urllib.parse import urljoin
 import pytz
 import json
 import os
 
+'''
 # 监控的网页 URL 列表
 url_ai = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F07-%E3%80%8AAI%E5%AD%A6%E4%B9%A0%E5%9C%88%E3%80%8B399%E5%85%83%2F01%E4%B8%A8%E5%BF%AB%E5%88%80%E5%B9%BF%E6%92%AD%E7%AB%99%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
 url_zhichang = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F08-%E3%80%8A%E8%81%8C%E5%9C%BA%E5%AD%A6%E4%B9%A0%E5%9C%88%E3%80%8B399%E5%85%83%2F%EF%BC%8800%E4%B8%A8%E8%8A%B1%E5%A7%90%E4%BF%A1%E7%AE%B1%EF%BC%89&tag=65&ts=65&recursion=2"
@@ -28,12 +29,53 @@ url_liuyi = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2
 url_gengxinzhong = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
 
 urls = [url_ai, url_zhichang, url_xinli, url_tingshu, url_wangweigang, url_wujun, url_zhuoke, url_hegang, url_xiongtaihang, url_xiangshuai, url_hefan, url_laoyu, url_liuyi, url_gengxinzhong]
+'''
+
+# 配置起始 URL 和前缀
+url_gengxinzhong = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
+
+url_ai = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F07-%E3%80%8AAI%E5%AD%A6%E4%B9%A0%E5%9C%88%E3%80%8B399%E5%85%83%2F01%E4%B8%A8%E5%BF%AB%E5%88%80%E5%B9%BF%E6%92%AD%E7%AB%99%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
+url_zhichang = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F08-%E3%80%8A%E8%81%8C%E5%9C%BA%E5%AD%A6%E4%B9%A0%E5%9C%88%E3%80%8B399%E5%85%83%2F%EF%BC%8800%E4%B8%A8%E8%8A%B1%E5%A7%90%E4%BF%A1%E7%AE%B1%EF%BC%89&tag=65&ts=65&recursion=2"
+url_xinli = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F09-%E3%80%8A%E5%BF%83%E7%90%86%E6%88%90%E9%95%BF%E5%9C%88%E3%80%8B%EF%BF%A5399%E5%85%83%2F%EF%BC%8800%E4%B8%A8%E6%AF%8F%E5%A4%A9%E6%87%82%E7%82%B9%E5%BF%83%E7%90%86%E5%AD%A6%E4%B8%A8%E6%97%A5%E6%9B%B4%E5%A4%B4%E6%9D%A1%EF%BC%89&tag=65&ts=65&recursion=2"
+url_tingshu = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F06-%E6%AF%8F%E5%A4%A9%E5%90%AC%E4%B9%A6%EF%BC%88VIP%EF%BC%89365%E5%85%83%2F2024%E5%B9%B4&tag=65&ts=65&recursion=2"
+
+start_with = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97Dao+APP%E3%80%91%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89%"
+
+
+def fetch_page(url):
+    """获取网页内容并返回解析后的 BeautifulSoup 对象"""
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # 检查请求是否成功
+        return BeautifulSoup(response.text, 'html.parser')
+    except requests.RequestException as e:
+        print(f"请求失败: {e}")
+        return None
+
+def find_subdirectories(url, prefix):
+    """查找指定 URL 下的所有下一级目录，且仅返回以指定前缀开头的链接"""
+    soup = fetch_page(url)
+    if soup:
+        subdirectories = []
+        # 查找所有链接
+        for a_tag in soup.find_all('a', href=True):
+            full_url = urljoin(url, a_tag['href'])
+            # 检查链接是否为目录且以指定前缀开头
+            if is_directory(full_url) and full_url.startswith(prefix):
+                subdirectories.append(full_url)
+        return subdirectories
+    return []
+
+def is_directory(url):
+    """判断链接是否为目录（可以根据实际情况调整）"""
+    # 这里假设以斜杠结尾的链接为目录
+    return url.endswith('/') or 'dir=' in url
 
 def get_current_time():
     china_tz = pytz.timezone('Asia/Shanghai')  # 设置中国时区
     return datetime.now(china_tz).strftime("%Y-%m-%d %H:%M:%S")  # 获取当前时间
 
-def fetch_content():
+def fetch_content(urls):
     all_current_files = set()  # 用于存储所有 URL 的文件名
 
     for url in urls:
@@ -122,4 +164,8 @@ def send_notification_to_feishu(message):
         print(f"Failed to send notification: {response.status_code}, {response.text}")
 
 if __name__ == "__main__":
-    fetch_content()
+    start_url = url_gengxinzhong
+    prefix = start_with
+    urls = find_subdirectories(start_url, prefix)  # 找出所有"更新中"下一级目录
+    urls.extend([url_ai, url_zhichang, url_xinli, url_tingshu, url_gengxinzhong])  # 添加 "AI、职场、心理、更新中" url
+    fetch_content(urls)
