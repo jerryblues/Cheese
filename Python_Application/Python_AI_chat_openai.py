@@ -16,12 +16,12 @@ def ask_question(question):
     url = "https://burn.hair/v1/chat/completions"
 
     headers = {
-        "Authorization": "Bearer sk-ySOZXKC68tIwP6e8Bb3689Cb914044Bc90B51c8a321e6c15"
+        "Authorization": "Bearer sk-v7eMHzhWsmdKQg79E08851E275C545DbA070E82c78CaB098"
     }
 
     # 构造请求体
     data = {
-        "model": "gpt-4",
+        "model": "gpt-4o-mini",
         "messages": [
             {
                 "role": "user",

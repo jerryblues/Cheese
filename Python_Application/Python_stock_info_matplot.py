@@ -1,7 +1,7 @@
+import matplotlib.pyplot as plt
 import yfinance as yf
 from datetime import datetime, timedelta
 import requests
-
 
 
 # Notification function
@@ -79,32 +79,55 @@ else:
     print("A.1000 Yesterday Avg:" + str(yesterday_zz1000_avg))
 
 
-    if current_sh50_price > last_sh50_avg:
-        message = f"Current [{current_sh50_price}] > Avg [{last_sh50_avg}]"
-        if yesterday_sh50_price < yesterday_sh50_avg:
-            message += f" | Yesterday [{yesterday_sh50_price}] < Avg [{yesterday_sh50_avg}] | Trend changed. Buy!"
-        else:
-            message += f" | Yesterday [{yesterday_sh50_price}] > Avg [{yesterday_sh50_avg}] | Trend unchanged"
-        send_notification("A.50", message)
-    elif current_sh50_price < last_sh50_avg:
-        message = f"Current [{current_sh50_price}] < Avg [{last_sh50_avg}]"
-        if yesterday_sh50_price < yesterday_sh50_avg:
-            message += f" | Yesterday [{yesterday_sh50_price}] < Avg [{yesterday_sh50_avg}] | Trend unchanged"
-        else:
-            message += f" | Yesterday [{yesterday_sh50_price}] > Avg [{yesterday_sh50_avg}] | Trend changed. Sell!"
-        send_notification("A.50", message)
+    # if current_sh50_price > last_sh50_avg:
+    #     message = f"Current [{current_sh50_price}] > Avg [{last_sh50_avg}]"
+    #     if yesterday_sh50_price < yesterday_sh50_avg:
+    #         message += f" | Yesterday [{yesterday_sh50_price}] < Avg [{yesterday_sh50_avg}] | Trend changed. Buy!"
+    #     else:
+    #         message += f" | Yesterday [{yesterday_sh50_price}] > Avg [{yesterday_sh50_avg}] | Trend unchanged"
+    #     send_notification("A.50", message)
+    # elif current_sh50_price < last_sh50_avg:
+    #     message = f"Current [{current_sh50_price}] < Avg [{last_sh50_avg}]"
+    #     if yesterday_sh50_price < yesterday_sh50_avg:
+    #         message += f" | Yesterday [{yesterday_sh50_price}] < Avg [{yesterday_sh50_avg}] | Trend unchanged"
+    #     else:
+    #         message += f" | Yesterday [{yesterday_sh50_price}] > Avg [{yesterday_sh50_avg}] | Trend changed. Sell!"
+    #     send_notification("A.50", message)
+    #
+    # if current_zz1000_price > last_zz1000_avg:
+    #     message = f"Current [{current_zz1000_price}] > Avg [{last_zz1000_avg}]"
+    #     if yesterday_zz1000_price < yesterday_zz1000_avg:
+    #         message += f" | Yesterday [{yesterday_zz1000_price}] < Avg [{yesterday_zz1000_avg}] | Trend changed. Buy!"
+    #     else:
+    #         message += f" | Yesterday [{yesterday_zz1000_price}] > Avg [{yesterday_zz1000_avg}] | Trend unchanged"
+    #     send_notification("A.1000", message)
+    # elif current_zz1000_price < last_zz1000_avg:
+    #     message = f"Current [{current_zz1000_price}] < Avg [{last_zz1000_avg}]"
+    #     if yesterday_zz1000_price < yesterday_zz1000_avg:
+    #         message += f" | Yesterday [{yesterday_zz1000_price}] < Avg [{yesterday_zz1000_avg}] | Trend unchanged"
+    #     else:
+    #         message += f" | Yesterday [{yesterday_zz1000_price}] > Avg [{yesterday_zz1000_avg}] | Trend changed. Sell!"
+    #     send_notification("A.1000", message)
 
-    if current_zz1000_price > last_zz1000_avg:
-        message = f"Current [{current_zz1000_price}] > Avg [{last_zz1000_avg}]"
-        if yesterday_zz1000_price < yesterday_zz1000_avg:
-            message += f" | Yesterday [{yesterday_zz1000_price}] < Avg [{yesterday_zz1000_avg}] | Trend changed. Buy!"
-        else:
-            message += f" | Yesterday [{yesterday_zz1000_price}] > Avg [{yesterday_zz1000_avg}] | Trend unchanged"
-        send_notification("A.1000", message)
-    elif current_zz1000_price < last_zz1000_avg:
-        message = f"Current [{current_zz1000_price}] < Avg [{last_zz1000_avg}]"
-        if yesterday_zz1000_price < yesterday_zz1000_avg:
-            message += f" | Yesterday [{yesterday_zz1000_price}] < Avg [{yesterday_zz1000_avg}] | Trend unchanged"
-        else:
-            message += f" | Yesterday [{yesterday_zz1000_price}] > Avg [{yesterday_zz1000_avg}] | Trend changed. Sell!"
-        send_notification("A.1000", message)
+
+    # Plot only the last 20 days of data
+    plt.figure(figsize=(14, 7))
+
+    # Filter for the last 20 days
+    plt.plot(sh50_data.index[-20:], sh50_data['Close'][-20:], label='A.50 ETF Close Price', color='blue')
+    plt.plot(sh50_data.index[-20:], sh50_avg[-20:], label='A.50 ETF 20-Day Average', color='green')
+
+    plt.plot(zz1000_data.index[-20:], zz1000_data['Close'][-20:], label='A.1000 ETF Close Price', color='red')
+    plt.plot(zz1000_data.index[-20:], zz1000_avg[-20:], label='A.1000 ETF 20-Day Average', color='orange')
+
+    # Add title and labels
+    plt.title('A.50 ETF and A.1000 ETF Price Trends for the Last 20 Days')
+    plt.xlabel('Date')
+    plt.ylabel('Price')
+    plt.xticks(rotation=45)
+    plt.legend()
+    plt.grid()
+
+    # Show the plot
+    plt.tight_layout()
+    plt.show()

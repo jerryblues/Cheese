@@ -2,12 +2,14 @@
 name: Get Latest Item
 
 on:
-  schedule:
-    - cron: '5 * * * *'   # 每小时5分触发
   workflow_dispatch:  # 允许手动触发
+  schedule:
+    - cron: '5 * * * *'      # get_latest_item 每小时5分触发
+    - cron: '0 13,22 * * *'  #
 
 jobs:
-  fetch_and_notify:
+  get_latest_item:
+    if: github.event_name == 'schedule' && github.event.schedule == '5 * * * *'
     runs-on: ubuntu-latest
 
     steps:
@@ -55,3 +57,24 @@ jobs:
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # 使用 GitHub 提供的 token
+
+  get_stock_info:
+    if: github.event_name == 'schedule' && github.event.schedule == '0 13,22 * * *'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          pip install requests yfinance
+
+      - name: Run script
+        run: |
+          python Actions/get_stock_info.py
