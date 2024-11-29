@@ -1,7 +1,16 @@
 import yfinance as yf
 from datetime import datetime, timedelta
 import requests
+import pytz
+from datetime import datetime
 
+
+# 设置时区为中国时区
+china_tz = pytz.timezone('Asia/Shanghai')
+
+# 获取当前时间并转换为中国时区
+current_time = datetime.now(china_tz)
+print("Current Time[CN]:", current_time.strftime('%Y-%m-%d %H:%M:%S'))
 
 
 # Notification function
@@ -68,6 +77,10 @@ else:
     yesterday_zz1000_price = round(zz1000_data['Close'].iloc[-2].item(), 3)
     yesterday_zz1000_avg = round(zz1000_avg.iloc[-2].item(), 3)
 
+    # 获取日期
+    current_date = sh50_data.index[-1].strftime('%Y-%m-%d')
+    yesterday_date = sh50_data.index[-2].strftime('%Y-%m-%d')
+
     print("A.50 Current Price:" + str(current_sh50_price))
     print("A.50 Current Avg:" + str(last_sh50_avg))
     print("A.50 Yesterday Price:" + str(yesterday_sh50_price))
@@ -78,33 +91,34 @@ else:
     print("A.1000 Yesterday Price:" + str(yesterday_zz1000_price))
     print("A.1000 Yesterday Avg:" + str(yesterday_zz1000_avg))
 
-
+    # A.50 Notifications
     if current_sh50_price > last_sh50_avg:
-        message = f"Current [{current_sh50_price}] > Avg [{last_sh50_avg}]"
+        message = f"{current_date} [{current_sh50_price}] > Avg [{last_sh50_avg}]"
         if yesterday_sh50_price < yesterday_sh50_avg:
-            message += f" | Yesterday [{yesterday_sh50_price}] < Avg [{yesterday_sh50_avg}] | Trend changed. Buy!"
+            message += f" | {yesterday_date} [{yesterday_sh50_price}] < Avg [{yesterday_sh50_avg}] | Trend changed. Buy!"
         else:
-            message += f" | Yesterday [{yesterday_sh50_price}] > Avg [{yesterday_sh50_avg}] | Trend unchanged"
+            message += f" | {yesterday_date} [{yesterday_sh50_price}] > Avg [{yesterday_sh50_avg}] | Trend unchanged"
         send_notification("A.50", message)
     elif current_sh50_price < last_sh50_avg:
-        message = f"Current [{current_sh50_price}] < Avg [{last_sh50_avg}]"
+        message = f"{current_date} [{current_sh50_price}] < Avg [{last_sh50_avg}]"
         if yesterday_sh50_price < yesterday_sh50_avg:
-            message += f" | Yesterday [{yesterday_sh50_price}] < Avg [{yesterday_sh50_avg}] | Trend unchanged"
+            message += f" | {yesterday_date} [{yesterday_sh50_price}] < Avg [{yesterday_sh50_avg}] | Trend unchanged"
         else:
-            message += f" | Yesterday [{yesterday_sh50_price}] > Avg [{yesterday_sh50_avg}] | Trend changed. Sell!"
+            message += f" | {yesterday_date} [{yesterday_sh50_price}] > Avg [{yesterday_sh50_avg}] | Trend changed. Sell!"
         send_notification("A.50", message)
 
+    # A.1000 Notifications
     if current_zz1000_price > last_zz1000_avg:
-        message = f"Current [{current_zz1000_price}] > Avg [{last_zz1000_avg}]"
+        message = f"{current_date} [{current_zz1000_price}] > Avg [{last_zz1000_avg}]"
         if yesterday_zz1000_price < yesterday_zz1000_avg:
-            message += f" | Yesterday [{yesterday_zz1000_price}] < Avg [{yesterday_zz1000_avg}] | Trend changed. Buy!"
+            message += f" | {yesterday_date} [{yesterday_zz1000_price}] < Avg [{yesterday_zz1000_avg}] | Trend changed. Buy!"
         else:
-            message += f" | Yesterday [{yesterday_zz1000_price}] > Avg [{yesterday_zz1000_avg}] | Trend unchanged"
+            message += f" | {yesterday_date} [{yesterday_zz1000_price}] > Avg [{yesterday_zz1000_avg}] | Trend unchanged"
         send_notification("A.1000", message)
     elif current_zz1000_price < last_zz1000_avg:
-        message = f"Current [{current_zz1000_price}] < Avg [{last_zz1000_avg}]"
+        message = f"{current_date} [{current_zz1000_price}] < Avg [{last_zz1000_avg}]"
         if yesterday_zz1000_price < yesterday_zz1000_avg:
-            message += f" | Yesterday [{yesterday_zz1000_price}] < Avg [{yesterday_zz1000_avg}] | Trend unchanged"
+            message += f" | {yesterday_date} [{yesterday_zz1000_price}] < Avg [{yesterday_zz1000_avg}] | Trend unchanged"
         else:
-            message += f" | Yesterday [{yesterday_zz1000_price}] > Avg [{yesterday_zz1000_avg}] | Trend changed. Sell!"
+            message += f" | {yesterday_date} [{yesterday_zz1000_price}] > Avg [{yesterday_zz1000_avg}] | Trend changed. Sell!"
         send_notification("A.1000", message)
