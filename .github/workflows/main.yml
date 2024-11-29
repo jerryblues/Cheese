@@ -1,5 +1,5 @@
 # .github/workflows/main.yml
-name: Get Latest Item
+name: get_info
 
 on:
   workflow_dispatch:  # 允许手动触发
@@ -9,7 +9,7 @@ on:
 
 jobs:
   get_latest_item:
-    if: github.event.schedule == '5 * * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '5 * * * *' # 手动或定时触发
     runs-on: ubuntu-latest
 
     steps:
@@ -59,7 +59,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # 使用 GitHub 提供的 token
 
   get_stock_info:
-    if: github.event.schedule == '0 13,22 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 5,14 * * *'
     runs-on: ubuntu-latest
 
     steps:
