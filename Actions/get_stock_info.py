@@ -17,30 +17,33 @@ def send_notification(etf_name, messages):
     webhook_url = 'https://open.feishu.cn/open-apis/bot/v2/hook/8b2f29c3-1ef2-4c61-8996-e9a98dc0e92e'  # 替换为你的 Webhook URL
     headers = {'Content-Type': 'application/json'}
 
-    notification = (f"{etf_name}:\n"
-                    f"{messages}")
+    # check messages contain "buy" or "sell"
+    if "Buy" in messages.lower() or "Sell" in messages.lower():
+        notification = (f"{etf_name}:\n"
+                        f"{messages}")
 
-    # 构建消息体
-    payload = {
-        "msg_type": "text",
-        "content": {
-            "text": notification
+        payload = {
+            "msg_type": "text",
+            "content": {
+                "text": notification
+            }
         }
-    }
 
-    # 发送 POST 请求
-    response = requests.post(webhook_url, headers=headers, json=payload)
+        # 发送 POST 请求
+        response = requests.post(webhook_url, headers=headers, json=payload)
 
-    # 检查响应
-    if response.status_code == 200:
-        print("Notification sent successfully!")
+        # 检查响应
+        if response.status_code == 200:
+            print("Notification sent successfully!")
+        else:
+            print(f"Failed to send notification: {response.status_code}, {response.text}")
     else:
-        print(f"Failed to send notification: {response.status_code}, {response.text}")
+        print("No 'buy' or 'sell' detected in messages. Notification not sent.")
 
 
-# Set the end date to today and start date to 40 days ago
+# Set the end date to today and start date to 60 days ago
 end_date = datetime.today()
-start_date = end_date - timedelta(days=60)  # Get data for the last 40 days
+start_date = end_date - timedelta(days=60)  # Get data for the last 60 days
 
 # Download historical data for the ETFs
 sh50_data = yf.download('510050.SS', start=start_date, end=end_date)
