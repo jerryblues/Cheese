@@ -18,7 +18,7 @@ def send_notification(etf_name, messages):
     headers = {'Content-Type': 'application/json'}
 
     # check messages contain "buy" or "sell"
-    if "Buy" in messages.lower() or "Sell" in messages.lower():
+    if "buy" in messages.lower() or "sell" in messages.lower():
         notification = (f"{etf_name}:\n"
                         f"{messages}")
 
@@ -105,6 +105,7 @@ else:
         else:
             message += (f"{yesterday_date_sh50} | Current [{yesterday_sh50_price}] > Avg [{yesterday_sh50_avg}]\n"
                         f"Trend unchanged")
+        print(message)
         send_notification("A.50", message)
 
     elif current_sh50_price < last_sh50_avg:
@@ -115,6 +116,7 @@ else:
         else:
             message += (f"{yesterday_date_sh50} | Current [{yesterday_sh50_price}] > Avg [{yesterday_sh50_avg}]\n"
                         f"Trend changed. Sell!")
+        print(message)
         send_notification("A.50", message)
 
     # A.1000 Notifications
@@ -126,6 +128,7 @@ else:
         else:
             message += (f"{yesterday_date_zz1000} | Current [{yesterday_zz1000_price}] > Avg [{yesterday_zz1000_avg}]\n"
                         f"Trend unchanged")
+        print(message)
         send_notification("A.1000", message)
 
     elif current_zz1000_price < last_zz1000_avg:
@@ -136,6 +139,7 @@ else:
         else:
             message += (f"{yesterday_date_zz1000} | Current [{yesterday_zz1000_price}] > Avg [{yesterday_zz1000_avg}]\n"
                         f"Trend changed. Sell!")
+        print(message)
         send_notification("A.1000", message)
 
     print("Current Time[CN]:", current_time.strftime('%Y-%m-%d %H:%M:%S'))
