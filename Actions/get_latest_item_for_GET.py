@@ -34,10 +34,10 @@ urls = [url_ai, url_zhichang, url_xinli, url_tingshu, url_wangweigang, url_wujun
 # 配置起始 URL 和前缀
 url_gengxinzhong = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97%E5%88%B0App%E3%80%91%E6%9C%80%E6%96%B0%2F01-%E6%9B%B4%E6%96%B0%E4%B8%AD%E7%9A%84%E8%AF%BE%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
 
-url_ai = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97%E5%88%B0App%E3%80%91%E6%9C%80%E6%96%B0%2F07-%E3%80%8AAI%E5%AD%A6%E4%B9%A0%E5%9C%88%E3%80%8B399%E5%85%83&tag=65&ts=65&recursion=2"
-url_zhichang = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97%E5%88%B0App%E3%80%91%E6%9C%80%E6%96%B0%2F08-%E3%80%8A%E8%81%8C%E5%9C%BA%E5%AD%A6%E4%B9%A0%E5%9C%88%E3%80%8B399%E5%85%83&tag=65&ts=65&recursion=2"
-url_xinli = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97%E5%88%B0App%E3%80%91%E6%9C%80%E6%96%B0%2F09-%E3%80%8A%E5%BF%83%E7%90%86%E6%88%90%E9%95%BF%E5%9C%88%E3%80%8B%EF%BF%A5399%E5%85%83&tag=65&ts=65&recursion=2"
-url_tingshu = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97%E5%88%B0App%E3%80%91%E6%9C%80%E6%96%B0%2F06-%E6%AF%8F%E5%A4%A9%E5%90%AC%E4%B9%A6%EF%BC%88VIP%EF%BC%89365%E5%85%83&tag=65&ts=65&recursion=2"
+url_ai = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97%E5%88%B0App%E3%80%91%E6%9C%80%E6%96%B0%2F07-%E3%80%8AAI%E5%AD%A6%E4%B9%A0%E5%9C%88%E3%80%8B399%E5%85%83%2F01%E4%B8%A8%E5%BF%AB%E5%88%80%E5%B9%BF%E6%92%AD%E7%AB%99%EF%BC%88%E6%9B%B4%E6%96%B0%E4%B8%AD%EF%BC%89&tag=65&ts=65&recursion=2"
+url_zhichang = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97%E5%88%B0App%E3%80%91%E6%9C%80%E6%96%B0%2F08-%E3%80%8A%E8%81%8C%E5%9C%BA%E5%AD%A6%E4%B9%A0%E5%9C%88%E3%80%8B399%E5%85%83%2F%EF%BC%8800%E4%B8%A8%E8%8A%B1%E5%A7%90%E4%BF%A1%E7%AE%B1%EF%BC%89&tag=65&ts=65&recursion=2"
+url_xinli = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97%E5%88%B0App%E3%80%91%E6%9C%80%E6%96%B0%2F09-%E3%80%8A%E5%BF%83%E7%90%86%E6%88%90%E9%95%BF%E5%9C%88%E3%80%8B%EF%BF%A5399%E5%85%83%2F%EF%BC%8800%E4%B8%A8%E6%AF%8F%E5%A4%A9%E6%87%82%E7%82%B9%E5%BF%83%E7%90%86%E5%AD%A6%E4%B8%A8%E6%97%A5%E6%9B%B4%E5%A4%B4%E6%9D%A1%EF%BC%89&tag=65&ts=65&recursion=2"
+url_tingshu = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97%E5%88%B0App%E3%80%91%E6%9C%80%E6%96%B0%2F06-%E6%AF%8F%E5%A4%A9%E5%90%AC%E4%B9%A6%EF%BC%88VIP%EF%BC%89365%E5%85%83%2F2025%E5%B9%B4&tag=65&ts=65&recursion=2"
 
 start_with = "http://120.24.70.100/?dir=%2F01%E3%80%90%E5%BE%97%E5%88%B0App%E3%80%91%E6%9C%80%E6%96%B0"
 
@@ -167,5 +167,5 @@ if __name__ == "__main__":
     start_url = url_gengxinzhong
     prefix = start_with
     urls = find_subdirectories(start_url, prefix)  # 找出所有"更新中"下一级目录
-    urls.extend([url_ai, url_zhichang, url_xinli, url_tingshu, url_gengxinzhong])  # 添加 "AI、职场、心理、更新中" url
+    urls.extend([url_ai, url_zhichang, url_xinli, url_tingshu, url_gengxinzhong])  # 添加 "AI、职场、心理、听书、更新中" url
     fetch_content(urls)
