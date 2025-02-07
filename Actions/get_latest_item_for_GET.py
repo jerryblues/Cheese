@@ -143,7 +143,7 @@ def save_current_result(current_files):
         json.dump(list(sorted(current_files)), f, ensure_ascii=False)  # 确保中文字符以可读形式保存，并且按字符排序，如果没有变化，就不会触发新的commit
 
 def send_notification_to_feishu(message):
-    webhook_url = 'https://open.feishu.cn/open-apis/bot/v2/hook/8b2f29c3-1ef2-4c61-8996-e9a98dc0e92e'  # 替换为你的 Webhook URL
+    webhook_url = 'https://open.feishu.cn/open-apis/bot/v2/hook/9d3a127c-6f0a-45b8-88bb-23a4f7a23e7e'  # 替换为你的 Webhook URL
     headers = {'Content-Type': 'application/json'}
 
     # 构建消息体

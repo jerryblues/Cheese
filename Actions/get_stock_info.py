@@ -14,7 +14,7 @@ current_time = datetime.now(china_tz)
 
 # Notification function
 def send_notification(etf_name, messages):
-    webhook_url = 'https://open.feishu.cn/open-apis/bot/v2/hook/8b2f29c3-1ef2-4c61-8996-e9a98dc0e92e'  # 替换为你的 Webhook URL
+    webhook_url = 'https://open.feishu.cn/open-apis/bot/v2/hook/9d3a127c-6f0a-45b8-88bb-23a4f7a23e7e'  # 替换为你的 Webhook URL
     headers = {'Content-Type': 'application/json'}
 
     # check messages contain "buy" or "sell"
