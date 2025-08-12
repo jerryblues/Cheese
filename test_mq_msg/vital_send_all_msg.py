@@ -15,7 +15,7 @@ import requests
 ENABLE_PERSON_DETECT = 1      # 是否发送检测到有人
 ENABLE_BLOOD_DETECT  = 1      # 是否发送血液检测
 ENABLE_ACTION_DETECT = 1      # 是否发送动作检测
-ENABLE_HR_BR         = 1      # 是否发送心率/呼吸
+ENABLE_HR_BR         = 0      # 是否发送心率/呼吸
 
 # ================ 动作检测配置 ===============
 # 两组动作组合
