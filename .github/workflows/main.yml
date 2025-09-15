@@ -5,7 +5,7 @@ on:
   workflow_dispatch:  # 允许手动触发
   schedule:
     - cron: '5 * * * *'      # get_latest_item 每小时5分触发
-    - cron: '0 5,14 * * *'   # get_stock_info 每日13:00,22:00触发
+    # - cron: '0 5,14 * * *'   # get_stock_info 每日13:00,22:00触发
 
 jobs:
   get_latest_item:
