@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生命体征监控系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .control-panel {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            min-height: 200px; /* 确保与SSH连接配置区域高度一致 */
+        }
+        .ssh-config, .monitor-config {
+            padding: 20px;
+            margin-bottom: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+            transition: all 0.3s ease;
+        }
+        .ssh-config h3, .monitor-config h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .test-btn {
+            background-color: #17a2b8;
+            color: white;
+            margin-bottom: 10px;
+        }
+        #connectionStatus {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        #connectionStatus.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        #connectionStatus.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #4a90e2;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05), 0 0 8px rgba(74,144,226,0.3);
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .horizontal-buttons {
+            flex-direction: row;
+            gap: 15px;
+        }
+        
+        .horizontal-buttons button {
+            flex: 1;
+            min-width: 120px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .start-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        .stop-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .data-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .data-card {
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+            transition: box-shadow 0.3s ease;
+        }
+        
+        .data-card:hover {
+            box-shadow: 0 6px 12px rgba(0,0,0,0.18);
+        }
+        .data-card h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .chart-container {
+            margin-top: 30px;
+            height: 400px;
+        }
+    </style>
+    
+    <style>
+        /* 心率数据记录样式 */
+        .bpm-records {
+            width: 100%;
+        }
+        
+        #bpmRecords {
+            display: grid;
+            grid-template-columns: repeat(20, 1fr);
+            gap: 1px;
+            background-color: #e9ecef;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .bpm-record {
+            padding: 8px 4px;
+            background-color: #ffffff;
+            font-family: 'Microsoft YaHei', '微软雅黑', sans-serif;
+            font-size: 13px;
+            color: #495057;
+            text-align: center;
+            min-height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-right: 1px solid #f8f9fa;
+            border-bottom: 1px solid #f8f9fa;
+            transition: background-color 0.2s ease;
+        }
+        
+        .bpm-record:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .bpm-record.empty {
+            background-color: #f8f9fa;
+            color: #adb5bd;
+            font-weight: normal;
+        }
+        
+        .bpm-record:nth-child(20n) {
+            border-right: none;
+        }
+        
+        .bpm-record:nth-last-child(-n+20) {
+            border-bottom: none;
+        }
+        
+        /* 手动输入心率数据样式（每行20个单元格） */
+        #manualBpmRecords {
+            display: grid;
+            grid-template-columns: repeat(20, 1fr);
+            gap: 1px;
+            background-color: #e9ecef;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        #manualBpmRecords .bpm-record {
+            padding: 8px 4px;
+            background-color: #ffffff;
+            font-family: 'Microsoft YaHei', '微软雅黑', sans-serif;
+            font-size: 13px;
+            color: #495057;
+            text-align: center;
+            min-height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-right: 1px solid #f8f9fa;
+            border-bottom: 1px solid #f8f9fa;
+            transition: background-color 0.2s ease;
+        }
+        
+        #manualBpmRecords .bpm-record:hover {
+            background-color: #f8f9fa;
+        }
+        
+        #manualBpmRecords .bpm-record.empty {
+            background-color: #f8f9fa;
+            color: #adb5bd;
+            font-weight: normal;
+        }
+        
+        #manualBpmRecords .bpm-record:nth-child(20n) {
+            border-right: none;
+        }
+        
+        #manualBpmRecords .bpm-record:nth-last-child(-n+20) {
+            border-bottom: none;
+        }
+        
+        .bpm-records-wrapper {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .current-bpm {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+            transition: background-color 0.3s ease;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        
+        .current-bpm.highlight {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <h1>生命体征监控系统</h1>
+        
+        <div class="control-panel" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;">
+            <div class="ssh-config">
+                 <h3>SSH连接配置</h3>
+                 <div class="input-group" style="padding: 0 10px;">
+                     <label for="hostname">服务器地址：</label>
+                     <input type="text" id="hostname" placeholder="例如：192.168.1.100">
+                 </div>
+                 <div class="input-group" style="padding: 0 10px;">
+                     <label for="username">用户名：</label>
+                     <input type="text" id="username" placeholder="SSH用户名">
+                 </div>
+                 <div class="input-group" style="padding: 0 10px;">
+                     <label for="password">密码：</label>
+                     <input type="password" id="password" placeholder="SSH密码">
+                 </div>
+                 <div style="padding: 0 10px; margin: 10px 0;">
+                     <label>
+                         <input type="checkbox" id="saveConfig"> 保存服务器配置
+                     </label>
+                 </div>
+                 <div class="button-group horizontal-buttons" style="padding: 0 10px;">
+                     <button id="testConnectionBtn" class="start-btn" style="height: 38px; padding: 8px 16px; font-size: 14px;">测试连接</button>
+                     <button id="clearConfigBtn" style="height: 38px; padding: 8px 16px; font-size: 14px; background-color: #6c757d; color: white;">清除保存配置</button>
+                 </div>
+                 <div id="connectionStatus" style="margin: 10px 10px 0;"></div>
+             </div>
+
+             <div class="monitor-config" style="background-color: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); min-height: 280px; display: flex; flex-direction: column; justify-content: space-between;">
+                  <div>
+                      <h3>监控配置</h3>
+                      <div class="input-group" style="padding: 0 10px; margin-bottom: 25px;">
+                          <label for="poseLogFile">动作识别日志文件路径：</label>
+                          <input type="text" id="poseLogFile" placeholder="输入动作识别日志文件的完整路径" style="width: 100%;">
+                      </div>
+                      <div class="button-group horizontal-buttons" style="padding: 0 10px; margin-bottom: 40px;">
+                          <button id="startPoseBtn" class="start-btn">开始动作识别</button>
+                          <button id="stopPoseBtn" class="stop-btn">停止动作识别</button>
+                          <button id="clearStatsBtn" style="background-color: #6c757d; color: white;">清空统计数据</button>
+                      </div>
+                      <div style="height: 15px;"></div>
+                      <div class="input-group" style="padding: 0 10px; margin-bottom: 25px;">
+                          <label for="bpmLogFile">心率检测日志文件路径：</label>
+                          <input type="text" id="bpmLogFile" placeholder="输入心率检测日志文件的完整路径" style="width: 100%;">
+                      </div>
+                  </div>
+                  <div class="button-group horizontal-buttons" style="padding: 0 10px; margin-top: auto; margin-bottom: 30px;">
+                      <button id="startBpmBtn" class="start-btn">开始心率检测</button>
+                      <button id="stopBpmBtn" class="stop-btn">停止心率检测</button>
+                      <button id="clearBpmBtn" style="background-color: #6c757d; color: white;">清空统计数据</button>
+                  </div>
+              </div>
+        </div>
+
+        <div class="data-display">
+            <div class="data-card">
+                <h3>动作识别统计</h3>
+                <div id="poseStats"></div>
+            </div>
+            <div class="data-card">
+                    <h3>心率检测统计</h3>
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid #ddd; border-radius: 6px;">
+                        <thead>
+                            <tr style="background-color: #f5f5f5;">
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left; font-weight: bold; border-top-left-radius: 6px;">指标</th>
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; border-top-right-radius: 6px;">数值</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding: 10px; border: 1px solid #ddd; text-align: left; border-bottom: 1px solid #ddd;">当前心率</td>
+                                <td style="padding: 10px; border: 1px solid #ddd; text-align: center; border-bottom: 1px solid #ddd;">
+                                     <span id="currentHeartRate">0</span> BPM
+                                 </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border: 1px solid #ddd; text-align: left; border-bottom: 1px solid #ddd;">平均心率</td>
+                                <td style="padding: 10px; border: 1px solid #ddd; text-align: center; border-bottom: 1px solid #ddd;">
+                                    <span id="avgHeartRate">0</span> BPM
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border: 1px solid #ddd; text-align: left; border-bottom: 1px solid #ddd;">中位数心率</td>
+                                <td style="padding: 10px; border: 1px solid #ddd; text-align: center; border-bottom: 1px solid #ddd;">
+                                    <span id="medianHeartRate">0</span> BPM
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border: 1px solid #ddd; text-align: left; border-bottom-left-radius: 6px;">检测次数</td>
+                                <td style="padding: 10px; border: 1px solid #ddd; text-align: center; border-bottom-right-radius: 6px;">
+                                    <span id="totalHeartCount">0</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div id="bpmStats"></div>
+                </div>
+        </div>
+
+        <!-- 独立的心率数据记录功能区 -->
+        <div class="data-card" style="grid-column: 1 / -1; margin-top: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0;">检测心率历史记录</h3>
+                <button onclick="copyBpmData()" style="padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">📋 复制所有数据</button>
+            </div>
+            <div class="bpm-records">
+                <div id="bpmRecords">
+                    <!-- 实时心率数据将在这里显示 -->
+                </div>
+            </div>
+            <div id="copyStatus" style="margin-top: 10px; color: #28a745; display: none;">已复制到剪贴板！</div>
+        </div>
+
+        <!-- 实时心率历史记录功能区 -->
+        <div class="data-card" style="grid-column: 1 / -1; margin-top: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0;">实际心率历史记录</h3>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="number" id="manualBpmInput" placeholder="输入当前实际心率" 
+                           style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; width: 120px;"
+                           min="1" max="300" step="1">
+                    <button onclick="addManualBpm()" style="padding: 8px 16px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">添加</button>
+                    <button onclick="deleteLastManualBpm()" style="padding: 8px 16px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">删除</button>
+                    <button onclick="clearManualBpmData()" style="padding: 8px 16px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">清空数据</button>
+                    <button onclick="copyManualBpmData()" style="padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">📋 复制所有数据</button>
+                </div>
+            </div>
+            <div class="bpm-records">
+                <div id="manualBpmRecords">
+                    <!-- 手动输入的心率数据将在这里显示 -->
+                </div>
+            </div>
+            <div id="manualCopyStatus" style="margin-top: 10px; color: #28a745; display: none;">已复制到剪贴板！</div>
+            <div id="deviationTips" style="margin-top: 10px; padding: 10px; background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 4px; display: none;"></div>
+            <div id="manualBpmStats" style="margin-top: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong>统计信息：</strong>
+                    <span id="manualTotalCount">0</span> 条记录 | 
+                    平均: <span id="manualAvgBpm">0</span> BPM | 
+                    中位数: <span id="manualMedianBpm">0</span> BPM
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; margin-left: auto;">
+                    <span>偏差均值: <span id="manualDeviationMean">-</span> BPM</span>
+                    <button onclick="calculateDeviationMean()" style="padding: 4px 8px; background-color: #17a2b8; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">计算偏差均值</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="bpmChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        let bpmChart = null;
+        let updateInterval = null;
+
+        // 初始化图表
+        function initChart() {
+            const ctx = document.getElementById('bpmChart').getContext('2d');
+            bpmChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: '检测心率 (BPM)',
+                            data: [],
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                            tension: 0.1,
+                            borderWidth: 2
+                        },
+                        {
+                            label: '实际心率 (BPM)',
+                            data: [],
+                            borderColor: 'rgb(255, 99, 132)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                            tension: 0.1,
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // 更新图表数据
+        function updateChart(bpmData) {
+            if (!bpmChart) return;
+            
+            // 确保只显示最近80个数据点
+            const displayData = bpmData.slice(-80);
+            const labels = displayData.map((item, index) => {
+                // 如果是时间戳，使用简化格式，否则使用序号
+                return item.timestamp || `${index + 1}`;
+            });
+            const values = displayData.map(item => item.value);
+
+            bpmChart.data.labels = labels;
+            bpmChart.data.datasets[0].data = values;
+            bpmChart.update();
+        }
+
+        // 更新图表数据（包含手动输入心率）
+        function updateChartWithManualData(bpmData, manualBpmData) {
+            if (!bpmChart) return;
+            
+            // 确保只显示最近80个数据点
+            const displayData = bpmData.slice(-80);
+            const labels = displayData.map((item, index) => {
+                return item.timestamp || `${index + 1}`;
+            });
+            
+            // 检测心率数据
+            const detectedValues = displayData.map(item => item.value);
+            
+            // 手动输入心率数据（与检测心率数据对齐）
+            const manualValues = [];
+            if (manualBpmData && manualBpmData.history) {
+                const manualHistory = manualBpmData.history.slice(-80);
+                for (let i = 0; i < displayData.length; i++) {
+                    if (i < manualHistory.length) {
+                        manualValues.push(manualHistory[i].value);
+                    } else {
+                        manualValues.push(null); // 填充null以保持数据对齐
+                    }
+                }
+            }
+
+            bpmChart.data.labels = labels;
+            bpmChart.data.datasets[0].data = detectedValues; // 检测心率
+            bpmChart.data.datasets[1].data = manualValues;   // 手动输入心率
+            bpmChart.update();
+        }
+
+        // 存储上一次的姿态数据，用于检测变化
+        let lastPoseData = {};
+        
+        // 添加闪烁动画的CSS样式
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes highlight {
+                0% { background-color: rgba(75, 192, 192, 0.4); }
+                50% { background-color: rgba(75, 192, 192, 0.7); }
+                100% { background-color: transparent; }
+            }
+            .highlight-row {
+                animation: highlight 1.5s ease-in-out;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // 更新统计数据显示
+        function updateStats() {
+            fetch('/data')
+                .then(response => response.json())
+                .then(data => {
+                    // 更新动作识别统计 - 使用表格显示，按指定顺序排列
+                    let poseHtml = '<table style="width: 100%; border-collapse: collapse; margin-top: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">';
+                    poseHtml += '<thead><tr style="background-color: #f5f5f5;"><th style="padding: 10px; border: 1px solid #ddd; text-align: left; border-top-left-radius: 6px;">动作类型</th><th style="padding: 10px; border: 1px solid #ddd; text-align: center; border-top-right-radius: 6px;">识别次数</th></tr></thead>';
+                    poseHtml += '<tbody>';
+                    
+                    const poseOrder = [
+                        'others_pose',
+                        'bending_over',
+                        'hand_on_chest',
+                        'convulsion',
+                        'fall_down',
+                        'rush_wall'
+                    ];
+                    
+                    poseOrder.forEach((key, index) => {
+                        const value = data.pose_counters[key] || 0;
+                        const displayName = {
+                            'others_pose': '其他动作',
+                            'bending_over': '弯腰',
+                            'hand_on_chest': '手捂胸口',
+                            'convulsion': '抽搐',
+                            'fall_down': '跌倒',
+                            'rush_wall': '撞墙'
+                        }[key];
+                        
+                        // 检查是否有变化，如果有变化则添加高亮类
+                        const hasChanged = lastPoseData[key] !== value;
+                        const highlightClass = hasChanged ? 'highlight-row' : '';
+                        
+                        const isLastRow = index === poseOrder.length - 1;
+                        const bottomLeftRadius = isLastRow ? 'border-bottom-left-radius: 6px;' : '';
+                        const bottomRightRadius = isLastRow ? 'border-bottom-right-radius: 6px;' : '';
+                        
+                        poseHtml += `<tr class="${highlightClass}" id="pose-row-${key}"><td style="padding: 10px; border: 1px solid #ddd; ${bottomLeftRadius}">${displayName}</td><td style="padding: 10px; border: 1px solid #ddd; text-align: center; ${bottomRightRadius}">${value}</td></tr>`;
+                    });
+                    
+                    poseHtml += '</tbody></table>';
+                    document.getElementById('poseStats').innerHTML = poseHtml;
+                    
+                    // 更新上一次的数据
+                    lastPoseData = {...data.pose_counters};
+
+                    // 更新心率统计 - 统计概览 + 实时数据记录
+                    const bpmStats = data.bpm_stats;
+                    let bpmHtml = '<div style="margin-bottom: 20px;">';
+
+                    // 更新顶部统计卡片中的当前心率
+                    const currentBpmElement = document.getElementById('currentHeartRate');
+                    const newBpm = bpmStats.history && bpmStats.history.length > 0 ? bpmStats.history[bpmStats.history.length - 1].value : 0;
+                    
+                    if (newBpm !== parseInt(currentBpmElement.textContent)) {
+                        currentBpmElement.textContent = newBpm;
+                        // 获取当前行元素
+                        const currentRow = currentBpmElement.closest('tr');
+                        if (currentRow) {
+                            currentRow.classList.add('highlight-row');
+                            setTimeout(() => {
+                                currentRow.classList.remove('highlight-row');
+                            }, 1500);
+                        }
+                    }
+            
+            // 计算中位数心率
+            let medianBpm = 0;
+            if (bpmStats.history && bpmStats.history.length > 0) {
+                const sortedBpm = bpmStats.history.map(item => item.value).sort((a, b) => a - b);
+                const mid = Math.floor(sortedBpm.length / 2);
+                medianBpm = sortedBpm.length % 2 === 0 
+                    ? (sortedBpm[mid - 1] + sortedBpm[mid]) / 2 
+                    : sortedBpm[mid];
+            }
+            
+            // 更新统计表格
+            document.getElementById('totalHeartCount').textContent = bpmStats.history ? bpmStats.history.length : 0;
+            document.getElementById('avgHeartRate').textContent = bpmStats.average !== undefined ? bpmStats.average.toFixed(1) : '0';
+            document.getElementById('medianHeartRate').textContent = medianBpm.toFixed(0);
+                    
+                    // 统计概览已移至表格中显示，这里不再重复显示
+                    
+                    // 实时数据记录 - 已移至独立区域，这里只显示统计概览
+                    bpmHtml += '</div>';
+                    
+                    document.getElementById('bpmStats').innerHTML = bpmHtml;
+
+                    // 更新独立的心率数据记录区域
+                    updateBpmRecords(bpmStats.history);
+                    
+                    // 更新手动输入的心率数据记录区域
+                    updateManualBpmRecords(data.manual_bpm_stats ? data.manual_bpm_stats.history : []);
+                    
+                    // 更新手动输入心率统计信息
+                    updateManualBpmStats(data.manual_bpm_stats);
+                    
+                    // 更新图表（同时显示检测心率和手动输入心率）
+                    if (bpmStats.history) {
+                        updateChartWithManualData(bpmStats.history, data.manual_bpm_stats);
+                    }
+                });
+        }
+
+        // 保存服务器配置到本地存储（包含日志文件路径）
+        function saveServerConfig(hostname, username, password, poseLogFile, bpmLogFile) {
+            const config = {
+                hostname: hostname,
+                username: username,
+                password: password,
+                poseLogFile: poseLogFile,
+                bpmLogFile: bpmLogFile,
+                timestamp: new Date().toISOString()
+            };
+            localStorage.setItem('ssh_server_config', JSON.stringify(config));
+        }
+
+        // 自动保存日志文件路径
+        function autoSaveLogPath(type) {
+            const saved = localStorage.getItem('ssh_server_config');
+            let config = saved ? JSON.parse(saved) : {};
+            
+            if (type === 'pose') {
+                config.poseLogFile = document.getElementById('poseLogFile').value;
+            } else if (type === 'bpm') {
+                config.bpmLogFile = document.getElementById('bpmLogFile').value;
+            }
+            
+            localStorage.setItem('ssh_server_config', JSON.stringify(config));
+        }
+
+        // 从本地存储加载服务器配置（包含日志文件路径）
+        function loadServerConfig() {
+            const savedConfig = localStorage.getItem('ssh_server_config');
+            if (savedConfig) {
+                try {
+                    const config = JSON.parse(savedConfig);
+                    document.getElementById('hostname').value = config.hostname || '';
+                    document.getElementById('username').value = config.username || '';
+                    document.getElementById('password').value = config.password || '';
+                    document.getElementById('poseLogFile').value = config.poseLogFile || '';
+                    document.getElementById('bpmLogFile').value = config.bpmLogFile || '';
+                    document.getElementById('saveConfig').checked = true;
+                    
+                    return true;
+                } catch (e) {
+                    console.error('加载保存的配置失败:', e);
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        // 清除保存的服务器配置
+        function clearServerConfig() {
+            localStorage.removeItem('ssh_server_config');
+            
+            document.getElementById('saveConfig').checked = false;
+            // 清空输入框
+            document.getElementById('hostname').value = '';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('poseLogFile').value = '';
+            document.getElementById('bpmLogFile').value = '';
+            
+            alert('已清除保存的所有配置');
+        }
+
+        // 测试SSH连接
+        function testConnection() {
+            const hostname = document.getElementById('hostname').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (!hostname || !username || !password) {
+                alert('请填写完整的SSH连接信息');
+                return;
+            }
+
+            // 如果勾选了保存配置，则保存
+            if (document.getElementById('saveConfig').checked) {
+                const poseLogFile = document.getElementById('poseLogFile').value;
+                const bpmLogFile = document.getElementById('bpmLogFile').value;
+                saveServerConfig(hostname, username, password, poseLogFile, bpmLogFile);
+            }
+
+            fetch('/test_connection', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ hostname, username, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const statusDiv = document.getElementById('connectionStatus');
+                if (data.status === 'success') {
+                    statusDiv.className = 'success';
+                    statusDiv.textContent = '连接成功！';
+                    // 5秒后自动消失
+                    setTimeout(() => {
+                        statusDiv.textContent = '';
+                        statusDiv.className = '';
+                    }, 5000);
+                } else {
+                    statusDiv.className = 'error';
+                    statusDiv.textContent = `连接失败：${data.message}`;
+                }
+            });
+        }
+
+        // 获取SSH配置
+        function getSSHConfig() {
+            const hostname = document.getElementById('hostname').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (!hostname || !username || !password) {
+                return null;
+            }
+
+            return { hostname, username, password };
+        }
+
+        // 开始监控
+        function startMonitoring(type) {
+            const logFile = document.getElementById(`${type}LogFile`).value;
+            if (!logFile) {
+                alert('请输入日志文件路径');
+                return;
+            }
+
+            const data = {
+                log_file: logFile,
+                ssh_config: getSSHConfig()
+            };
+
+            fetch(`/start/${type}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                document.getElementById(`start${type.charAt(0).toUpperCase() + type.slice(1)}Btn`).disabled = true;
+                // 停止按钮不再设置disabled，始终可点击
+                // document.getElementById(`stop${type.charAt(0).toUpperCase() + type.slice(1)}Btn`).disabled = false;
+            });
+        }
+
+        // 停止监控 - 只停止日志监控，不清空统计
+        function stopMonitoring(type) {
+            fetch(`/stop/${type}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById(`start${type.charAt(0).toUpperCase() + type.slice(1)}Btn`).disabled = false;
+                    // 停止按钮不再设置为disabled，始终可点击
+                    // document.getElementById(`stop${type.charAt(0).toUpperCase() + type.slice(1)}Btn`).disabled = true;
+                });
+        }
+        
+        // 清空统计数据
+        function clearStats() {
+            fetch('/clear_stats', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // 强制刷新统计数据
+                        updateStats();
+                    } else {
+                        alert('清空统计数据失败');
+                    }
+                });
+        }
+
+        // 清掏心率数据
+        function clearBpmStats() {
+            fetch('/clear_bpm_stats', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // 强制刷新统计数据
+                        updateStats();
+                    } else {
+                        alert('清掏心率数据失败');
+                    }
+                });
+        }
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', () => {
+            initChart();
+
+            // 页面加载时自动填充保存的配置
+            loadServerConfig();
+            
+            // 添加日志文件路径自动保存事件
+            document.getElementById('poseLogFile').addEventListener('input', () => autoSaveLogPath('pose'));
+            document.getElementById('bpmLogFile').addEventListener('input', () => autoSaveLogPath('bpm'));
+
+            // 绑定按钮事件
+            document.getElementById('testConnectionBtn').addEventListener('click', testConnection);
+            document.getElementById('startPoseBtn').addEventListener('click', () => startMonitoring('pose'));
+            document.getElementById('stopPoseBtn').addEventListener('click', () => stopMonitoring('pose'));
+            document.getElementById('startBpmBtn').addEventListener('click', () => startMonitoring('bpm'));
+            document.getElementById('stopBpmBtn').addEventListener('click', () => stopMonitoring('bpm'));
+            document.getElementById('clearStatsBtn').addEventListener('click', clearStats);
+            document.getElementById('clearBpmBtn').addEventListener('click', clearBpmStats);
+            document.getElementById('clearConfigBtn').addEventListener('click', clearServerConfig);
+
+            // 启动定时更新
+            updateInterval = setInterval(updateStats, 1000);
+
+            // 页面关闭时清理 - 合并所有清理逻辑到一个监听器
+            window.addEventListener('beforeunload', () => {
+                // 使用同步XMLHttpRequest确保停止所有监控
+                try {
+                    // 调用/stop_all端点完全停止所有监控
+                    const xhrStopAll = new XMLHttpRequest();
+                    xhrStopAll.open('GET', '/stop_all', false); // 同步请求
+                    xhrStopAll.send();
+                    
+                    // 清空统计数据，确保完全重置
+                    const xhrClearStats = new XMLHttpRequest();
+                    xhrClearStats.open('POST', '/clear_stats', false);
+                    xhrClearStats.setRequestHeader('Content-Type', 'application/json');
+                    xhrClearStats.send('{}');
+                    
+                } catch (e) {
+                    console.log('停止监控时出错:', e);
+                }
+                
+                // 清除定时器
+                if (updateInterval) {
+                    clearInterval(updateInterval);
+                }
+            });
+        });
+
+        // 复制心率数据到剪贴板
+        function updateBpmRecords(historyData) {
+            const recordsContainer = document.getElementById('bpmRecords');
+            let recordsHtml = '';
+            
+            if (historyData && historyData.length > 0) {
+                const recentData = historyData.slice(-80); // 显示最近80个数据
+                recentData.forEach((item, index) => {
+                    const bpmValue = typeof item === 'object' ? (item.bpm || item.value || item) : item;
+                    recordsHtml += `<div class="bpm-record">${bpmValue}</div>`;
+                });
+                // 填充空白格子以保持网格完整（80个格子，20×4）
+                const remainingCells = 80 - recentData.length;
+                for (let i = 0; i < remainingCells; i++) {
+                    recordsHtml += '<div class="bpm-record empty">-</div>';
+                }
+            } else {
+                // 显示空网格（80个格子）
+                for (let i = 0; i < 80; i++) {
+                    recordsHtml += '<div class="bpm-record empty">-</div>';
+                }
+            }
+            
+            recordsContainer.innerHTML = recordsHtml;
+        }
+
+        function copyBpmData() {
+            const records = document.querySelectorAll('#bpmRecords .bpm-record');
+            const data = Array.from(records).map(record => record.textContent.trim()).filter(text => text !== '-').join('\n');
+            if (!data) {
+                alert('暂无数据可复制');
+                return;
+            }
+            navigator.clipboard.writeText(data).then(() => {
+                const statusEl = document.getElementById('copyStatus');
+                statusEl.style.display = 'inline';
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 2000);
+            }).catch(err => {
+                console.error('复制失败:', err);
+                alert('复制失败，请手动选择数据');
+            });
+        }
+
+        // 更新手动输入的心率数据记录（每行20个单元格，共4行）
+        function updateManualBpmRecords(historyData) {
+            const recordsContainer = document.getElementById('manualBpmRecords');
+            let recordsHtml = '';
+            
+            if (historyData && historyData.length > 0) {
+                const recentData = historyData.slice(-80); // 显示最近80个数据（20×4）
+                recentData.forEach((item, index) => {
+                    const bpmValue = typeof item === 'object' ? (item.bpm || item.value || item) : item;
+                    recordsHtml += `<div class="bpm-record">${bpmValue}</div>`;
+                });
+                // 填充空白格子以保持网格完整（80个格子，20×4）
+                const remainingCells = 80 - recentData.length;
+                for (let i = 0; i < remainingCells; i++) {
+                    recordsHtml += '<div class="bpm-record empty">-</div>';
+                }
+            } else {
+                // 显示空网格（80个格子，20×4）
+                for (let i = 0; i < 80; i++) {
+                    recordsHtml += '<div class="bpm-record empty">-</div>';
+                }
+            }
+            
+            recordsContainer.innerHTML = recordsHtml;
+        }
+
+        // 更新手动输入心率统计信息
+        function updateManualBpmStats(stats) {
+            if (stats && stats.history && stats.history.length > 0) {
+                document.getElementById('manualTotalCount').textContent = stats.history.length;
+                document.getElementById('manualAvgBpm').textContent = stats.average ? stats.average.toFixed(1) : '0';
+                document.getElementById('manualMedianBpm').textContent = stats.median ? stats.median.toFixed(0) : '0';
+            } else {
+                document.getElementById('manualTotalCount').textContent = '0';
+                document.getElementById('manualAvgBpm').textContent = '0';
+                document.getElementById('manualMedianBpm').textContent = '0';
+            }
+        }
+
+        // 添加手动输入的心率数据
+        function addManualBpm() {
+            const input = document.getElementById('manualBpmInput');
+            const bpmValue = input.value.trim();
+            
+            if (!bpmValue) {
+                alert('请输入心率值');
+                return;
+            }
+
+            fetch('/add_manual_bpm', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ bpm: bpmValue })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                // 清空输入框
+                input.value = '';
+                // 刷新统计数据
+                updateStats();
+            })
+            .catch(error => {
+                console.error('添加心率数据失败:', error);
+                alert('添加失败，请检查网络连接');
+            });
+        }
+
+        // 清空手动输入的心率数据
+        function clearManualBpmData() {
+            if (confirm('确定要清空所有手动输入的心率数据吗？')) {
+                fetch('/clear_manual_bpm', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // 刷新统计数据
+                        updateStats();
+                    } else {
+                        alert('清空数据失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('清空数据失败:', error);
+                    alert('清空失败，请检查网络连接');
+                });
+            }
+        }
+
+        // 复制手动输入的心率数据
+        function copyManualBpmData() {
+            const records = document.querySelectorAll('#manualBpmRecords .bpm-record');
+            const data = Array.from(records).map(record => record.textContent.trim()).filter(text => text !== '-').join('\n');
+            if (!data) {
+                alert('暂无数据可复制');
+                return;
+            }
+            navigator.clipboard.writeText(data).then(() => {
+                const statusEl = document.getElementById('manualCopyStatus');
+                statusEl.style.display = 'inline';
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 2000);
+            }).catch(err => {
+                console.error('复制失败:', err);
+                alert('复制失败，请手动选择数据');
+            });
+        }
+
+        // 删除最后一个手动输入的心率数据
+        function deleteLastManualBpm() {
+            fetch('/delete_last_manual_bpm', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                // 刷新统计数据
+                updateStats();
+            })
+            .catch(error => {
+                console.error('删除心率数据失败:', error);
+                alert('删除失败，请检查网络连接');
+            });
+        }
+
+        // 计算心率偏差均值
+        function calculateDeviationMean() {
+            fetch('/calculate_deviation_mean')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        showDeviationTips(data.error, 'error');
+                        return;
+                    }
+                    
+                    // 更新偏差均值显示
+                    document.getElementById('manualDeviationMean').textContent = data.deviation_mean;
+                    
+                    // 显示计算信息（Tips样式）
+                    showDeviationTips(`计算完成！使用数据对: ${data.data_pairs_used}对，偏差均值: ${data.deviation_mean} BPM`, 'success');
+                })
+                .catch(error => {
+                    console.error('计算偏差均值失败:', error);
+                    showDeviationTips('计算失败，请检查网络连接', 'error');
+                });
+        }
+
+        // 显示偏差计算Tips
+        function showDeviationTips(message, type) {
+            const tipsEl = document.getElementById('deviationTips');
+            tipsEl.textContent = message;
+            tipsEl.style.display = 'block';
+            
+            // 设置样式基于类型
+            if (type === 'success') {
+                tipsEl.style.backgroundColor = '#d4edda';
+                tipsEl.style.color = '#155724';
+                tipsEl.style.borderColor = '#c3e6cb';
+            } else if (type === 'error') {
+                tipsEl.style.backgroundColor = '#f8d7da';
+                tipsEl.style.color = '#721c24';
+                tipsEl.style.borderColor = '#f5c6cb';
+            }
+            
+            // 3秒后自动关闭
+            setTimeout(() => {
+                tipsEl.style.display = 'none';
+            }, 3000);
+        }
+
+        // 为输入框添加回车键支持
+        document.getElementById('manualBpmInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addManualBpm();
+            }
+        });
+    </script>
+</body>
+</html>
