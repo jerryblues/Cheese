@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Emoji 练口语</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Confetti Animation -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'bounce-slow': 'bounce 3s infinite',
+                        'pulse-slow': 'pulse 3s infinite',
+                        'wiggle': 'wiggle 1s ease-in-out infinite',
+                        'zoom-in': 'zoomIn 0.5s ease-out forwards'
+                    },
+                    keyframes: {
+                        wiggle: {
+                            '0%, 100%': { transform: 'rotate(-3deg)' },
+                            '50%': { transform: 'rotate(3deg)' },
+                        },
+                        zoomIn: {
+                            '0%': { transform: 'scale(0.5)', opacity: '0.5' },
+                            '70%': { transform: 'scale(1.1)' },
+                            '100%': { transform: 'scale(1)', opacity: '1' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 自定义样式补充 */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .float-animation {
+            animation: float 3s ease-in-out infinite;
+        }
+        .gradient-border:focus {
+            border-image: linear-gradient(to right, #8a56ff, #61dafb) 1;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 min-h-screen">
+    <!-- 背景装饰 -->
+    <div class="fixed top-0 left-0 w-64 h-64 bg-yellow-100 rounded-full -translate-x-1/2 -translate-y-1/2 opacity-70"></div>
+    <div class="fixed bottom-0 right-0 w-96 h-96 bg-blue-100 rounded-full translate-x-1/3 translate-y-1/3 opacity-70"></div>
+
+    <!-- 主容器 -->
+    <div class="container mx-auto px-4 py-8 flex items-center justify-center min-h-screen relative z-10">
+        <div class="bg-white rounded-2xl shadow-lg p-6 md:p-8 w-full max-w-md transition-all duration-300 hover:shadow-xl relative overflow-hidden">
+            <!-- 关闭按钮 -->
+            <button id="closeButton" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+
+            <!-- 标题 -->
+            <h1 class="text-3xl font-bold text-center text-indigo-500 mb-6" style="font-family: 'PingFang SC', sans-serif;">Emoji 练口语</h1>
+
+            <!-- 说明文字 -->
+            <div class="text-gray-600 text-sm mb-6 space-y-2">
+                <p class="flex items-start">
+                    <i class="fas fa-info-circle text-blue-400 mr-2 mt-1"></i>
+                    <span style="font-family: 'PingFang SC', sans-serif;">点击下方「开始语音识别」按钮，说出食物、水果、动物、交通工具或表情的 Emoji 英文名称，看看你能答对几个！</span>
+                </p>
+                <p class="flex items-start">
+                    <i class="fas fa-info-circle text-blue-400 mr-2 mt-1"></i>
+                    <span style="font-family: 'PingFang SC', sans-serif;">可以先试试以下例子：</span>
+                </p>
+            </div>
+
+            <!-- 示例 Emoji -->
+            <div id="exampleEmojis" class="flex justify-center items-center p-10 bg-gray-50 rounded-xl mb-12 shadow-md gap-4">
+                <!-- 示例将由JavaScript动态生成 -->
+            </div>
+
+            <!-- 语音识别按钮 -->
+            <button id="speechButton" class="w-3/5 mx-auto py-4 bg-indigo-500 text-white rounded-full font-bold flex items-center justify-center space-x-2 transition-all duration-300 hover:bg-indigo-600 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-opacity-50 shadow-md">
+                <i class="fas fa-microphone"></i>
+                <span style="font-family: 'PingFang SC', sans-serif;">开始语音识别</span>
+            </button>
+
+            <!-- 识别结果 -->
+            <div id="result" class="mt-6 p-4 bg-gray-50 rounded-xl text-gray-600 min-h-[60px] text-center shadow-md">
+                <span style="font-family: 'PingFang SC', sans-serif;">准备好了吗？点击上方按钮开始识别...</span>
+            </div>
+
+            <!-- Emoji 显示区域 -->
+            <div id="emojiDisplay" class="hidden text-8xl text-center my-6 transform transition-all duration-500 shadow-md rounded-xl p-4"></div>
+
+            <!-- 积分区域 -->
+            <div class="flex items-center justify-between mt-6 p-4 bg-gray-50 rounded-xl shadow-md">
+                <div class="flex items-center space-x-2 px-4 py-2 rounded-lg">
+                    <i class="fas fa-star text-yellow-400"></i>
+                    <span class="font-bold text-indigo-500" style="font-family: 'PingFang SC', sans-serif;">本轮积分: <span id="scoreValue" class="font-bold">0</span></span>
+                </div>
+                <button id="resetScore" class="px-4 py-2 bg-red-400 text-white rounded-full font-bold transition-all hover:bg-red-500 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-300 shadow-sm">
+                    <i class="fas fa-redo-alt mr-1"></i><span style="font-family: 'PingFang SC', sans-serif;">重置积分</span>
+                </button>
+            </div>
+
+            <!-- 浏览器支持信息 -->
+            <div class="text-center text-gray-400 text-xs mt-6 flex items-center justify-center">
+                <i class="fas fa-info-circle mr-1"></i>
+                <span style="font-family: 'PingFang SC', sans-serif;">支持的浏览器：Chrome、Edge、Safari</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Emoji 映射表 - 包含中英文关键词和对应的Emoji
+        const emojiMap = {
+            // 食物类
+            "蛋糕": "🍰",
+            "cake": "🍰",
+            "甜甜圈": "🍩",
+            "donut": "🍩",
+            "披萨": "🍕",
+            "pizza": "🍕",
+            "汉堡": "🍔",
+            "hamburger": "🍔",
+            "薯条": "🍟",
+            "fries": "🍟",
+            "热狗": "🌭",
+            "hotdog": "🌭",
+            "三明治": "🥪",
+            "sandwich": "🥪",
+            "冰淇淋": "🍦",
+            "ice cream": "🍦",
+            "巧克力": "🍫",
+            "chocolate": "🍫",
+            "爆米花": "🍿",
+            "popcorn": "🍿",
+            // 水果类
+            "苹果": "🍎",
+            "apple": "🍎",
+            "香蕉": "🍌",
+            "banana": "🍌",
+            "草莓": "🍓",
+            "strawberry": "🍓",
+            "西瓜": "🍉",
+            "watermelon": "🍉",
+            "葡萄": "🍇",
+            "grape": "🍇",
+            "菠萝": "🍍",
+            "pineapple": "🍍",
+            // 动物类
+            "猫": "🐱",
+            "cat": "🐱",
+            "狗": "🐶",
+            "dog": "🐶",
+            "老虎": "🐯",
+            "tiger": "🐯",
+            "熊猫": "🐼",
+            "panda": "🐼",
+            "猴子": "🐵",
+            "monkey": "🐵",
+            "兔子": "🐰",
+            "rabbit": "🐰",
+            // 交通工具
+            "汽车": "🚗",
+            "car": "🚗",
+            "公交车": "🚌",
+            "bus": "🚌",
+            "火车": "🚂",
+            "train": "🚂",
+            "飞机": "✈️",
+            "airplane": "✈️",
+            "自行车": "🚲",
+            "bicycle": "🚲",
+            // 表情
+            "笑脸": "😊",
+            "smile": "😊",
+            "哭泣": "😢",
+            "cry": "😢",
+            "生气": "😠",
+            "angry": "😠",
+            "惊讶": "😲",
+            "surprised": "😲"
+        };
+
+        // DOM 元素
+        const speechButton = document.getElementById('speechButton');
+        const resultDiv = document.getElementById('result');
+        const emojiDisplay = document.getElementById('emojiDisplay');
+        const exampleEmojisDiv = document.getElementById('exampleEmojis');
+        const closeButton = document.getElementById('closeButton');
+        
+        // 全局变量
+        let silenceTimer, recognitionTimeout;
+        let isSoundStarted = false;
+        let isRecognitionInitialized = false; // 跟踪语音识别是否已初始化
+        let recognition;
+        let score = 0; // 积分系统
+        let recognizedWords = new Set(); // 存储已识别的词汇
+
+        // 从emojiMap中随机选择三个Emoji作为例子
+        function showRandomEmojiExamples() {
+            // 清空现有的例子
+            exampleEmojisDiv.innerHTML = '';
+            
+            // 获取所有emojiMap的键值对并转换为数组
+            const emojiEntries = Object.entries(emojiMap);
+            // 过滤掉重复的Emoji（中英文对应同一个Emoji）
+            const uniqueEmojis = [];
+            const usedEmojis = new Set();
+            
+            for (const [keyword, emoji] of emojiEntries) {
+                if (!usedEmojis.has(emoji)) {
+                    uniqueEmojis.push({keyword, emoji});
+                    usedEmojis.add(emoji);
+                }
+            }
+            
+            // 随机打乱数组
+            const shuffled = [...uniqueEmojis].sort(() => 0.5 - Math.random());
+            
+            // 取前三个作为例子
+            const examples = shuffled.slice(0, 3);
+            
+            // 创建并添加到DOM
+            examples.forEach(({keyword, emoji}) => {
+                const exampleDiv = document.createElement('div');
+                exampleDiv.className = 'flex flex-col items-center float-animation mx-2';
+                
+                const emojiSpan = document.createElement('span');
+                emojiSpan.className = 'text-5xl mb-3 shadow-lg p-3 rounded-full bg-gradient-to-r from-pink-100 to-yellow-100 hover:from-yellow-100 hover:to-pink-100 transition-all duration-300 transform hover:scale-110';
+                emojiSpan.textContent = emoji;
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'text-xs text-teal-600 bg-white px-3 py-1 rounded-full shadow-md border border-teal-100 font-bold';
+                
+                // 确保显示英文名称
+                // 如果当前关键词是中文，则查找对应的英文
+                if (/[\u4e00-\u9fa5]/.test(keyword)) {
+                    // 查找相同emoji的英文名称
+                    for (const [key, value] of Object.entries(emojiMap)) {
+                        if (value === emoji && !/[\u4e00-\u9fa5]/.test(key)) {
+                            nameSpan.textContent = key;
+                            break;
+                        }
+                    }
+                } else {
+                    // 如果已经是英文，直接使用
+                    nameSpan.textContent = keyword;
+                }
+                
+                exampleDiv.appendChild(emojiSpan);
+                exampleDiv.appendChild(nameSpan);
+                exampleEmojisDiv.appendChild(exampleDiv);
+            });
+        }
+
+        function initRecognition() {
+            // 如果语音识别已初始化，只需重置事件监听器
+            if (isRecognitionInitialized && recognition) {
+                recognition.stop();
+                clearTimeout(silenceTimer);
+                clearTimeout(recognitionTimeout);
+                return;
+            }
+            
+            // 清理残留的识别实例
+            if (recognition) {
+                recognition.stop();
+                recognition.onresult = null;
+                recognition.onerror = null;
+                recognition.onsoundstart = null;
+                recognition.onsoundend = null;
+                recognition.onend = null;
+            }
+            
+            clearTimeout(silenceTimer);
+            clearTimeout(recognitionTimeout);
+
+            // 创建新实例
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'zh-CN'; // 设置为中文识别
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+            recognition.continuous = false;
+
+            // 移动设备优化
+            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                recognition.interimResults = true; // 在移动设备上启用中间结果
+                recognition.continuous = true; // 在移动设备上启用连续识别
+            }
+
+            // 事件监听
+            recognition.onsoundstart = () => {
+                isSoundStarted = true;
+                clearTimeout(silenceTimer);
+                resultDiv.innerHTML = "<span style=\"font-family: 'PingFang SC', sans-serif;\">正在聆听...</span>";
+                resultDiv.className = "mt-6 p-4 bg-blue-50 rounded-xl text-teal-600 min-h-[60px] text-center border-2 border-blue-100";
+            };
+
+            recognition.onsoundend = () => {
+                if (isSoundStarted) {
+                    silenceTimer = setTimeout(() => {
+                        recognition.stop();
+                        resultDiv.innerHTML = "<span style=\"font-family: 'PingFang SC', sans-serif;\">15秒内未检测到声音，识别已停止。</span>";
+                        resultDiv.className = "mt-6 p-4 bg-blue-50 rounded-xl text-teal-600 min-h-[60px] text-center border-2 border-blue-100";
+                    }, 15000);
+                }
+            };
+
+            recognition.onresult = (event) => {
+                clearAllTimers();
+                const speechResult = event.results[0][0].transcript.toLowerCase();
+                
+                isRecognitionInitialized = true; // 标记语音识别已初始化
+                
+                // 查找匹配的关键词
+                let foundMatch = false;
+                let matchedKeyword = '';
+                let matchedEmoji = '';
+                
+                // 遍历emojiMap查找匹配项
+                for (const [keyword, emoji] of Object.entries(emojiMap)) {
+                    if (speechResult.includes(keyword.toLowerCase())) {
+                        foundMatch = true;
+                        matchedKeyword = keyword;
+                        matchedEmoji = emoji;
+                        break;
+                    }
+                }
+                
+                if (foundMatch) {
+                    emojiDisplay.textContent = matchedEmoji;
+                    emojiDisplay.classList.remove('hidden');
+                    emojiDisplay.classList.add('animate-zoom-in');
+                    
+                    // 检查是否已经识别过
+                    if (recognizedWords.has(matchedKeyword.toLowerCase())) {
+                        resultDiv.innerHTML = `<span style="font-family: 'PingFang SC', sans-serif;">${matchedKeyword} 已经识别过了哦</span>`;
+                        resultDiv.className = "mt-6 p-4 bg-yellow-100 rounded-xl text-orange-600 min-h-[60px] text-center border-2 border-yellow-200";
+                    } else {
+                        recognizedWords.add(matchedKeyword.toLowerCase());
+                        resultDiv.innerHTML = `<span style="font-family: 'PingFang SC', sans-serif;">恭喜！正确识别出 Emoji: ${matchedKeyword}</span>`;
+                        resultDiv.className = "mt-6 p-4 bg-teal-50 rounded-xl text-teal-600 min-h-[60px] text-center border-2 border-teal-100";
+                        
+                        // 增加积分
+                        score++;
+                        document.getElementById('scoreValue').textContent = score;
+                        
+                        // 播放彩带动画
+                        confetti({
+                            particleCount: 100,
+                            spread: 70,
+                            origin: { y: 0.6 }
+                        });
+                    }
+                } else {
+                    emojiDisplay.classList.add('hidden');
+                    resultDiv.innerHTML = `<span style="font-family: 'PingFang SC', sans-serif;">未识别出 Emoji: ${speechResult}</span>`;
+                    resultDiv.className = "mt-6 p-4 bg-pink-50 rounded-xl text-pink-600 min-h-[60px] text-center border-2 border-pink-100";
+                    
+                    // 显示鼓励信息
+                    setTimeout(() => {
+                        resultDiv.innerHTML += `<br><span style="font-family: 'PingFang SC', sans-serif;">再试一次，你可以的！</span>`;
+                    }, 500);
+                }
+                resetButton();
+            };
+
+            recognition.onerror = (event) => {
+                clearAllTimers();
+                resultDiv.innerHTML = "<span style=\"font-family: 'PingFang SC', sans-serif;\">未识别到语音，请再试一次</span>";
+                resultDiv.className = "mt-6 p-4 bg-pink-50 rounded-xl text-pink-600 min-h-[60px] text-center border-2 border-pink-100";
+                resetButton();
+            };
+
+            recognition.onend = () => {
+                clearAllTimers();
+                if (speechButton.textContent === '正在聆听...') {
+                    resetButton();
+                }
+            };
+        }
+
+        // 添加关闭按钮功能
+        closeButton.addEventListener('click', function() {
+            if (confirm('确定要关闭此应用程序吗？')) {
+                window.close();
+            }
+        });
+
+        function clearAllTimers() {
+            clearTimeout(silenceTimer);
+            clearTimeout(recognitionTimeout);
+            isSoundStarted = false;
+        }
+
+        function resetButton() {
+            speechButton.disabled = false;
+            speechButton.innerHTML = '<i class="fas fa-microphone"></i><span>开始语音识别</span>';
+            speechButton.classList.remove('bg-gray-400');
+            speechButton.classList.add('bg-indigo-500', 'hover:bg-indigo-600');
+        }
+
+        // 页面加载时显示随机Emoji例子并预初始化语音识别
+        document.addEventListener('DOMContentLoaded', function() {
+            showRandomEmojiExamples();
+            
+            // 检查浏览器兼容性并预初始化语音识别
+            if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+                // 预初始化语音识别对象，这样麦克风权限只会在首次加载时请求一次
+                initRecognition();
+                isRecognitionInitialized = true;
+            }
+            
+            // 添加重置积分按钮的事件监听器
+            document.getElementById('resetScore').addEventListener('click', function() {
+                score = 0;
+                document.getElementById('scoreValue').textContent = score;
+                recognizedWords.clear(); // 清空已识别的词汇
+                resultDiv.innerHTML = "<span style=\"font-family: 'PingFang SC', sans-serif;\">积分已重置，请继续游戏！</span>";
+                resultDiv.className = "mt-6 p-4 bg-blue-50 rounded-xl text-teal-600 min-h-[60px] text-center border-2 border-blue-100";
+                emojiDisplay.classList.add('hidden');
+            });
+        });
+
+        // 添加触摸事件支持
+        function handleSpeechButtonEvent(event) {
+            event.preventDefault(); // 防止双击缩放
+
+            // 检查是否为触摸事件结束
+            if (event.type === 'touchend' && event.cancelable) {
+                return;
+            }
+
+            // 检查浏览器兼容性
+            if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+                resultDiv.innerHTML = '<span style="font-family: \'PingFang SC\', sans-serif;">抱歉，您的浏览器不支持语音识别。请尝试使用Chrome、Edge或Safari。</span>';
+                resultDiv.className = "mt-6 p-4 bg-pink-50 rounded-xl text-pink-600 min-h-[60px] text-center border-2 border-pink-100";
+                return;
+            }
+
+            // 更新随机Emoji例子
+            showRandomEmojiExamples();
+
+            speechButton.disabled = true;
+            speechButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>正在聆听...</span>';
+            speechButton.classList.remove('bg-indigo-500', 'hover:bg-indigo-600');
+            speechButton.classList.add('bg-gray-400');
+            emojiDisplay.classList.add('hidden');
+            resultDiv.innerHTML = '<span style="font-family: \'PingFang SC\', sans-serif;">请说话...</span>';
+            resultDiv.className = "mt-6 p-4 bg-gray-50 rounded-xl text-gray-600 min-h-[60px] text-center";
+
+            // 如果已初始化，只需启动识别
+            if (isRecognitionInitialized) {
+                recognition.start();
+            } else {
+                // 首次初始化
+                initRecognition();
+                recognition.start();
+                isRecognitionInitialized = true;
+            }
+
+            // 设置超时检测
+            recognitionTimeout = setTimeout(() => {
+                if (!isSoundStarted) {
+                    recognition.stop();
+                    resultDiv.innerHTML = '<span style="font-family: \'PingFang SC\', sans-serif;">未检测到声音，请重试。</span>';
+                    resultDiv.className = "mt-6 p-4 bg-pink-50 rounded-xl text-pink-600 min-h-[60px] text-center border-2 border-pink-100";
+                    resetButton();
+                }
+            }, 10000);
+        }
+
+        // 同时支持点击和触摸事件
+        speechButton.addEventListener('click', handleSpeechButtonEvent);
+        speechButton.addEventListener('touchstart', handleSpeechButtonEvent);
+        speechButton.addEventListener('touchend', function(event) {
+            event.preventDefault();
+        });
+    </script>
+</body>
+</html>
