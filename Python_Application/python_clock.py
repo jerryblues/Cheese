@@ -74,21 +74,13 @@ class DesktopClock:
         self.y = event.y
         
     def on_drag(self, event):
-        # 获取当前窗口的尺寸
-        window_width = self.root.winfo_width()
-        window_height = self.root.winfo_height()
-        
-        # 获取屏幕尺寸
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-        
         # 计算新的位置
         new_x = self.root.winfo_x() + event.x - self.x
         new_y = self.root.winfo_y() + event.y - self.y
         
-        # 确保窗口不会超出屏幕边界
-        new_x = max(0, min(new_x, screen_width - window_width))
-        new_y = max(0, min(new_y, screen_height - window_height))
+        # 移除主显示器的限制，允许在主副显示器之间自由拖动
+        # 注意：Tkinter的winfo_screenwidth/height只返回主显示器尺寸，
+        # 对于多显示器环境，我们不做严格的边界限制，让系统处理窗口定位
         
         # 应用新位置
         self.root.geometry(f"+{new_x}+{new_y}")

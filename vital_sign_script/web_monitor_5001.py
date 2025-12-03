@@ -584,11 +584,6 @@ def cleanup():
 
 if __name__ == '__main__':
     try:
-        app.run(debug=True, host='0.0.0.0', port=5000)
+        app.run(debug=True, host='0.0.0.0', port=5001)
     finally:
-        cleanup
-
-# issues：
-# 输入的内容是二进制文件（而非纯文本日志），就无法正常解析和实时跟踪
-# Error reading remote file: 'utf-8' codec can't decode byte 0xd1 in position 7896: invalid continuation byte
-# 放到服务器上后，不兼容 edege 浏览器
+        cleanup()
