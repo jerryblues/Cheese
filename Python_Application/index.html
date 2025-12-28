@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>基于 Python 的交互式立方体拼接教学工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
+    <script type="module" src="https://pyscript.net/latest/pyscript.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+          "three/examples/jsm/controls/OrbitControls.js": "https://unpkg.com/three@0.165.0/examples/jsm/controls/OrbitControls.js"
+        }
+      }
+    </script>
+  </head>
+  <body class="min-h-screen bg-gray-900 text-gray-100">
+    <div class="max-w-7xl mx-auto p-4 space-y-4">
+      <header class="flex items-center justify-between">
+        <h1 class="text-xl font-semibold">交互式立方体拼接教学工具</h1>
+        <span class="text-sm text-gray-400">Python (PyScript) + Three.js + Tailwind</span>
+      </header>
+
+      <section class="bg-gray-800/60 rounded-lg p-4 shadow">
+        <div class="flex flex-wrap gap-3 items-end">
+          <label for="cubeCount" class="block">
+            <span class="block text-sm mb-1">输入立方体数量 n</span>
+            <input
+              id="cubeCount"
+              type="number"
+              min="1"
+              value="8"
+              aria-label="输入立方体数量"
+              tabindex="0"
+              class="px-3 py-2 rounded border border-gray-700 bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </label>
+          <button
+            id="btnGenerate"
+            aria-label="生成立方体"
+            tabindex="0"
+            class="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-500 focus:ring-2 focus:ring-indigo-400"
+          >
+            生成
+          </button>
+          <button
+            id="btnArrange"
+            aria-label="自动排列为近似立方体"
+            tabindex="0"
+            class="px-4 py-2 rounded bg-teal-600 hover:bg-teal-500 focus:ring-2 focus:ring-teal-400"
+          >
+            自动排列
+          </button>
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-300">拖拽模式</span>
+            <div role="group" aria-label="拖拽模式选择" class="inline-flex rounded overflow-hidden border border-gray-700">
+              <button id="modeXZ" class="px-3 py-2 bg-gray-700 text-sm" aria-label="XZ 平面" tabindex="0">XZ</button>
+              <button id="modeXY" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-sm" aria-label="XY 平面" tabindex="0">XY</button>
+              <button id="modeYZ" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-sm" aria-label="YZ 平面" tabindex="0">YZ</button>
+            </div>
+          </div>
+          <span id="status" class="text-sm text-gray-400">准备就绪</span>
+        </div>
+      </section>
+
+      <section class="relative bg-gray-800/60 rounded-lg shadow overflow-hidden">
+        <div id="canvas-container" class="w-full h-[640px]" aria-label="三维画布" tabindex="0"></div>
+      </section>
+    </div>
+
+    <py-config>
+      packages = []
+    </py-config>
+    <py-script src="Python_AI_cube.py"></py-script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+
+      const container = document.getElementById("canvas-container");
+      const statusEl = document.getElementById("status");
+      const btnGenerate = document.getElementById("btnGenerate");
+      const btnArrange = document.getElementById("btnArrange");
+      const inputN = document.getElementById("cubeCount");
+      const btnModeXZ = document.getElementById("modeXZ");
+      const btnModeXY = document.getElementById("modeXY");
+      const btnModeYZ = document.getElementById("modeYZ");
+
+      let scene, camera, renderer, controls, raycaster;
+      let dragging = false;
+      let selected = null;
+      let dragPlane = new THREE.Plane();
+      const pointer = new THREE.Vector2();
+      const offset = new THREE.Vector3();
+      const intersectPoint = new THREE.Vector3();
+      const UNIT_SIZE = 1;
+
+      let cubes = [];
+      let cubeEdges = [];
+      let blockOutline = null;
+      let ground;
+      let dragMode = "XZ";
+
+      const setStatus = (msg) => {
+        statusEl.textContent = msg;
+      };
+
+      const setDragMode = (mode) => {
+        dragMode = mode;
+        btnModeXZ.className = "px-3 py-2 text-sm " + (mode === "XZ" ? "bg-gray-700" : "bg-gray-800 hover:bg-gray-700");
+        btnModeXY.className = "px-3 py-2 text-sm " + (mode === "XY" ? "bg-gray-700" : "bg-gray-800 hover:bg-gray-700");
+        btnModeYZ.className = "px-3 py-2 text-sm " + (mode === "YZ" ? "bg-gray-700" : "bg-gray-800 hover:bg-gray-700");
+        setStatus(`拖拽模式：${mode}`);
+      };
+
+      const getPlaneNormalForMode = (mode) => {
+        if (mode === "XZ") return new THREE.Vector3(0, 1, 0);
+        if (mode === "XY") return new THREE.Vector3(0, 0, 1);
+        return new THREE.Vector3(1, 0, 0);
+      };
+
+      const initScene = () => {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0f172a); // slate-900
+
+        const aspect = container.clientWidth / container.clientHeight;
+        camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
+        camera.position.set(6, 6, 8);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.shadowMap.enabled = true;
+        container.appendChild(renderer.domElement);
+
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.1;
+        controls.target.set(0, 0.5, 0);
+
+        // Lights
+        const ambi = new THREE.AmbientLight(0xffffff, 0.35);
+        scene.add(ambi);
+        const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+        dir.position.set(5, 8, 4);
+        dir.castShadow = true;
+        dir.shadow.mapSize.set(1024, 1024);
+        scene.add(dir);
+
+        // Ground to receive shadows
+        const groundGeo = new THREE.PlaneGeometry(100, 100);
+        const groundMat = new THREE.MeshStandardMaterial({
+          color: 0x111827, // gray-900
+          roughness: 1,
+          metalness: 0,
+        });
+        ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = 0;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Grid
+        const grid = new THREE.GridHelper(40, 40, 0x374151, 0x1f2937); // gray-700/800 lines
+        scene.add(grid);
+
+        // Raycaster
+        raycaster = new THREE.Raycaster();
+
+        window.addEventListener("resize", handleResize);
+        renderer.domElement.addEventListener("pointerdown", handlePointerDown);
+        renderer.domElement.addEventListener("pointermove", handlePointerMove);
+        renderer.domElement.addEventListener("pointerup", handlePointerUp);
+        renderer.domElement.addEventListener("pointerleave", handlePointerUp);
+        renderer.domElement.addEventListener("wheel", handleWheel, { passive: false });
+
+        animate();
+      };
+
+      const handleResize = () => {
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      };
+
+      const getIntersects = (event) => {
+        const rect = renderer.domElement.getBoundingClientRect();
+        pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(pointer, camera);
+        return raycaster.intersectObjects(cubes, false);
+      };
+
+      const handlePointerDown = (event) => {
+        const intersects = getIntersects(event);
+        if (!intersects.length) return;
+        selected = intersects[0].object;
+        dragging = true;
+        controls.enabled = false;
+        const n = getPlaneNormalForMode(dragMode);
+        const d = -n.dot(selected.position);
+        dragPlane.set(n, d);
+        raycaster.ray.intersectPlane(dragPlane, intersectPoint);
+        offset.copy(intersectPoint).sub(selected.position);
+      };
+
+      const handlePointerMove = (event) => {
+        if (!dragging || !selected) return;
+        raycaster.setFromCamera(updatePointer(event), camera);
+        if (raycaster.ray.intersectPlane(dragPlane, intersectPoint)) {
+          const desired = intersectPoint.sub(offset);
+          if (dragMode === "XZ") {
+            selected.position.x = desired.x;
+            selected.position.z = desired.z;
+          } else if (dragMode === "XY") {
+            selected.position.x = desired.x;
+            selected.position.y = desired.y;
+          } else {
+            selected.position.y = desired.y;
+            selected.position.z = desired.z;
+          }
+        }
+      };
+
+      const updatePointer = (event) => {
+        const rect = renderer.domElement.getBoundingClientRect();
+        pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        return pointer;
+      };
+
+      const handlePointerUp = () => {
+        if (!dragging || !selected) {
+          dragging = false;
+          controls.enabled = true;
+          return;
+        }
+        dragging = false;
+        controls.enabled = true;
+        if (window.pySnap) {
+          const arr = window.pySnap(selected.position.x, selected.position.y, selected.position.z, UNIT_SIZE);
+          const snapped = arr?.toJs ? arr.toJs() : arr;
+          if (Array.isArray(snapped) && snapped.length === 3) {
+            selected.position.set(snapped[0], snapped[1], snapped[2]);
+          }
+        } else {
+          // fallback: local snap
+          selected.position.x = Math.round(selected.position.x / UNIT_SIZE) * UNIT_SIZE;
+          selected.position.y = Math.round(selected.position.y / UNIT_SIZE) * UNIT_SIZE;
+          selected.position.z = Math.round(selected.position.z / UNIT_SIZE) * UNIT_SIZE;
+        }
+        updateBlockOutline();
+        selected = null;
+      };
+
+      const handleWheel = (event) => {
+        if (!selected) return;
+        event.preventDefault();
+        const step = UNIT_SIZE * 0.1;
+        const dir = Math.sign(event.deltaY);
+        selected.position.y += -dir * step;
+      };
+
+      const createCube = (idx) => {
+        const geo = new THREE.BoxGeometry(UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
+        const mat = new THREE.MeshStandardMaterial({
+          color: new THREE.Color().setHSL((idx % 12) / 12, 0.6, 0.5),
+          roughness: 0.6,
+          metalness: 0.1,
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.castShadow = true;
+        mesh.position.set(0, UNIT_SIZE / 2, 0);
+        scene.add(mesh);
+        cubes.push(mesh);
+
+        const edges = new THREE.EdgesGeometry(geo);
+        const line = new THREE.LineSegments(
+          edges,
+          new THREE.LineBasicMaterial({ color: 0x111111 })
+        );
+        line.position.copy(mesh.position);
+        // bind line to follow mesh
+        line.userData.follow = mesh;
+        scene.add(line);
+        cubeEdges.push(line);
+      };
+
+      const clearCubes = () => {
+        cubeEdges.forEach((line) => scene.remove(line));
+        cubes.forEach((c) => scene.remove(c));
+        cubeEdges = [];
+        cubes = [];
+        if (blockOutline) {
+          scene.remove(blockOutline);
+          blockOutline = null;
+        }
+      };
+
+      const jitterAroundCenter = (index, total) => {
+        const r = Math.max(1, Math.ceil(Math.sqrt(total)));
+        const angle = (index / r) * Math.PI * 2;
+        const radius = 0.2 * r;
+        return new THREE.Vector3(
+          Math.cos(angle) * radius,
+          UNIT_SIZE / 2,
+          Math.sin(angle) * radius
+        );
+      };
+
+      const generateCubes = (n) => {
+        clearCubes();
+        for (let i = 0; i < n; i++) {
+          createCube(i);
+          cubes[i].position.copy(jitterAroundCenter(i, n));
+          cubeEdges[i].position.copy(cubes[i].position);
+        }
+        setStatus(`已生成 ${n} 个立方体`);
+        updateBlockOutline();
+      };
+
+      const autoArrange = () => {
+        if (!window.pyAutoArrange) return;
+        const res = window.pyAutoArrange(cubes.length, UNIT_SIZE);
+        const dims = res?.dims?.toJs ? res.dims.toJs() : res?.dims;
+        const positions = res?.positions?.toJs ? res.positions.toJs() : res?.positions;
+        if (!positions || !Array.isArray(positions)) return;
+        positions.forEach((p, i) => {
+          if (!cubes[i]) return;
+          cubes[i].position.set(p[0], p[1], p[2]);
+          cubeEdges[i].position.copy(cubes[i].position);
+        });
+        updateBlockOutline();
+        if (dims && Array.isArray(dims)) {
+          setStatus(`自动排列：${dims[0]} × ${dims[1]} × ${dims[2]}`);
+        } else {
+          setStatus("自动排列完成");
+        }
+      };
+
+      const updateBlockOutline = () => {
+        cubeEdges.forEach((line, i) => {
+          const follow = line.userData.follow;
+          if (follow) line.position.copy(follow.position);
+        });
+        const positions = cubes.map((c) => [c.position.x, c.position.y, c.position.z]);
+        let dims = null;
+        if (window.pyIsTightBlock) {
+          const d = window.pyIsTightBlock(positions, UNIT_SIZE);
+          dims = d?.toJs ? d.toJs() : d;
+        }
+        if (dims && Array.isArray(dims)) {
+          const pts = cubes.map((c) => c.position.clone());
+          const min = new THREE.Vector3(+Infinity, +Infinity, +Infinity);
+          const max = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
+          pts.forEach((p) => {
+            min.min(p);
+            max.max(p);
+          });
+          // convert centers to outer bounds by ± UNIT_SIZE/2
+          min.addScalar(-UNIT_SIZE / 2);
+          max.addScalar(UNIT_SIZE / 2);
+          // Create or update outline
+          if (!blockOutline) {
+            const boxGeo = new THREE.BoxGeometry(
+              max.x - min.x,
+              max.y - min.y,
+              max.z - min.z
+            );
+            const edges = new THREE.EdgesGeometry(boxGeo);
+            blockOutline = new THREE.LineSegments(
+              edges,
+              new THREE.LineBasicMaterial({ color: 0x10b981 }) // emerald-500
+            );
+            blockOutline.position.set(
+              (min.x + max.x) / 2,
+              (min.y + max.y) / 2,
+              (min.z + max.z) / 2
+            );
+            scene.add(blockOutline);
+          } else {
+            // replace geometry and position
+            blockOutline.geometry.dispose();
+            const boxGeo = new THREE.BoxGeometry(
+              max.x - min.x,
+              max.y - min.y,
+              max.z - min.z
+            );
+            const edges = new THREE.EdgesGeometry(boxGeo);
+            blockOutline.geometry = edges;
+            blockOutline.position.set(
+              (min.x + max.x) / 2,
+              (min.y + max.y) / 2,
+              (min.z + max.z) / 2
+            );
+          }
+        } else {
+          if (blockOutline) {
+            scene.remove(blockOutline);
+            blockOutline = null;
+          }
+        }
+      };
+
+      const animate = () => {
+        requestAnimationFrame(animate);
+        // keep edge lines bound to cubes
+        cubeEdges.forEach((line) => {
+          const follow = line.userData.follow;
+          if (follow) line.position.copy(follow.position);
+        });
+        controls.update();
+        renderer.render(scene, camera);
+      };
+
+      // UI events
+      const handleGenerate = () => {
+        const n = parseInt(inputN.value, 10);
+        if (!Number.isInteger(n) || n <= 0) {
+          setStatus("请输入大于 0 的整数");
+          return;
+        }
+        generateCubes(n);
+      };
+      btnGenerate.addEventListener("click", handleGenerate);
+      btnGenerate.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") handleGenerate();
+      });
+      btnArrange.addEventListener("click", autoArrange);
+      btnArrange.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") autoArrange();
+      });
+      btnModeXZ.addEventListener("click", () => setDragMode("XZ"));
+      btnModeXY.addEventListener("click", () => setDragMode("XY"));
+      btnModeYZ.addEventListener("click", () => setDragMode("YZ"));
+      btnModeXZ.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") setDragMode("XZ");
+      });
+      btnModeXY.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") setDragMode("XY");
+      });
+      btnModeYZ.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") setDragMode("YZ");
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "1") setDragMode("XZ");
+        if (e.key === "2") setDragMode("XY");
+        if (e.key === "3") setDragMode("YZ");
+        if (selected) {
+          if (e.key === "ArrowUp") {
+            selected.position.y += UNIT_SIZE;
+          } else if (e.key === "ArrowDown") {
+            selected.position.y -= UNIT_SIZE;
+          }
+        }
+      });
+
+      // Expose for Python usage if needed
+      window.generateCubes = generateCubes;
+      window.autoArrange = autoArrange;
+      window.UNIT_SIZE_JS = UNIT_SIZE;
+
+      // Start
+      initScene();
+      generateCubes(parseInt(inputN.value, 10));
+      setDragMode("XZ");
+      setStatus("提示：拖拽移动，滚轮/↑↓调整高度，松开后吸附");
+    </script>
+  </body>
+</html>
