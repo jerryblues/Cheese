@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RTSP 流列表</title>
+    <style>
+        :root {
+            --bg: #f7f8fb;
+            --card: #ffffff;
+            --text: #1f2933;
+            --muted: #6b7280;
+            --primary: #2563eb;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+            background: var(--bg);
+            padding: 16px;
+            color: var(--text);
+        }
+        .shell {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        header h1 {
+            font-size: 22px;
+            font-weight: 700;
+        }
+        .meta {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            flex-wrap: wrap;
+            font-size: 13px;
+            color: var(--muted);
+        }
+        .badge {
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: #e0e7ff;
+            color: #1d4ed8;
+            font-weight: 700;
+        }
+        button {
+            cursor: pointer;
+            border: none;
+        }
+        #refreshBtn {
+            padding: 9px 16px;
+            background: var(--primary);
+            color: #fff;
+            border-radius: 8px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: transform .1s ease, opacity .2s ease;
+        }
+        #refreshBtn:active { transform: translateY(1px); }
+        #refreshBtn[disabled] { opacity: .6; cursor: not-allowed; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 10px;
+        }
+        .row {
+            background: var(--card);
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 12px 14px;
+            display: grid;
+            grid-template-columns: 52px 1fr auto;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04);
+        }
+        .idx {
+            width: 42px;
+            height: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background: #eef2ff;
+            color: #3730a3;
+            font-weight: 700;
+        }
+        .url {
+            font-family: "JetBrains Mono", "Courier New", monospace;
+            font-size: 13px;
+            line-height: 1.45;
+            word-break: break-all;
+            color: #0f172a;
+        }
+        .copy {
+            padding: 7px 12px;
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #374151;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .copy.copied {
+            background: #dcfce7;
+            border-color: #22c55e;
+            color: #15803d;
+        }
+        .empty {
+            text-align: center;
+            color: var(--muted);
+            padding: 60px 20px;
+        }
+        .foot {
+            margin-top: 10px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+        @media (max-width: 640px) {
+            .row { grid-template-columns: 40px 1fr; }
+            .copy { grid-column: 1 / -1; justify-self: start; }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <header>
+            <div>
+                <h1>RTSP 流列表</h1>
+                <div class="meta">
+                    <span>状态：<span id="statusText">就绪</span></span>
+                    <span>数量：<span class="badge" id="streamCount">0</span></span>
+                    <span>更新时间：<span id="lastUpdate">--</span></span>
+                </div>
+            </div>
+            <button id="refreshBtn" onclick="refreshStreams()">
+                <span id="refreshIcon">🔄</span>刷新
+            </button>
+        </header>
+
+        <div id="streamContainer" class="grid">
+            <div class="empty">正在加载...</div>
+        </div>
+        <div class="foot" id="lastUpdateTime"></div>
+    </div>
+
+    <script>
+        async function refreshStreams() {
+            const btn = document.getElementById('refreshBtn');
+            const status = document.getElementById('statusText');
+            const icon = document.getElementById('refreshIcon');
+            btn.disabled = true;
+            icon.textContent = '⏳';
+            status.textContent = '获取中...';
+
+            try {
+                const res = await fetch('/api/streams');
+                const data = await res.json();
+                if (!data.success) throw new Error('获取失败');
+                renderList(data);
+                status.textContent = '已更新';
+                setTimeout(() => status.textContent = '就绪', 1500);
+            } catch (e) {
+                console.error(e);
+                status.textContent = '失败';
+                document.getElementById('streamContainer').innerHTML =
+                    '<div class="empty">获取失败，请重试</div>';
+            } finally {
+                btn.disabled = false;
+                icon.textContent = '🔄';
+            }
+        }
+
+        function renderList(data) {
+            const container = document.getElementById('streamContainer');
+            const countEl = document.getElementById('streamCount');
+            const lastUpdate = document.getElementById('lastUpdate');
+            const lastUpdateTime = document.getElementById('lastUpdateTime');
+
+            countEl.textContent = data.count ?? 0;
+            lastUpdate.textContent = data.timestamp ?? '--';
+            lastUpdateTime.textContent = `最后更新时间：${data.timestamp ?? '--'}`;
+
+            const streams = data.streams || [];
+            if (streams.length === 0) {
+                container.innerHTML = '<div class="empty">暂无 RTSP 流</div>';
+                return;
+            }
+
+            const rows = streams.map((item, idx) => {
+                const url = item.url || item;
+                const safeUrl = escapeHtml(url);
+                // 使用 data 属性存储原始 URL，需要转义 HTML 属性值中的特殊字符
+                const safeAttrUrl = url.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                return `
+                    <div class="row">
+                        <div class="idx">${idx + 1}</div>
+                        <div class="url">${safeUrl}</div>
+                        <button class="copy" onclick="copyUrl(this)" data-url="${safeAttrUrl}">📋 复制</button>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = rows;
+        }
+
+        async function copyUrl(btn) {
+            const url = btn.getAttribute('data-url');
+            if (!url) return;
+            
+            try {
+                // 使用 Clipboard API
+                await navigator.clipboard.writeText(url);
+            } catch (err) {
+                // 降级方案：使用传统方法
+                try {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = url;
+                    textArea.style.position = 'fixed';
+                    textArea.style.opacity = '0';
+                    textArea.style.left = '-999999px';
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                } catch (e) {
+                    console.error('复制失败:', e);
+                    alert('复制失败，请手动复制');
+                }
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        document.addEventListener('DOMContentLoaded', refreshStreams);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
+                e.preventDefault();
+                refreshStreams();
+            }
+        });
+    </script>
+</body>
+</html>
+
