@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>基于 Python 的交互式立方体拼接教学工具</title>
+    <title>Easy Cube</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
     <script type="module" src="https://pyscript.net/latest/pyscript.js"></script>
@@ -19,8 +19,7 @@
   <body class="min-h-screen bg-gray-900 text-gray-100">
     <div class="max-w-7xl mx-auto p-4 space-y-4">
       <header class="flex items-center justify-between">
-        <h1 class="text-xl font-semibold">交互式立方体拼接教学工具</h1>
-        <span class="text-sm text-gray-400">Python (PyScript) + Three.js + Tailwind</span>
+        <h1 class="text-xl font-semibold">Easy Cube</h1>
       </header>
 
       <section class="bg-gray-800/60 rounded-lg p-4 shadow">
@@ -47,20 +46,12 @@
           </button>
           <button
             id="btnArrange"
-            aria-label="自动排列为近似立方体"
+            aria-label="还原到默认位置"
             tabindex="0"
             class="px-4 py-2 rounded bg-teal-600 hover:bg-teal-500 focus:ring-2 focus:ring-teal-400"
           >
-            自动排列
+            还原位置
           </button>
-          <div class="flex items-center gap-2">
-            <span class="text-sm text-gray-300">拖拽模式</span>
-            <div role="group" aria-label="拖拽模式选择" class="inline-flex rounded overflow-hidden border border-gray-700">
-              <button id="modeXZ" class="px-3 py-2 bg-gray-700 text-sm" aria-label="XZ 平面" tabindex="0">XZ</button>
-              <button id="modeXY" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-sm" aria-label="XY 平面" tabindex="0">XY</button>
-              <button id="modeYZ" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-sm" aria-label="YZ 平面" tabindex="0">YZ</button>
-            </div>
-          </div>
           <span id="status" class="text-sm text-gray-400">准备就绪</span>
         </div>
       </section>
@@ -71,9 +62,8 @@
     </div>
 
     <py-config>
-      packages = []
     </py-config>
-    <py-script src="Python_AI_cube.py"></py-script>
+    <py-script src="AI_cube.py"></py-script>
 
     <script type="module">
       import * as THREE from "three";
@@ -84,9 +74,6 @@
       const btnGenerate = document.getElementById("btnGenerate");
       const btnArrange = document.getElementById("btnArrange");
       const inputN = document.getElementById("cubeCount");
-      const btnModeXZ = document.getElementById("modeXZ");
-      const btnModeXY = document.getElementById("modeXY");
-      const btnModeYZ = document.getElementById("modeYZ");
 
       let scene, camera, renderer, controls, raycaster;
       let dragging = false;
@@ -101,24 +88,10 @@
       let cubeEdges = [];
       let blockOutline = null;
       let ground;
-      let dragMode = "XZ";
+      let defaultPositions = []; // 保存默认位置
 
       const setStatus = (msg) => {
         statusEl.textContent = msg;
-      };
-
-      const setDragMode = (mode) => {
-        dragMode = mode;
-        btnModeXZ.className = "px-3 py-2 text-sm " + (mode === "XZ" ? "bg-gray-700" : "bg-gray-800 hover:bg-gray-700");
-        btnModeXY.className = "px-3 py-2 text-sm " + (mode === "XY" ? "bg-gray-700" : "bg-gray-800 hover:bg-gray-700");
-        btnModeYZ.className = "px-3 py-2 text-sm " + (mode === "YZ" ? "bg-gray-700" : "bg-gray-800 hover:bg-gray-700");
-        setStatus(`拖拽模式：${mode}`);
-      };
-
-      const getPlaneNormalForMode = (mode) => {
-        if (mode === "XZ") return new THREE.Vector3(0, 1, 0);
-        if (mode === "XY") return new THREE.Vector3(0, 0, 1);
-        return new THREE.Vector3(1, 0, 0);
       };
 
       const initScene = () => {
@@ -201,9 +174,11 @@
         selected = intersects[0].object;
         dragging = true;
         controls.enabled = false;
-        const n = getPlaneNormalForMode(dragMode);
-        const d = -n.dot(selected.position);
-        dragPlane.set(n, d);
+        // 使用相机朝向作为拖拽平面法向量，支持三轴移动
+        const cameraDirection = new THREE.Vector3();
+        camera.getWorldDirection(cameraDirection);
+        const d = -cameraDirection.dot(selected.position);
+        dragPlane.set(cameraDirection, d);
         raycaster.ray.intersectPlane(dragPlane, intersectPoint);
         offset.copy(intersectPoint).sub(selected.position);
       };
@@ -213,16 +188,42 @@
         raycaster.setFromCamera(updatePointer(event), camera);
         if (raycaster.ray.intersectPlane(dragPlane, intersectPoint)) {
           const desired = intersectPoint.sub(offset);
-          if (dragMode === "XZ") {
-            selected.position.x = desired.x;
-            selected.position.z = desired.z;
-          } else if (dragMode === "XY") {
-            selected.position.x = desired.x;
-            selected.position.y = desired.y;
-          } else {
-            selected.position.y = desired.y;
-            selected.position.z = desired.z;
-          }
+          // 支持同时在X、Y、Z轴移动，每次移动间隔固定为UNIT_SIZE
+          let snapX = Math.round(desired.x / UNIT_SIZE) * UNIT_SIZE;
+          let snapY = Math.round(desired.y / UNIT_SIZE) * UNIT_SIZE;
+          let snapZ = Math.round(desired.z / UNIT_SIZE) * UNIT_SIZE;
+          
+          // 添加吸附对齐效果：当靠近其他立方体时自动对齐
+          const snapThreshold = UNIT_SIZE * 0.3; // 吸附阈值
+          cubes.forEach((cube) => {
+            if (cube === selected) return;
+            
+            // X轴吸附
+            const dx = Math.abs(cube.position.x - desired.x);
+            if (dx < snapThreshold) {
+              snapX = cube.position.x;
+            }
+            
+            // Y轴吸附（允许堆叠）
+            const dy = Math.abs(cube.position.y - desired.y);
+            if (dy < snapThreshold) {
+              snapY = cube.position.y;
+            } else if (Math.abs(cube.position.y + UNIT_SIZE - desired.y) < snapThreshold) {
+              // 堆叠在上方
+              snapY = cube.position.y + UNIT_SIZE;
+            } else if (Math.abs(cube.position.y - UNIT_SIZE - desired.y) < snapThreshold) {
+              // 堆叠在下方
+              snapY = cube.position.y - UNIT_SIZE;
+            }
+            
+            // Z轴吸附
+            const dz = Math.abs(cube.position.z - desired.z);
+            if (dz < snapThreshold) {
+              snapZ = cube.position.z;
+            }
+          });
+          
+          selected.position.set(snapX, snapY, snapZ);
         }
       };
 
@@ -260,15 +261,51 @@
       const handleWheel = (event) => {
         if (!selected) return;
         event.preventDefault();
-        const step = UNIT_SIZE * 0.1;
+        // 滚轮移动时也固定为UNIT_SIZE，并添加吸附效果
         const dir = Math.sign(event.deltaY);
-        selected.position.y += -dir * step;
+        const newY = selected.position.y - dir * UNIT_SIZE;
+        
+        // 检查是否有其他立方体在目标位置
+        let finalY = newY;
+        const snapThreshold = UNIT_SIZE * 0.3;
+        cubes.forEach((cube) => {
+          if (cube === selected) return;
+          if (Math.abs(cube.position.y - newY) < snapThreshold && 
+              Math.abs(cube.position.x - selected.position.x) < UNIT_SIZE * 0.5 &&
+              Math.abs(cube.position.z - selected.position.z) < UNIT_SIZE * 0.5) {
+            // 如果目标位置有其他立方体，堆叠在上方或下方
+            if (dir > 0) {
+              finalY = cube.position.y - UNIT_SIZE;
+            } else {
+              finalY = cube.position.y + UNIT_SIZE;
+            }
+          }
+        });
+        
+        selected.position.y = Math.round(finalY / UNIT_SIZE) * UNIT_SIZE;
+        // 确保Y坐标至少为UNIT_SIZE/2（底部在平面上）
+        if (selected.position.y < UNIT_SIZE / 2) {
+          selected.position.y = UNIT_SIZE / 2;
+        }
       };
 
       const createCube = (idx) => {
         const geo = new THREE.BoxGeometry(UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
+        
+        // 更鲜亮但柔和的配色方案（高饱和度但降低亮度）
+        const brightSoftColors = [
+          0xFF9AA2, 0xFFB3BA, 0xFFC8C8, 0xFFD6A5, 0xFFE5B4,
+          0xFFF4C4, 0xE8F5C8, 0xC8E6C9, 0xB8E6D1, 0xB8E0E6,
+          0xC8E0F0, 0xD6E3F0, 0xE3D6F0, 0xF0D6E3, 0xF5D6E8,
+          0xFFB8D1, 0xFFC8E0, 0xFFD8E8, 0xFFE8F0, 0xFFF0F8,
+          0xF0E8FF, 0xE0D8FF, 0xD0C8FF, 0xC8D0FF, 0xD0E0FF,
+          0xD8F0FF, 0xE0F8FF, 0xE8FFF8, 0xF0FFF0, 0xF8FFF8
+        ];
+        
+        const colorHex = brightSoftColors[idx % brightSoftColors.length];
+        
         const mat = new THREE.MeshStandardMaterial({
-          color: new THREE.Color().setHSL((idx % 12) / 12, 0.6, 0.5),
+          color: new THREE.Color(colorHex),
           roughness: 0.6,
           metalness: 0.1,
         });
@@ -302,44 +339,62 @@
       };
 
       const jitterAroundCenter = (index, total) => {
-        const r = Math.max(1, Math.ceil(Math.sqrt(total)));
-        const angle = (index / r) * Math.PI * 2;
-        const radius = 0.2 * r;
-        return new THREE.Vector3(
-          Math.cos(angle) * radius,
-          UNIT_SIZE / 2,
-          Math.sin(angle) * radius
-        );
+        // 优化初始化位置，使用3D网格布局，避免挤在一起
+        // 确保所有立方体生成在平面上方，且位置对齐到网格（UNIT_SIZE的倍数）
+        const spacing = 2; // 间距为2个单位，确保立方体之间有足够空间
+        
+        // 计算合适的网格尺寸，确保有足够的位置容纳所有立方体
+        let gridSize = Math.ceil(Math.cbrt(total));
+        // 确保总位置数 >= 立方体数量
+        while (gridSize * gridSize * gridSize < total) {
+          gridSize++;
+        }
+        
+        // 计算当前立方体在3D网格中的位置
+        const layer = Math.floor(index / (gridSize * gridSize));
+        const layerIndex = index % (gridSize * gridSize);
+        const row = Math.floor(layerIndex / gridSize);
+        const col = layerIndex % gridSize;
+        
+        // 计算中心偏移，使立方体围绕原点分布
+        const centerOffset = (gridSize - 1) * spacing / 2;
+        // 确保所有坐标都是UNIT_SIZE的倍数，以便堆叠
+        const x = Math.round((col - centerOffset) * spacing / UNIT_SIZE) * UNIT_SIZE;
+        // Y坐标：确保至少为UNIT_SIZE/2（底部在平面上），且对齐到网格
+        const y = Math.max(UNIT_SIZE / 2, Math.round((layer * spacing + UNIT_SIZE / 2) / UNIT_SIZE) * UNIT_SIZE);
+        const z = Math.round((row - centerOffset) * spacing / UNIT_SIZE) * UNIT_SIZE;
+        
+        return new THREE.Vector3(x, y, z);
       };
 
       const generateCubes = (n) => {
         clearCubes();
+        defaultPositions = []; // 清空默认位置
         for (let i = 0; i < n; i++) {
           createCube(i);
-          cubes[i].position.copy(jitterAroundCenter(i, n));
+          const defaultPos = jitterAroundCenter(i, n);
+          cubes[i].position.copy(defaultPos);
           cubeEdges[i].position.copy(cubes[i].position);
+          // 保存默认位置
+          defaultPositions.push(defaultPos.clone());
         }
         setStatus(`已生成 ${n} 个立方体`);
         updateBlockOutline();
       };
 
       const autoArrange = () => {
-        if (!window.pyAutoArrange) return;
-        const res = window.pyAutoArrange(cubes.length, UNIT_SIZE);
-        const dims = res?.dims?.toJs ? res.dims.toJs() : res?.dims;
-        const positions = res?.positions?.toJs ? res.positions.toJs() : res?.positions;
-        if (!positions || !Array.isArray(positions)) return;
-        positions.forEach((p, i) => {
+        // 还原到默认位置
+        if (defaultPositions.length === 0 || defaultPositions.length !== cubes.length) {
+          setStatus("没有可还原的默认位置");
+          return;
+        }
+        defaultPositions.forEach((pos, i) => {
           if (!cubes[i]) return;
-          cubes[i].position.set(p[0], p[1], p[2]);
+          cubes[i].position.copy(pos);
           cubeEdges[i].position.copy(cubes[i].position);
         });
         updateBlockOutline();
-        if (dims && Array.isArray(dims)) {
-          setStatus(`自动排列：${dims[0]} × ${dims[1]} × ${dims[2]}`);
-        } else {
-          setStatus("自动排列完成");
-        }
+        setStatus("已还原到默认位置");
       };
 
       const updateBlockOutline = () => {
@@ -434,22 +489,7 @@
       btnArrange.addEventListener("keydown", (e) => {
         if (e.key === "Enter" || e.key === " ") autoArrange();
       });
-      btnModeXZ.addEventListener("click", () => setDragMode("XZ"));
-      btnModeXY.addEventListener("click", () => setDragMode("XY"));
-      btnModeYZ.addEventListener("click", () => setDragMode("YZ"));
-      btnModeXZ.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") setDragMode("XZ");
-      });
-      btnModeXY.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") setDragMode("XY");
-      });
-      btnModeYZ.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") setDragMode("YZ");
-      });
       document.addEventListener("keydown", (e) => {
-        if (e.key === "1") setDragMode("XZ");
-        if (e.key === "2") setDragMode("XY");
-        if (e.key === "3") setDragMode("YZ");
         if (selected) {
           if (e.key === "ArrowUp") {
             selected.position.y += UNIT_SIZE;
@@ -467,8 +507,7 @@
       // Start
       initScene();
       generateCubes(parseInt(inputN.value, 10));
-      setDragMode("XZ");
-      setStatus("提示：拖拽移动，滚轮/↑↓调整高度，松开后吸附");
+      setStatus("提示：拖拽可在X、Y、Z轴同时移动（每次1单位），松开后自动吸附");
     </script>
   </body>
 </html>
