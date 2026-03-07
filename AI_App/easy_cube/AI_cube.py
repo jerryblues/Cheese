@@ -12,17 +12,20 @@ except Exception:
     def to_js(x):
         return x
 
-UNIT_SIZE = 1.0
+WIDTH = 1.0
+HEIGHT = 2.0
+DEPTH = 2.0
 
 
-def snap_to_grid(x: float, y: float, z: float, unit_size: float = UNIT_SIZE):
-    sx = round(x / unit_size) * unit_size
-    sy = round(y / unit_size) * unit_size
-    sz = round(z / unit_size) * unit_size
+def snap_to_grid(x: float, y: float, z: float, w: float = WIDTH, h: float = HEIGHT, d: float = DEPTH):
+    sx = round(x / w) * w
+    sy = round(y / h) * h
+    sz = round(z / d) * d
     return to_js([sx, sy, sz])
 
 
 def compute_box_dims(n: int):
+    # 此处逻辑保持不变，用于计算长方体排列的行列层数
     if n <= 0:
         return (0, 0, 0)
     best = (1, 1, n)
@@ -42,23 +45,23 @@ def compute_box_dims(n: int):
     return best
 
 
-def compute_positions(n: int, dims, unit_size: float = UNIT_SIZE):
-    x, y, z = dims
+def compute_positions(n: int, dims, w: float = WIDTH, h: float = HEIGHT, d: float = DEPTH):
+    nx, ny, nz = dims
     positions = []
-    if n <= 0 or x * y * z <= 0:
+    if n <= 0 or nx * ny * nz <= 0:
         return to_js(positions)
-    cx = (x - 1) / 2.0
-    cy = (y - 1) / 2.0
-    cz = (z - 1) / 2.0
+    cx = (nx - 1) / 2.0
+    cy = (ny - 1) / 2.0
+    cz = (nz - 1) / 2.0
     count = 0
-    for yi in range(y):
-        for zi in range(z):
-            for xi in range(x):
+    for yi in range(ny):
+        for zi in range(nz):
+            for xi in range(nx):
                 if count >= n:
                     break
-                px = (xi - cx) * unit_size
-                py = (yi - cy) * unit_size
-                pz = (zi - cz) * unit_size
+                px = (xi - cx) * w
+                py = (yi - cy) * h
+                pz = (zi - cz) * d
                 positions.append([px, py, pz])
                 count += 1
         if count >= n:
@@ -66,7 +69,7 @@ def compute_positions(n: int, dims, unit_size: float = UNIT_SIZE):
     return to_js(positions)
 
 
-def is_tight_block(positions, unit_size: float = UNIT_SIZE):
+def is_tight_block(positions, w: float = WIDTH, h: float = HEIGHT, d: float = DEPTH):
     try:
         py_positions = positions.to_py()
     except Exception:
@@ -75,9 +78,9 @@ def is_tight_block(positions, unit_size: float = UNIT_SIZE):
         return None
     norm = []
     for p in py_positions:
-        nx = round(p[0] / unit_size)
-        ny = round(p[1] / unit_size)
-        nz = round(p[2] / unit_size)
+        nx = round(p[0] / w)
+        ny = round(p[1] / h)
+        nz = round(p[2] / d)
         norm.append((nx, ny, nz))
     xs = [a for a, _, _ in norm]
     ys = [b for _, b, _ in norm]
@@ -102,13 +105,15 @@ def is_tight_block(positions, unit_size: float = UNIT_SIZE):
     return None
 
 
-def auto_arrange(n: int, unit_size: float = UNIT_SIZE):
+def auto_arrange(n: int, w: float = WIDTH, h: float = HEIGHT, d: float = DEPTH):
     dims = compute_box_dims(n)
-    positions = compute_positions(n, dims, unit_size)
+    positions = compute_positions(n, dims, w, h, d)
     return {"dims": to_js(list(dims)), "positions": positions}
 
 
 window.pySnap = create_proxy(snap_to_grid)
 window.pyAutoArrange = create_proxy(auto_arrange)
 window.pyIsTightBlock = create_proxy(is_tight_block)
-window.UNIT_SIZE = UNIT_SIZE
+window.WIDTH = WIDTH
+window.HEIGHT = HEIGHT
+window.DEPTH = DEPTH

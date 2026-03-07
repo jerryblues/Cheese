@@ -82,7 +82,9 @@
       const pointer = new THREE.Vector2();
       const offset = new THREE.Vector3();
       const intersectPoint = new THREE.Vector3();
-      const UNIT_SIZE = 1;
+      const WIDTH = 1;
+      const HEIGHT = 2;
+      const DEPTH = 2;
 
       let cubes = [];
       let cubeEdges = [];
@@ -135,8 +137,8 @@
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // Grid
-        const grid = new THREE.GridHelper(40, 40, 0x374151, 0x1f2937); // gray-700/800 lines
+        // Grid - aligned to smallest dimension or generic unit
+        const grid = new THREE.GridHelper(40, 40, 0x374151, 0x1f2937);
         scene.add(grid);
 
         // Raycaster
@@ -188,42 +190,54 @@
         raycaster.setFromCamera(updatePointer(event), camera);
         if (raycaster.ray.intersectPlane(dragPlane, intersectPoint)) {
           const desired = intersectPoint.sub(offset);
-          // 支持同时在X、Y、Z轴移动，每次移动间隔固定为UNIT_SIZE
-          let snapX = Math.round(desired.x / UNIT_SIZE) * UNIT_SIZE;
-          let snapY = Math.round(desired.y / UNIT_SIZE) * UNIT_SIZE;
-          let snapZ = Math.round(desired.z / UNIT_SIZE) * UNIT_SIZE;
           
-          // 添加吸附对齐效果：当靠近其他立方体时自动对齐
-          const snapThreshold = UNIT_SIZE * 0.3; // 吸附阈值
+          // 获取当前旋转后的尺寸
+          const currentBox = new THREE.Box3().setFromObject(selected);
+          const size = new THREE.Vector3();
+          currentBox.getSize(size);
+
+          // 基础对齐逻辑：使包围盒的最小点（左下角）对齐到整数网格
+          // 我们先计算如果中心在 desired 时，min 点的位置，然后对 min 点取整
+          const halfSize = size.clone().multiplyScalar(0.5);
+          const currentMin = desired.clone().sub(halfSize);
+          
+          let snapX = Math.round(currentMin.x) + halfSize.x;
+          let snapY = Math.round(currentMin.y) + halfSize.y;
+          let snapZ = Math.round(currentMin.z) + halfSize.z;
+          
+          // 优化吸附对齐效果：当靠近其他立方体时自动对齐
+          const snapThreshold = 0.3; 
           cubes.forEach((cube) => {
             if (cube === selected) return;
             
+            const otherBox = new THREE.Box3().setFromObject(cube);
+            const otherSize = new THREE.Vector3();
+            otherBox.getSize(otherSize);
+
             // X轴吸附
-            const dx = Math.abs(cube.position.x - desired.x);
-            if (dx < snapThreshold) {
-              snapX = cube.position.x;
+            if (Math.abs(otherBox.min.x - (snapX - halfSize.x)) < snapThreshold) {
+              snapX = otherBox.min.x + halfSize.x;
+            } else if (Math.abs(otherBox.max.x - (snapX - halfSize.x)) < snapThreshold) {
+              snapX = otherBox.max.x + halfSize.x;
             }
             
             // Y轴吸附（允许堆叠）
-            const dy = Math.abs(cube.position.y - desired.y);
-            if (dy < snapThreshold) {
-              snapY = cube.position.y;
-            } else if (Math.abs(cube.position.y + UNIT_SIZE - desired.y) < snapThreshold) {
-              // 堆叠在上方
-              snapY = cube.position.y + UNIT_SIZE;
-            } else if (Math.abs(cube.position.y - UNIT_SIZE - desired.y) < snapThreshold) {
-              // 堆叠在下方
-              snapY = cube.position.y - UNIT_SIZE;
+            if (Math.abs(otherBox.min.y - (snapY - halfSize.y)) < snapThreshold) {
+              snapY = otherBox.min.y + halfSize.y;
+            } else if (Math.abs(otherBox.max.y - (snapY - halfSize.y)) < snapThreshold) {
+              snapY = otherBox.max.y + halfSize.y;
             }
             
             // Z轴吸附
-            const dz = Math.abs(cube.position.z - desired.z);
-            if (dz < snapThreshold) {
-              snapZ = cube.position.z;
+            if (Math.abs(otherBox.min.z - (snapZ - halfSize.z)) < snapThreshold) {
+              snapZ = otherBox.min.z + halfSize.z;
+            } else if (Math.abs(otherBox.max.z - (snapZ - halfSize.z)) < snapThreshold) {
+              snapZ = otherBox.max.z + halfSize.z;
             }
           });
           
           selected.position.set(snapX, snapY, snapZ);
+          updateBlockOutline();
         }
       };
 
@@ -234,6 +248,30 @@
         return pointer;
       };
 
+      const snapToGrid = (mesh) => {
+        if (!mesh) return;
+        // 先确保位置在合理的整数附近（特别是拖拽松开后）
+        mesh.position.x = Math.round(mesh.position.x * 2) / 2;
+        mesh.position.y = Math.round(mesh.position.y * 2) / 2;
+        mesh.position.z = Math.round(mesh.position.z * 2) / 2;
+
+        // 重新计算世界包围盒，确保底面和侧面对齐到整数
+        const box = new THREE.Box3().setFromObject(mesh);
+        const dx = Math.round(box.min.x) - box.min.x;
+        const dy = Math.round(box.min.y) - box.min.y;
+        const dz = Math.round(box.min.z) - box.min.z;
+        
+        mesh.position.x += dx;
+        mesh.position.y += dy;
+        mesh.position.z += dz;
+
+        // 确保底面不低于地面
+        const finalBox = new THREE.Box3().setFromObject(mesh);
+        if (finalBox.min.y < 0) {
+          mesh.position.y -= finalBox.min.y;
+        }
+      };
+
       const handlePointerUp = () => {
         if (!dragging || !selected) {
           dragging = false;
@@ -242,18 +280,10 @@
         }
         dragging = false;
         controls.enabled = true;
-        if (window.pySnap) {
-          const arr = window.pySnap(selected.position.x, selected.position.y, selected.position.z, UNIT_SIZE);
-          const snapped = arr?.toJs ? arr.toJs() : arr;
-          if (Array.isArray(snapped) && snapped.length === 3) {
-            selected.position.set(snapped[0], snapped[1], snapped[2]);
-          }
-        } else {
-          // fallback: local snap
-          selected.position.x = Math.round(selected.position.x / UNIT_SIZE) * UNIT_SIZE;
-          selected.position.y = Math.round(selected.position.y / UNIT_SIZE) * UNIT_SIZE;
-          selected.position.z = Math.round(selected.position.z / UNIT_SIZE) * UNIT_SIZE;
-        }
+        
+        // 自动对齐到网格
+        snapToGrid(selected);
+        
         updateBlockOutline();
         selected = null;
       };
@@ -261,38 +291,45 @@
       const handleWheel = (event) => {
         if (!selected) return;
         event.preventDefault();
-        // 滚轮移动时也固定为UNIT_SIZE，并添加吸附效果
+        
+        // 获取当前旋转后的尺寸
+        const currentBox = new THREE.Box3().setFromObject(selected);
+        const size = new THREE.Vector3();
+        currentBox.getSize(size);
+        const stepY = Math.round(size.y);
+        
+        // 滚轮移动高度
         const dir = Math.sign(event.deltaY);
-        const newY = selected.position.y - dir * UNIT_SIZE;
+        const newY = selected.position.y - dir * stepY;
         
         // 检查是否有其他立方体在目标位置
         let finalY = newY;
-        const snapThreshold = UNIT_SIZE * 0.3;
+        const snapThreshold = 0.3;
         cubes.forEach((cube) => {
           if (cube === selected) return;
-          if (Math.abs(cube.position.y - newY) < snapThreshold && 
-              Math.abs(cube.position.x - selected.position.x) < UNIT_SIZE * 0.5 &&
-              Math.abs(cube.position.z - selected.position.z) < UNIT_SIZE * 0.5) {
+          const otherBox = new THREE.Box3().setFromObject(cube);
+          if (Math.abs(otherBox.min.y - (newY - size.y/2)) < snapThreshold && 
+              Math.abs(cube.position.x - selected.position.x) < size.x * 0.5 &&
+              Math.abs(cube.position.z - selected.position.z) < size.z * 0.5) {
             // 如果目标位置有其他立方体，堆叠在上方或下方
             if (dir > 0) {
-              finalY = cube.position.y - UNIT_SIZE;
+              finalY = otherBox.min.y - size.y/2;
             } else {
-              finalY = cube.position.y + UNIT_SIZE;
+              finalY = otherBox.max.y + size.y/2;
             }
           }
         });
         
-        selected.position.y = Math.round(finalY / UNIT_SIZE) * UNIT_SIZE;
-        // 确保Y坐标至少为UNIT_SIZE/2（底部在平面上）
-        if (selected.position.y < UNIT_SIZE / 2) {
-          selected.position.y = UNIT_SIZE / 2;
-        }
+        selected.position.y = finalY;
+        // 自动对齐
+        snapToGrid(selected);
+        updateBlockOutline();
       };
 
       const createCube = (idx) => {
-        const geo = new THREE.BoxGeometry(UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
+        const geo = new THREE.BoxGeometry(WIDTH, HEIGHT, DEPTH);
         
-        // 更鲜亮但柔和的配色方案（高饱和度但降低亮度）
+        // 更鲜亮但柔和的配色方案
         const brightSoftColors = [
           0xFF9AA2, 0xFFB3BA, 0xFFC8C8, 0xFFD6A5, 0xFFE5B4,
           0xFFF4C4, 0xE8F5C8, 0xC8E6C9, 0xB8E6D1, 0xB8E0E6,
@@ -311,7 +348,7 @@
         });
         const mesh = new THREE.Mesh(geo, mat);
         mesh.castShadow = true;
-        mesh.position.set(0, UNIT_SIZE / 2, 0);
+        mesh.position.set(0, HEIGHT / 2, 0);
         scene.add(mesh);
         cubes.push(mesh);
 
@@ -321,7 +358,6 @@
           new THREE.LineBasicMaterial({ color: 0x111111 })
         );
         line.position.copy(mesh.position);
-        // bind line to follow mesh
         line.userData.follow = mesh;
         scene.add(line);
         cubeEdges.push(line);
@@ -339,51 +375,44 @@
       };
 
       const jitterAroundCenter = (index, total) => {
-        // 优化初始化位置，使用3D网格布局，避免挤在一起
-        // 确保所有立方体生成在平面上方，且位置对齐到网格（UNIT_SIZE的倍数）
-        const spacing = 2; // 间距为2个单位，确保立方体之间有足够空间
+        const spacingX = WIDTH * 2;
+        const spacingY = HEIGHT * 1.5;
+        const spacingZ = DEPTH * 2;
         
-        // 计算合适的网格尺寸，确保有足够的位置容纳所有立方体
         let gridSize = Math.ceil(Math.cbrt(total));
-        // 确保总位置数 >= 立方体数量
         while (gridSize * gridSize * gridSize < total) {
           gridSize++;
         }
         
-        // 计算当前立方体在3D网格中的位置
         const layer = Math.floor(index / (gridSize * gridSize));
         const layerIndex = index % (gridSize * gridSize);
         const row = Math.floor(layerIndex / gridSize);
         const col = layerIndex % gridSize;
         
-        // 计算中心偏移，使立方体围绕原点分布
-        const centerOffset = (gridSize - 1) * spacing / 2;
-        // 确保所有坐标都是UNIT_SIZE的倍数，以便堆叠
-        const x = Math.round((col - centerOffset) * spacing / UNIT_SIZE) * UNIT_SIZE;
-        // Y坐标：确保至少为UNIT_SIZE/2（底部在平面上），且对齐到网格
-        const y = Math.max(UNIT_SIZE / 2, Math.round((layer * spacing + UNIT_SIZE / 2) / UNIT_SIZE) * UNIT_SIZE);
-        const z = Math.round((row - centerOffset) * spacing / UNIT_SIZE) * UNIT_SIZE;
+        const centerOffset = (gridSize - 1) / 2;
+        
+        const x = Math.round((col - centerOffset) * spacingX / WIDTH) * WIDTH;
+        const y = Math.max(HEIGHT / 2, Math.round((layer * spacingY + HEIGHT / 2) / HEIGHT) * HEIGHT);
+        const z = Math.round((row - centerOffset) * spacingZ / DEPTH) * DEPTH;
         
         return new THREE.Vector3(x, y, z);
       };
 
       const generateCubes = (n) => {
         clearCubes();
-        defaultPositions = []; // 清空默认位置
+        defaultPositions = [];
         for (let i = 0; i < n; i++) {
           createCube(i);
           const defaultPos = jitterAroundCenter(i, n);
           cubes[i].position.copy(defaultPos);
           cubeEdges[i].position.copy(cubes[i].position);
-          // 保存默认位置
           defaultPositions.push(defaultPos.clone());
         }
-        setStatus(`已生成 ${n} 个立方体`);
+        setStatus(`已生成 ${n} 个 1x2x2 的长方体`);
         updateBlockOutline();
       };
 
       const autoArrange = () => {
-        // 还原到默认位置
         if (defaultPositions.length === 0 || defaultPositions.length !== cubes.length) {
           setStatus("没有可还原的默认位置");
           return;
@@ -402,68 +431,41 @@
           const follow = line.userData.follow;
           if (follow) line.position.copy(follow.position);
         });
-        const positions = cubes.map((c) => [c.position.x, c.position.y, c.position.z]);
-        let dims = null;
-        if (window.pyIsTightBlock) {
-          const d = window.pyIsTightBlock(positions, UNIT_SIZE);
-          dims = d?.toJs ? d.toJs() : d;
-        }
-        if (dims && Array.isArray(dims)) {
-          const pts = cubes.map((c) => c.position.clone());
-          const min = new THREE.Vector3(+Infinity, +Infinity, +Infinity);
-          const max = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
-          pts.forEach((p) => {
-            min.min(p);
-            max.max(p);
-          });
-          // convert centers to outer bounds by ± UNIT_SIZE/2
-          min.addScalar(-UNIT_SIZE / 2);
-          max.addScalar(UNIT_SIZE / 2);
-          // Create or update outline
-          if (!blockOutline) {
-            const boxGeo = new THREE.BoxGeometry(
-              max.x - min.x,
-              max.y - min.y,
-              max.z - min.z
-            );
-            const edges = new THREE.EdgesGeometry(boxGeo);
-            blockOutline = new THREE.LineSegments(
-              edges,
-              new THREE.LineBasicMaterial({ color: 0x10b981 }) // emerald-500
-            );
-            blockOutline.position.set(
-              (min.x + max.x) / 2,
-              (min.y + max.y) / 2,
-              (min.z + max.z) / 2
-            );
-            scene.add(blockOutline);
-          } else {
-            // replace geometry and position
-            blockOutline.geometry.dispose();
-            const boxGeo = new THREE.BoxGeometry(
-              max.x - min.x,
-              max.y - min.y,
-              max.z - min.z
-            );
-            const edges = new THREE.EdgesGeometry(boxGeo);
-            blockOutline.geometry = edges;
-            blockOutline.position.set(
-              (min.x + max.x) / 2,
-              (min.y + max.y) / 2,
-              (min.z + max.z) / 2
-            );
-          }
+        
+        const pts = cubes.map((c) => c.position.clone());
+        if (pts.length === 0) return;
+
+        const min = new THREE.Vector3(+Infinity, +Infinity, +Infinity);
+        const max = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
+        pts.forEach((p) => {
+          min.min(p);
+          max.max(p);
+        });
+        
+        min.x -= WIDTH / 2;
+        min.y -= HEIGHT / 2;
+        min.z -= DEPTH / 2;
+        max.x += WIDTH / 2;
+        max.y += HEIGHT / 2;
+        max.z += DEPTH / 2;
+
+        // 仅在紧密排列时显示轮廓 (这里简化逻辑，只要有物体就显示整体包围盒)
+        if (!blockOutline) {
+          const boxGeo = new THREE.BoxGeometry(max.x - min.x, max.y - min.y, max.z - min.z);
+          const edges = new THREE.EdgesGeometry(boxGeo);
+          blockOutline = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x10b981 }));
+          blockOutline.position.set((min.x + max.x) / 2, (min.y + max.y) / 2, (min.z + max.z) / 2);
+          scene.add(blockOutline);
         } else {
-          if (blockOutline) {
-            scene.remove(blockOutline);
-            blockOutline = null;
-          }
+          blockOutline.geometry.dispose();
+          const boxGeo = new THREE.BoxGeometry(max.x - min.x, max.y - min.y, max.z - min.z);
+          blockOutline.geometry = new THREE.EdgesGeometry(boxGeo);
+          blockOutline.position.set((min.x + max.x) / 2, (min.y + max.y) / 2, (min.z + max.z) / 2);
         }
       };
 
       const animate = () => {
         requestAnimationFrame(animate);
-        // keep edge lines bound to cubes
         cubeEdges.forEach((line) => {
           const follow = line.userData.follow;
           if (follow) line.position.copy(follow.position);
@@ -472,7 +474,6 @@
         renderer.render(scene, camera);
       };
 
-      // UI events
       const handleGenerate = () => {
         const n = parseInt(inputN.value, 10);
         if (!Number.isInteger(n) || n <= 0) {
@@ -491,23 +492,40 @@
       });
       document.addEventListener("keydown", (e) => {
         if (selected) {
+          // 获取当前旋转后的尺寸
+          const currentBox = new THREE.Box3().setFromObject(selected);
+          const size = new THREE.Vector3();
+          currentBox.getSize(size);
+          const stepY = Math.round(size.y);
+
           if (e.key === "ArrowUp") {
-            selected.position.y += UNIT_SIZE;
+            selected.position.y += stepY;
           } else if (e.key === "ArrowDown") {
-            selected.position.y -= UNIT_SIZE;
+            selected.position.y -= stepY;
+          } else if (e.key.toLowerCase() === "x") {
+            // 沿 X 轴旋转 90 度并对齐
+            selected.rotateX(Math.PI / 2);
+            snapToGrid(selected);
+          } else if (e.key.toLowerCase() === "y") {
+            // 沿 Y 轴旋转 90 度并对齐
+            selected.rotateY(Math.PI / 2);
+            snapToGrid(selected);
+          } else if (e.key.toLowerCase() === "z") {
+            // 沿 Z 轴旋转 90 度并对齐
+            selected.rotateZ(Math.PI / 2);
+            snapToGrid(selected);
           }
+          updateBlockOutline();
         }
       });
 
-      // Expose for Python usage if needed
       window.generateCubes = generateCubes;
       window.autoArrange = autoArrange;
-      window.UNIT_SIZE_JS = UNIT_SIZE;
 
-      // Start
       initScene();
       generateCubes(parseInt(inputN.value, 10));
-      setStatus("提示：拖拽可在X、Y、Z轴同时移动（每次1单位），松开后自动吸附");
+      setStatus("提示：拖拽移动；滚轮/方向键调高低；按 X/Y/Z 键旋转选中的长方体");
+
     </script>
   </body>
 </html>
