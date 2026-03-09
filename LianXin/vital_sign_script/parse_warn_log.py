@@ -2,8 +2,8 @@ import re
 import csv
 
 # 输入 log 文件路径
-LOG_FILE = "C:\\Users\\yuanb\\Downloads\\12.24.log"
-OUTPUT_CSV = "C:\\Users\\yuanb\\Downloads\\warning_output-12.24.csv"
+LOG_FILE = "C:\\Users\\yuanb\\Downloads\\12.31.log"
+OUTPUT_CSV = "C:\\Users\\yuanb\\Downloads\\warning_output-12.31.csv"
 
 # 正则表达式提前编译
 time_pattern = re.compile(r"\d{4}-\d{2}-\d{2}\s+(\d{2}:\d{2}:\d{2})")

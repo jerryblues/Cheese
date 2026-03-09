@@ -1,0 +1,81 @@
+const wrtc = require('wrtc');
+const fetch = require('node-fetch');
+const fs = require('fs');
+
+// --- 配置区 ---
+const STREAMER_IP = "10.1.10.147";
+const STREAMER_PORT = "8001";
+const CONFIG_FILE = "streams.txt"; // 每行一个 RTSP 地址
+
+async function startStream(rtspUrl, index) {
+    const peerId = `stress_${Date.now()}_${index}`;
+    const pc = new wrtc.RTCPeerConnection({
+        iceServers: [] // 内网压测通常不需要 ICE server
+    });
+
+    try {
+        // 1. 模拟浏览器：创建接收轨道
+        pc.addTransceiver('video', { direction: 'recvonly' });
+
+        // 2. 创建 Offer
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        // 3. 构造 URL (处理双 @ 符)
+        const encodedUrl = encodeURIComponent(rtspUrl);
+        const apiUrl = `http://${STREAMER_IP}:${STREAMER_PORT}/api/call?url=${encodedUrl}&peerid=${peerId}&options=rtptransport%3Dtcp%26timeout%3D60`;
+
+        // 4. 发送信令
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            body: pc.localDescription.sdp,
+            headers: { 'Content-Type': 'text/plain' }
+        });
+
+        if (response.ok) {
+            const answerSdp = await response.text();
+            // 5. 设置 Answer，完成握手
+            await pc.setRemoteDescription(new wrtc.RTCSessionDescription({
+                type: 'answer',
+                sdp: answerSdp
+            }));
+            console.log(`[OK] 第 ${index} 路成功: ${rtspUrl.substring(0, 40)}...`);
+            
+            // 保持连接，监听断开状态
+            pc.onconnectionstatechange = () => {
+                if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+                    console.log(`[WARN] 第 ${index} 路连接断开`);
+                }
+            };
+        } else {
+            const errBody = await response.text();
+            console.error(`[FAIL] 第 ${index} 路返回 ${response.status}: ${errBody}`);
+        }
+    } catch (err) {
+        console.error(`[ERROR] 第 ${index} 路发生异常: ${err.message}`);
+    }
+}
+
+async function main() {
+    if (!fs.existsSync(CONFIG_FILE)) {
+        console.error("找不到 streams.txt 文件");
+        return;
+    }
+
+    const urls = fs.readFileSync(CONFIG_FILE, 'utf-8').split('\n').filter(line => line.trim());
+    console.log(`开始 Node.js 压测，目标路数: ${urls.length}`);
+
+    for (let i = 0; i < urls.length; i++) {
+        // 异步启动，不阻塞主循环
+        startStream(urls[i], i + 1);
+        // 启动间隔，防止 Docker 瞬时压力过大导致 500
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    // 维持进程不退出
+    setInterval(() => {
+        console.log(`--- 监控中: 压测脚本运行中 ${new Date().toLocaleString()} ---`);
+    }, 60000);
+}
+
+main();

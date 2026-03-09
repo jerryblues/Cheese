@@ -1,0 +1,83 @@
+const wrtc = require('wrtc');
+const fetch = require('node-fetch');
+
+// --- 配置区 ---
+const SERVER_IP = "10.1.10.147";
+const SERVER_PORT = "8001";
+const STREAMER_URL = `http://${SERVER_IP}:${SERVER_PORT}`;
+const TOTAL_STREAMS = 60; 
+
+async function startStream(id) {
+    // 1. 模拟浏览器随机 PeerID
+    const peerId = Math.random().toString();
+    
+    // 2. 创建 PeerConnection
+    const pc = new wrtc.RTCPeerConnection();
+
+    try {
+        // 重要：必须添加三个 Transceiver 以匹配你抓取到的 m=audio, m=video, m=application
+        pc.addTransceiver('audio', { direction: 'recvonly' });
+        pc.addTransceiver('video', { direction: 'recvonly' });
+        pc.createDataChannel("chat"); 
+
+        // 3. 生成 Offer
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        // 4. 构造符合服务器要求的 URL 参数
+        // 包含你抓到的 options 字段
+        const apiUrl = `${STREAMER_URL}/api/call?peerid=${peerId}&url=cam${id}&options=rtptransport%3Dtcp%26timeout%3D60`;
+
+        // 5. 发送请求
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            // 必须包装成 JSON，且 SDP 内部换行符建议保留 \r\n
+            body: JSON.stringify({
+                type: "offer",
+                sdp: pc.localDescription.sdp.replace(/\n/g, '\r\n')
+            }),
+            headers: { 
+                'Content-Type': 'application/json',
+                'Origin': STREAMER_URL,
+                'Referer': `${STREAMER_URL}/webrtcstreamer.html`,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            // 服务器返回的 data 应该包含 { sdp: "...", type: "answer" }
+            const answerSdp = data.sdp || data;
+
+            // 6. 设置 Answer，正式建立链路
+            await pc.setRemoteDescription(new wrtc.RTCSessionDescription({
+                type: 'answer',
+                sdp: answerSdp
+            }));
+            
+            console.log(`[OK] 第 ${id} 路 (cam${id}) 连接成功`);
+        } else {
+            const errBody = await response.text();
+            console.error(`[FAIL] 第 ${id} 路失败，状态码: ${response.status}, 详情: ${errBody}`);
+        }
+    } catch (e) {
+        console.error(`[ERROR] 第 ${id} 路发生异常: ${e.message}`);
+    }
+}
+
+async function main() {
+    console.log(`=== 开始 WebRTC 模拟浏览器压测: ${TOTAL_STREAMS} 路 ===`);
+    
+    for (let i = 1; i <= TOTAL_STREAMS; i++) {
+        // 异步启动
+        startStream(i);
+        // 每秒启动 5 路左右，防止瞬时并发冲垮 Docker 的 HTTP Server
+        await new Promise(r => setTimeout(r, 200)); 
+    }
+    
+    console.log("=== 压测脚本已全部启动，按 Ctrl+C 停止 ===");
+    // 保持进程不退出以维持 WebRTC 连接
+    setInterval(() => {}, 1000);
+}
+
+main();

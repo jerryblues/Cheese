@@ -1,0 +1,25 @@
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args)).catch(() => require('node-fetch')(...args));
+
+const SERVER_IP = "10.1.10.147";
+const SERVER_PORT = "8001";
+const STREAMER_URL = `http://${SERVER_IP}:${SERVER_PORT}`;
+const GOLDEN_SDP = "v=0\r\no=- 12345 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=msid-semantic: WMS\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\nc=IN IP4 0.0.0.0\r\na=rtcp:9 IN IP4 0.0.0.0\r\na=ice-ufrag:test\r\na=ice-pwd:testtesttesttesttesttest\r\na=fingerprint:sha-256 93:60:AB:95:AF:7E:3E:30:40:CF:B4:39:61:4C:C8:39:A0:22:B5:7F:E6:E0:6D:5B:B2:55:D9:66:C0:0C:D2:4E\r\na=setup:actpass\r\na=mid:0\r\na=recvonly\r\na=rtcp-mux\r\na=rtcp-rsize\r\na=rtpmap:96 VP8/90000\r\n";
+
+async function main() {
+    const res = await fetch(`${STREAMER_URL}/api/getMediaList`);
+    const mediaData = await res.json();
+    const streams = mediaData.filter(item => item && item.video).map(item => item.video);
+
+    for (let i = 0; i < streams.length; i++) {
+        const peerId = `0.stress_${i}_${Math.random().toString().substring(2,7)}`;
+        fetch(`${STREAMER_URL}/api/call?url=${encodeURIComponent(streams[i])}&peerid=${peerId}`, {
+            method: 'POST',
+            body: JSON.stringify({ type: "offer", sdp: GOLDEN_SDP }),
+            headers: { 'Content-Type': 'application/json' }
+        }).catch(() => {}); // 忽略个体错误，由 Python 统一监控总数
+        
+        await new Promise(r => setTimeout(r, 200)); 
+    }
+    console.log("Node.js: 所有 Offer 指令已发出。");
+}
+main();

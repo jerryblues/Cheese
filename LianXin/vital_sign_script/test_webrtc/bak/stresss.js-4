@@ -1,0 +1,96 @@
+const wrtc = require('wrtc');
+const fetch = require('node-fetch');
+
+// --- 配置区 ---
+const SERVER_IP = "10.1.10.147";
+const SERVER_PORT = "8001";
+const STREAMER_URL = `http://${SERVER_IP}:${SERVER_PORT}`;
+const TOTAL_STREAMS = 60; // 目标路数
+
+/**
+ * 启动单路流函数
+ */
+async function startStream(id) {
+    // 1. 模拟浏览器 PeerID 格式
+    const peerId = Math.random().toString();
+    
+    // 2. 初始化 PC，强制使用兼容性较高的策略
+    const pc = new wrtc.RTCPeerConnection({
+        iceServers: [],
+        bundlePolicy: 'max-bundle',
+        rtcpMuxPolicy: 'require'
+    });
+
+    try {
+        // 3. 核心：只添加视频，不添加音频
+        // 这样生成的 SDP 就不会包含导致报错的 m=audio 行
+        pc.addTransceiver('video', { direction: 'recvonly' });
+
+        // 4. 创建 Offer
+        const offer = await pc.createOffer();
+        
+        // 5. 格式化 SDP：确保使用 \r\n 换行符，这是 C++ 解析器的标准要求
+        const cleanSdp = offer.sdp.replace(/\n/g, '\r\n');
+        
+        await pc.setLocalDescription({ type: 'offer', sdp: cleanSdp });
+
+        // 6. 构造 URL，带上你抓取到的 options 确保 rtptransport=tcp
+        const apiUrl = `${STREAMER_URL}/api/call?peerid=${peerId}&url=cam${id}&options=rtptransport%3Dtcp%26timeout%3D60`;
+
+        // 7. 发送 POST 请求
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            body: JSON.stringify({
+                type: "offer",
+                sdp: cleanSdp
+            }),
+            headers: { 
+                'Content-Type': 'application/json',
+                'Origin': STREAMER_URL,
+                'Referer': `${STREAMER_URL}/webrtcstreamer.html`,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            // 服务器返回 Answer SDP
+            const answerSdp = data.sdp || data;
+
+            await pc.setRemoteDescription(new wrtc.RTCSessionDescription({
+                type: 'answer',
+                sdp: answerSdp
+            }));
+            
+            console.log(`[OK] 第 ${id} 路 (cam${id}) 成功连接`);
+        } else {
+            const errBody = await response.text();
+            console.error(`[FAIL] 第 ${id} 路失败 (HTTP ${response.status}): ${errBody.substring(0, 50)}`);
+        }
+    } catch (e) {
+        console.error(`[ERROR] 第 ${id} 路异常: ${e.message}`);
+    }
+
+    // 注意：连接建立后不要 pc.close()，否则连接会断开
+}
+
+/**
+ * 主函数：控制并发启动频率
+ */
+async function main() {
+    console.log(`=== WebRTC 压测启动：目标 ${TOTAL_STREAMS} 路 ===`);
+    console.log(`服务器地址: ${STREAMER_URL}`);
+
+    for (let i = 1; i <= TOTAL_STREAMS; i++) {
+        startStream(i);
+        // 每隔 300ms 启动一路，避免瞬间占用过多 CPU 导致握手超时
+        await new Promise(r => setTimeout(r, 300));
+    }
+
+    console.log("=== 所有启动指令已发出，按 Ctrl+C 停止压测 ===");
+    
+    // 保持 Node 进程运行
+    setInterval(() => {}, 1000);
+}
+
+main();

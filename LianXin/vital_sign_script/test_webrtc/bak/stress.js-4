@@ -1,0 +1,90 @@
+const wrtc = require('wrtc');
+// 自动兼容不同版本的 fetch
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args)).catch(() => require('node-fetch')(...args));
+
+const SERVER_IP = "10.1.10.147";
+const SERVER_PORT = "8001";
+const STREAMER_URL = `http://${SERVER_IP}:${SERVER_PORT}`;
+const TOTAL_STREAMS = 60;
+
+async function startStream(id) {
+    const peerId = Math.random().toString();
+    
+    // 显式创建，避免 undefined
+    const pc = new wrtc.RTCPeerConnection({
+        iceServers: []
+    });
+
+    try {
+        // 显式添加视频轨道
+        pc.addTransceiver('video', { direction: 'recvonly' });
+
+        const offer = await pc.createOffer();
+        if (!offer || !offer.sdp) {
+            throw new Error("Failed to create Offer SDP");
+        }
+
+        const cleanSdp = offer.sdp.replace(/\n/g, '\r\n');
+        await pc.setLocalDescription({ type: 'offer', sdp: cleanSdp });
+
+        const apiUrl = `${STREAMER_URL}/api/call?peerid=${peerId}&url=cam${id}&options=rtptransport%3Dtcp%26timeout%3D60`;
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            body: JSON.stringify({
+                type: "offer",
+                sdp: cleanSdp
+            }),
+            headers: { 
+                'Content-Type': 'application/json',
+                'Origin': STREAMER_URL,
+                'Referer': `${STREAMER_URL}/webrtcstreamer.html`
+            }
+        });
+
+        if (!response.ok) {
+            const text = await response.text();
+            console.error(`[FAIL] 第 ${id} 路服务器拒绝: ${response.status} - ${text}`);
+            return;
+        }
+
+        const data = await response.json();
+        const answerSdp = data.sdp || data;
+
+        if (!answerSdp) {
+            throw new Error("Server returned empty SDP");
+        }
+
+        await pc.setRemoteDescription(new wrtc.RTCSessionDescription({
+            type: 'answer',
+            sdp: answerSdp
+        }));
+        
+        console.log(`[OK] 第 ${id} 路 (cam${id}) 成功连接`);
+
+    } catch (e) {
+        // 打印详细错误栈，解决 "undefined" 报错
+        console.error(`[ERROR] 第 ${id} 路捕捉到异常:`, e.stack || e.message || e);
+        if (pc) pc.close();
+    }
+}
+
+async function main() {
+    console.log(`=== WebRTC 压测启动：目标 ${TOTAL_STREAMS} 路 ===`);
+    
+    // 检查环境依赖
+    if (!wrtc) {
+        console.error("错误：无法加载 wrtc 模块，请确认已安装 npm install wrtc");
+        process.exit(1);
+    }
+
+    for (let i = 1; i <= TOTAL_STREAMS; i++) {
+        startStream(i);
+        await new Promise(r => setTimeout(r, 500)); // 略微放慢启动速度
+    }
+
+    console.log("=== 启动指令已发送完成，Ctrl+C 停止 ===");
+    setInterval(() => {}, 1000);
+}
+
+main().catch(err => console.error("主程序崩溃:", err));

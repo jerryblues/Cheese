@@ -1,0 +1,67 @@
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args)).catch(() => require('node-fetch')(...args));
+
+const SERVER_IP = "10.1.10.147";
+const SERVER_PORT = "8001";
+const STREAMER_URL = `http://${SERVER_IP}:${SERVER_PORT}`;
+
+// 你的黄金 SDP (完全保留 \r\n 换行符)
+const GOLDEN_SDP = "v=0\r\no=- 12345 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=msid-semantic: WMS\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\nc=IN IP4 0.0.0.0\r\na=rtcp:9 IN IP4 0.0.0.0\r\na=ice-ufrag:test\r\na=ice-pwd:testtesttesttesttesttest\r\na=fingerprint:sha-256 93:60:AB:95:AF:7E:3E:30:40:CF:B4:39:61:4C:C8:39:A0:22:B5:7F:E6:E0:6D:5B:B2:55:D9:66:C0:0C:D2:4E\r\na=setup:actpass\r\na=mid:0\r\na=recvonly\r\na=rtcp-mux\r\na=rtcp-rsize\r\na=rtpmap:96 VP8/90000\r\n";
+
+async function startStream(streamName, id) {
+    const peerId = `0.stress_${id}_${Math.random().toString().substring(2, 7)}`;
+    
+    try {
+        const apiUrl = `${STREAMER_URL}/api/call?url=${encodeURIComponent(streamName)}&peerid=${peerId}`;
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            body: JSON.stringify({
+                type: "offer",
+                sdp: GOLDEN_SDP
+            }),
+            headers: { 
+                'Content-Type': 'application/json',
+                'Origin': STREAMER_URL
+            },
+            timeout: 5000
+        });
+
+        if (response.ok) {
+            console.log(`[OK] 第 ${id} 路 [${streamName}] 已发出黄金 Offer`);
+        } else {
+            console.error(`[FAIL] 第 ${id} 路 [${streamName}] 错误: ${response.status}`);
+        }
+    } catch (e) {
+        console.error(`[ERROR] 第 ${id} 路 [${streamName}] 异常:`, e.message);
+    }
+}
+
+async function main() {
+    try {
+        console.log("正在获取流列表...");
+        const res = await fetch(`${STREAMER_URL}/api/getMediaList`);
+        const mediaData = await res.json();
+        
+        const streams = mediaData
+            .filter(item => item && item.video)
+            .map(item => item.video);
+
+        console.log(`=== 使用黄金 SDP 压测 ${streams.length} 路流 ===`);
+
+        for (let i = 0; i < streams.length; i++) {
+            startStream(streams[i], i + 1);
+            // 黄金 SDP 很轻量，可以稍微快一点启动
+            await new Promise(r => setTimeout(r, 100)); 
+        }
+
+        console.log("\n=== 压测指令已全部发出，请在宿主机执行以下命令查看连接数: ===");
+        console.log(`curl -s http://127.0.0.1:8001/api/getPeerConnectionList | jq '. | length'`);
+        
+        // 保持进程不退出
+        setInterval(() => {}, 10000);
+    } catch (err) {
+        console.error("主程序错误:", err.message);
+    }
+}
+
+main();

@@ -1,0 +1,82 @@
+const wrtc = require('wrtc');
+const fetch = require('node-fetch');
+
+// --- 配置区 ---
+const STREAMER_URL = "http://127.0.0.1:8001"; // 对应你 Docker 启动的 8001 端口
+const TOTAL_STREAMS = 60; // 压测总路数
+
+async function startStream(id) {
+    // 模拟浏览器生成唯一的 peerid
+    const peerId = `stress_${Date.now()}_${id}_${Math.floor(Math.random() * 1000)}`;
+    const pc = new wrtc.RTCPeerConnection({
+        iceServers: [] 
+    });
+
+    try {
+        // 1. 创建视频轨道（必须，否则无法生成 SDP）
+        pc.addTransceiver('video', { direction: 'recvonly' });
+
+        // 2. 生成本地 Offer
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        // 3. 构造 JSON 负载 (解决之前的 Syntax error)
+        const payload = {
+            sdp: pc.localDescription.sdp
+        };
+
+        // 4. 调用 API
+        // 注意：url=cam${id} 必须对应 config.json 里的别名
+        const apiUrl = `${STREAMER_URL}/api/call?url=cam${id}&peerid=${peerId}`;
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            
+            // 5. 设置远端 Answer
+            // 服务器返回的通常也是 { sdp: "..." }
+            const answerSdp = data.sdp || data;
+
+            await pc.setRemoteDescription(new wrtc.RTCSessionDescription({
+                type: 'answer',
+                sdp: answerSdp
+            }));
+
+            console.log(`[OK] 第 ${id} 路 (cam${id}) 握手成功并已保持连接`);
+        } else {
+            const errText = await response.text();
+            console.error(`[FAIL] 第 ${id} 路失败，状态码: ${response.status}, 详情: ${errText}`);
+        }
+    } catch (e) {
+        console.error(`[ERROR] 第 ${id} 路发生异常: ${e.message}`);
+    }
+
+    // 保持连接：如果不关闭 pc，WebRTC 链路就会一直占用服务器资源
+}
+
+async function main() {
+    console.log(`=== 开始 WebRTC 压测: ${TOTAL_STREAMS} 路 ===`);
+    console.log(`目标服务器: ${STREAMER_URL}`);
+
+    for (let i = 1; i <= TOTAL_STREAMS; i++) {
+        // 异步启动，不等待结果直接启下一路
+        startStream(i);
+        // 适当间隔避免瞬时负载过高，建议 200ms - 500ms
+        await new Promise(resolve => setTimeout(resolve, 200)); 
+    }
+
+    console.log("=== 所有启动指令已发出，按 Ctrl+C 停止测试 ===");
+    
+    // 维持进程不退出
+    setInterval(() => {}, 1000);
+}
+
+main();

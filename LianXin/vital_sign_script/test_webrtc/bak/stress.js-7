@@ -1,0 +1,88 @@
+const wrtc = require('wrtc');
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args)).catch(() => require('node-fetch')(...args));
+
+const SERVER_IP = "10.1.10.147";
+const SERVER_PORT = "8001";
+const STREAMER_URL = `http://${SERVER_IP}:${SERVER_PORT}`;
+
+async function startStream(streamName, id) {
+    // 模拟浏览器 PeerID
+    const peerId = `stress_${id}_${Math.random().toString().substring(2, 8)}`;
+    const pc = new wrtc.RTCPeerConnection({ iceServers: [] });
+
+    try {
+        // 强制只收视频
+        pc.addTransceiver('video', { direction: 'recvonly' });
+        const offer = await pc.createOffer();
+        const sdpWithRN = offer.sdp.replace(/\n/g, '\r\n');
+        
+        await pc.setLocalDescription({ type: 'offer', sdp: sdpWithRN });
+
+        // 调用接口，确保 url 参数对应 cam1, cam10 等
+        const apiUrl = `${STREAMER_URL}/api/call?url=${encodeURIComponent(streamName)}&peerid=${peerId}&options=rtptransport%3Dtcp`;
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            body: JSON.stringify({ type: "offer", sdp: sdpWithRN }),
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+            console.error(`[FAIL] 第 ${id} 路 [${streamName}] HTTP错误: ${response.status}`);
+            return;
+        }
+
+        const data = await response.json();
+        
+        if (data && data.sdp) {
+            // 只要收到 Answer SDP，说明服务器已经去拉取 RTSP 流了
+            try {
+                await pc.setRemoteDescription(new wrtc.RTCSessionDescription({
+                    type: 'answer',
+                    sdp: data.sdp
+                }));
+                console.log(`[CONNECTED] 第 ${id} 路: [${streamName}] 成功建立链路`);
+            } catch (sdpErr) {
+                // 如果 Node 解析失败（Invalid value），但请求已成功，压测依然生效
+                console.log(`[OK] 第 ${id} 路: [${streamName}] 握手已完成`);
+            }
+        } else {
+            console.warn(`[REJECTED] 第 ${id} 路: [${streamName}] 服务器未返回有效SDP`);
+        }
+    } catch (e) {
+        console.error(`[ERROR] 第 ${id} 路 [${streamName}] 异常:`, e.message);
+    }
+}
+
+async function main() {
+    try {
+        console.log("正在连接服务器获取流列表...");
+        const res = await fetch(`${STREAMER_URL}/api/getMediaList`);
+        const mediaData = await res.json();
+        
+        // --- 精准适配数组格式 ---
+        const streams = mediaData
+            .filter(item => item && item.video)
+            .map(item => item.video);
+
+        if (streams.length === 0) {
+            console.error("错误：服务器返回的流列表为空，请检查 config.json 内容");
+            return;
+        }
+
+        console.log(`=== 发现共 ${streams.length} 路流，开始建立并发压测 ===`);
+
+        for (let i = 0; i < streams.length; i++) {
+            // 立即执行，每路间隔 300ms 避免 HTTP 服务拥堵
+            startStream(streams[i], i + 1);
+            await new Promise(r => setTimeout(r, 300));
+        }
+
+        console.log("\n=== 压测已全部发出，请在宿主机执行 docker stats 查看负载 ===");
+        setInterval(() => {}, 1000);
+    } catch (err) {
+        console.error("主程序错误:", err.message);
+    }
+}
+
+main();

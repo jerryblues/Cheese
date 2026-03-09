@@ -1,0 +1,94 @@
+{
+    "urls": {
+        "cam01": {
+            "video": "rtsp://10.1.10.206:8554/3_person_1"
+        },
+        "cam02": {
+            "video": "rtsp://10.1.10.206:8554/3_person_2"
+        },
+        "cam03": {
+            "video": "rtsp://10.1.10.206:8554/3_person_3"
+        },
+        "cam04": {
+            "video": "rtsp://10.1.10.206:8554/3_person_4"
+        },
+        "cam05": {
+            "video": "rtsp://10.1.10.206:8554/3_person_5"
+        },
+        "cam06": {
+            "video": "rtsp://10.1.10.206:8554/3_person_6"
+        },
+        "cam07": {
+            "video": "rtsp://10.1.10.206:8554/3_person_7"
+        },
+        "cam08": {
+            "video": "rtsp://10.1.10.206:8554/3_person_8"
+        },
+        "cam09": {
+            "video": "rtsp://10.1.10.206:8554/3_person_9"
+        },
+        "cam10": {
+            "video": "rtsp://10.1.10.206:8554/3_person_10"
+        },
+        "cam11": {
+            "video": "rtsp://10.1.10.206:8554/3_person_11"
+        },
+        "cam12": {
+            "video": "rtsp://10.1.10.206:8554/3_person_12"
+        },
+        "cam13": {
+            "video": "rtsp://10.1.10.206:8554/action_test_158_1"
+        },
+        "cam14": {
+            "video": "rtsp://10.1.10.206:8554/action_test_158_2"
+        },
+        "cam15": {
+            "video": "rtsp://10.1.10.206:8554/action_test_158_3"
+        },
+        "cam16": {
+            "video": "rtsp://10.1.10.206:8554/action_test_158_4"
+        },
+        "cam17": {
+            "video": "rtsp://10.1.10.206:8554/action_test_158_5"
+        },
+        "cam18": {
+            "video": "rtsp://10.1.10.206:8554/action_test_158_6"
+        },
+        "cam19": {
+            "video": "rtsp://10.1.10.206:8554/action_test_158_7"
+        },
+        "cam20": {
+            "video": "rtsp://10.1.10.206:8554/action_test_158_8"
+        },
+        "cam21": {
+            "video": "rtsp://10.1.10.206:8554/action_test_158_9"
+        },
+        "cam22": {
+            "video": "rtsp://10.1.10.206:8554/action_test_158_10"
+        },
+        "cam23": {
+            "video": "rtsp://10.1.10.206:8554/action_test_158_11"
+        },
+        "cam24": {
+            "video": "rtsp://10.1.10.206:8554/action_test_158_12"
+        },
+        "cam25": {
+            "video": "rtsp://10.1.10.206:8554/action_test_158_13"
+        },
+        "cam26": {
+            "video": "rtsp://10.1.10.206:8554/action_test_158_14"
+        },
+        "cam27": {
+            "video": "rtsp://10.1.10.206:8554/action_test_158_15"
+        },
+        "cam28": {
+            "video": "rtsp://10.1.10.206:8554/action_test_158_16"
+        },
+        "cam29": {
+            "video": "rtsp://10.1.10.206:8554/action_test_158_17"
+        },
+        "cam30": {
+            "video": "rtsp://10.1.10.206:8554/action_test_158_18"
+        }
+    }
+}

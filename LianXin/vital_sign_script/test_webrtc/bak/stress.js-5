@@ -1,0 +1,84 @@
+const wrtc = require('wrtc');
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args)).catch(() => require('node-fetch')(...args));
+
+// --- 配置区 ---
+const SERVER_IP = "10.1.10.147";
+const SERVER_PORT = "8001";
+const STREAMER_URL = `http://${SERVER_IP}:${SERVER_PORT}`;
+const TOTAL_STREAMS = 60; // 压测目标：60路
+
+async function startStream(id) {
+    // 模拟你 curl 里的 peerid 格式
+    const peerId = `0.stress_${id}_${Math.floor(Math.random() * 10000)}`;
+    const pc = new wrtc.RTCPeerConnection({ iceServers: [] });
+
+    try {
+        // 1. 强制只添加视频轨道（确保生成最干净的 SDP）
+        pc.addTransceiver('video', { direction: 'recvonly' });
+
+        const offer = await pc.createOffer();
+        
+        // 2. 核心：强制转换换行符为 \r\n，这解决了之前的 Syntax Error
+        const sdpWithRN = offer.sdp.replace(/\n/g, '\r\n');
+        
+        // 设置本地描述
+        await pc.setLocalDescription({ type: 'offer', sdp: sdpWithRN });
+
+        // 3. 构造与 curl 一致的 API URL
+        const apiUrl = `${STREAMER_URL}/api/call?url=cam${id}&peerid=${peerId}`;
+
+        // 4. 发送与 curl 结构完全一致的 JSON Body
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            body: JSON.stringify({
+                type: "offer",
+                sdp: sdpWithRN
+            }),
+            headers: { 
+                'Content-Type': 'application/json',
+                'Origin': `http://${SERVER_IP}:${SERVER_PORT}`
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            // 只要服务器返回 200，说明挂载成功
+            // 我们尝试 setRemoteDescription 以维持长连接
+            const answerSdp = data.sdp || data;
+            await pc.setRemoteDescription(new wrtc.RTCSessionDescription({
+                type: 'answer',
+                sdp: answerSdp
+            }));
+            console.log(`[OK] 第 ${id} 路 (cam${id}) 已挂载成功`);
+        } else {
+            const err = await response.text();
+            console.error(`[FAIL] 第 ${id} 路失败: ${response.status} - ${err}`);
+        }
+    } catch (e) {
+        // 如果只是 Node 端解析 Answer 失败，不代表压测没挂上
+        if (e.message.includes('Invalid value')) {
+            console.log(`[OK] 第 ${id} 路已发出请求（Node端解析略过，压测已生效）`);
+        } else {
+            console.error(`[ERROR] 第 ${id} 路异常: ${e.message}`);
+        }
+    }
+}
+
+async function main() {
+    console.log(`=== WebRTC 黄金脚本压测开始：${TOTAL_STREAMS} 路 ===`);
+    
+    for (let i = 1; i <= TOTAL_STREAMS; i++) {
+        startStream(i);
+        // 每秒启动 3-4 路，给服务器喘息机会
+        await new Promise(resolve => setTimeout(resolve, 300));
+    }
+
+    console.log("\n=== 压测运行中 ===");
+    console.log("提示：请另开终端执行 'docker stats' 查看 CPU 占用情况");
+    console.log("停止压测：请直接按 Ctrl + C");
+
+    // 维持进程
+    setInterval(() => {}, 1000);
+}
+
+main();

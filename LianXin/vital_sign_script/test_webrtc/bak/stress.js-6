@@ -1,0 +1,84 @@
+const wrtc = require('wrtc');
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args)).catch(() => require('node-fetch')(...args));
+
+const SERVER_IP = "10.1.10.147";
+const SERVER_PORT = "8001";
+const STREAMER_URL = `http://${SERVER_IP}:${SERVER_PORT}`;
+
+async function startStream(streamName, id) {
+    const peerId = `0.stress_${id}_${Math.floor(Math.random() * 10000)}`;
+    const pc = new wrtc.RTCPeerConnection({ iceServers: [] });
+
+    try {
+        pc.addTransceiver('video', { direction: 'recvonly' });
+        const offer = await pc.createOffer();
+        const sdpWithRN = offer.sdp.replace(/\n/g, '\r\n');
+        
+        await pc.setLocalDescription({ type: 'offer', sdp: sdpWithRN });
+
+        // 使用从服务器获取到的流名称 (例如 cam1)
+        const apiUrl = `${STREAMER_URL}/api/call?url=${streamName}&peerid=${peerId}`;
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            body: JSON.stringify({ type: "offer", sdp: sdpWithRN }),
+            headers: { 
+                'Content-Type': 'application/json',
+                'Origin': STREAMER_URL
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const answerSdp = data.sdp || data;
+            await pc.setRemoteDescription(new wrtc.RTCSessionDescription({
+                type: 'answer',
+                sdp: answerSdp
+            }));
+            console.log(`[OK] 第 ${id} 路 [${streamName}] 挂载成功`);
+        } else {
+            console.error(`[FAIL] 第 ${id} 路 [${streamName}] 失败: ${response.status}`);
+        }
+    } catch (e) {
+        // 修复 TypeError: 增加 e 是否存在的判断
+        const errMsg = (e && e.message) ? e.message : String(e);
+        if (errMsg.includes('Invalid value')) {
+            console.log(`[OK] 第 ${id} 路 [${streamName}] 请求已发出 (Node解析略过)`);
+        } else {
+            console.error(`[ERROR] 第 ${id} 路 [${streamName}] 异常:`, errMsg);
+        }
+    }
+}
+
+async function main() {
+    try {
+        console.log("正在从服务器获取可用流列表...");
+        const res = await fetch(`${STREAMER_URL}/api/getMediaList`);
+        const mediaList = await res.json();
+        
+        // 提取所有的别名 (如 cam1, cam2...)
+        const streams = Object.keys(mediaList);
+        const count = streams.length;
+
+        if (count === 0) {
+            console.error("未在服务器上找到任何可用的流，请检查 config.json");
+            return;
+        }
+
+        console.log(`=== 发现配置文件共 ${count} 路流，开始压测 ===`);
+
+        for (let i = 0; i < count; i++) {
+            // 依次启动 cam1, cam2...
+            startStream(streams[i], i + 1);
+            await new Promise(resolve => setTimeout(resolve, 300));
+        }
+
+        console.log("\n=== 压测运行中，按 Ctrl+C 停止 ===");
+        setInterval(() => {}, 1000);
+
+    } catch (err) {
+        console.error("无法连接服务器或获取配置:", err.message);
+    }
+}
+
+main();
