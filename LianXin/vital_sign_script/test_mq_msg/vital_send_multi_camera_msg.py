@@ -32,16 +32,11 @@ Body:
 
 # ========================= 基础配置（按需修改） =========================
 
-POST_URL = "http://10.1.10.100/vital-sign/vital/signs/sendMq"
+POST_URL = "http://10.1.120.233/vital-sign/vital/signs/sendMq"
 
 # 直接把 Authorization token 放这里，或运行脚本时通过 --token 传入
 AUTH_TOKEN = (
-    "eyJhbGciOiJIUzUxMiJ9.eyJhY2NvdW50X2lkIjpudWxsLCJhdXRob3JpemVfaWQiOm51bGwsInVzZXJfaWQi"
-    "OiIxIiwicGxpbmsiOm51bGwsInRoaXJkX3VzZXJfaWQiOm51bGwsInVzZXJfa2V5IjoiMTA4NTg3NjItY2Vk"
-    "YS00MDI0LWE0NDEtNmVlZmIzNjFjNGZlIiwiZGVwdF9pZF9saXN0IjpudWxsLCJkZXB0X2lkIjpudWxsLCJh"
-    "cHBfaWQiOm51bGwsInBsaW5rX2xpc3QiOm51bGwsInVzZXJuYW1lIjoiYWRtaW4iLCJ0ZW5hbnRfY29kZSI6"
-    "IkxYX1NYIn0.W4j59Y-XsAZf8upqRxktevGWdfkrbezT17uzkYX_jhy9IwAr4x6MsCodV1kzrwUu-GZm7helGC3Ddxew"
-    "4R3bPA"
+    "eyJhbGciOiJIUzUxMiJ9.eyJ0aGlyZF91c2VyX2lkIjpudWxsLCJ1c2VyX2tleSI6IjRjYjQyNzU3LWQ1YjAtNGUzOC05ZGEyLWFhYTMwOGVhMDg4ZCIsInJvbGVfaWRzIjpudWxsLCJhZG1pbmlzdHJhdG9yIjp0cnVlLCJhY2NvdW50X2lkIjpudWxsLCJhdXRob3JpemVfaWQiOm51bGwsInVzZXJfaWQiOiIxIiwicGxpbmsiOm51bGwsImRlcHRfaWRfbGlzdCI6bnVsbCwiZGVwdF9pZCI6bnVsbCwiYXBwX2lkIjpudWxsLCJwbGlua19saXN0IjpudWxsLCJ1c2VybmFtZSI6ImFkbWluIiwidGVuYW50X2NvZGUiOiJMWF9TWCJ9.tKup2KyOY-Dl2fN3g_Nm74uS4-9zG99zO3S3SMgTYBOc_e9sXCXbuVll0OkUYhrFRQpBNuZTQA90s96u1XAKPQ; merchantToken=eyJhbGciOiJIUzUxMiJ9.eyJ0aGlyZF91c2VyX2lkIjpudWxsLCJ1c2VyX2tleSI6IjRjYjQyNzU3LWQ1YjAtNGUzOC05ZGEyLWFhYTMwOGVhMDg4ZCIsInJvbGVfaWRzIjpudWxsLCJhZG1pbmlzdHJhdG9yIjp0cnVlLCJhY2NvdW50X2lkIjpudWxsLCJhdXRob3JpemVfaWQiOm51bGwsInVzZXJfaWQiOiIxIiwicGxpbmsiOm51bGwsImRlcHRfaWRfbGlzdCI6bnVsbCwiZGVwdF9pZCI6bnVsbCwiYXBwX2lkIjpudWxsLCJwbGlua19saXN0IjpudWxsLCJ1c2VybmFtZSI6ImFkbWluIiwidGVuYW50X2NvZGUiOiJMWF9TWCJ9.tKup2KyOY-Dl2fN3g_Nm74uS4-9zG99zO3S3SMgTYBOc_e9sXCXbuVll0OkUYhrFRQpBNuZTQA90s96u1XAKPQ"
 )
 
 TIMEOUT_S = 10
@@ -63,8 +58,8 @@ DEFAULT_PERSON_ID = "10086"
 # task_id 简写映射：为了配置简洁
 # A 代表 10@10，B 代表 10@11
 TASK_ID_ALIAS: Dict[str, str] = {
-    "A": "38@38",
-    "B": "38@39",
+    "A": "100@100",
+    "B": "100@101",
 }
 
 # 单个 result 的默认值（每条消息只有一个 result：一组 bpm/breathe）
