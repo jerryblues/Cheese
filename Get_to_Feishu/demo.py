@@ -16,10 +16,15 @@ import inspect
 import re
 import html
 import time
+import hmac
+import base64
+import hashlib
+import urllib.parse
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any
 from collections import namedtuple
+from urllib import request
 
 # Compatibility shim for Python 3.11+ where inspect.getargspec is removed.
 # The Evernote SDK still calls inspect.getargspec in some versions.
@@ -51,6 +56,7 @@ CACHE_PATH = "shared_notebooks_cache.json"
 # Output/debug switches
 PRINT_ENDPOINTS = True
 PRINT_NOTE_TEXT_TO_CONSOLE = False
+PRINT_DINGTALK_RESPONSE = False
 
 # Output file (one file for all notebooks)
 OUTPUT_TEXT_PATH = "latest_shared_notes.txt"
@@ -64,6 +70,12 @@ MAX_NOTES_TO_SCAN_PER_NOTEBOOK = 10
 # Only keep notes for today's date.
 # Title prefix example: "25.1210丨100｜..."
 ONLY_KEEP_TODAY = True
+
+# DingTalk robot webhook (optional). Example:
+# https://oapi.dingtalk.com/robot/send?access_token=xxxx
+DINGTALK_WEBHOOK = "https://oapi.dingtalk.com/robot/send?access_token=13c5c4778559dadb0c6bd0a2a92b57c58c2cce43bf2ad6bc09be92f84b0307c8"
+# DingTalk secret for "sign" (optional). If set, requests will include timestamp + sign.
+DINGTALK_SECRET = "SEC4e2170b9673a002eb6a245290135669f4ce4f7784e6d84adefe26dbd1d14f73e"
 
 
 @dataclass
@@ -233,6 +245,35 @@ def extract_title_date_prefix(title: str) -> str:
     return m.group(1) if m else ""
 
 
+def post_dingtalk_text(webhook: str, content: str) -> None:
+    if not webhook:
+        return
+    url = webhook
+    if DINGTALK_SECRET:
+        ts = str(int(time.time() * 1000))
+        string_to_sign = f"{ts}\n{DINGTALK_SECRET}".encode("utf-8")
+        hmac_code = hmac.new(DINGTALK_SECRET.encode("utf-8"), string_to_sign, digestmod=hashlib.sha256).digest()
+        sign = urllib.parse.quote_plus(base64.b64encode(hmac_code))
+        sep = "&" if "?" in url else "?"
+        url = f"{url}{sep}timestamp={ts}&sign={sign}"
+    body = json.dumps({"msgtype": "text", "text": {"content": content}}, ensure_ascii=False).encode("utf-8")
+    req = request.Request(
+        url,
+        data=body,
+        headers={"Content-Type": "application/json; charset=utf-8"},
+        method="POST",
+    )
+    try:
+        with request.urlopen(req, timeout=20) as resp:
+            resp_body = resp.read().decode("utf-8", errors="replace")
+            if PRINT_DINGTALK_RESPONSE:
+                print("\nDingTalk response:")
+                print(resp_body)
+    except Exception as e:
+        # Optional feature: do not fail the whole run if DingTalk fails.
+        print(f"\nDingTalk webhook send failed (ignored): {e}")
+
+
 def main():
     ensure_utf8_console()
 
@@ -316,16 +357,18 @@ def main():
             print(f"Title: {latest_title}")
             print(plain)
 
-        outputs.append(
-            "\n".join(
-                [
-                    f"=== {item.shareName} ===",
-                    f"Title: {latest_title}",
-                    plain,
-                    "",
-                ]
-            )
+        block = "\n".join(
+            [
+                f"=== {item.shareName} ===",
+                f"Title: {latest_title}",
+                plain,
+                "",
+            ]
         )
+        outputs.append(block)
+
+        # Send each note as a separate DingTalk message (optional).
+        post_dingtalk_text(DINGTALK_WEBHOOK, block)
 
         # Update lastSentTitle only if we actually kept/saved this note today.
         item.lastSentTitle = latest_title
