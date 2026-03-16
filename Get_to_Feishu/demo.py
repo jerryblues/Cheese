@@ -22,7 +22,6 @@ import hashlib
 import urllib.parse
 from dataclasses import dataclass, asdict
 from pathlib import Path
-from typing import Any
 from collections import namedtuple
 from urllib import request
 
@@ -48,8 +47,10 @@ from evernote.edam.error import ttypes as Errors
 # https://app.yinxiang.com/api/DeveloperToken.action
 DEV_TOKEN = "S=s10:U=1030989:E=19d18c7ea90:C=19cf4bb6600:P=1cd:A=en-devtoken:V=2:H=6628f588ea7f6ab10fb68e2f3cf794a6"
 
-# LLM API key (reserved for future summary feature; not implemented yet)
-LLM_API_KEY = ""
+# LLM configuration (Qwen/DashScope compatible)
+LLM_API_KEY = "sk-5c3a7e35dd844dcdb0b6df51db28dc30"
+LLM_MODEL = "qwen-max"
+LLM_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
 CACHE_PATH = "shared_notebooks_cache.json"
 
@@ -60,6 +61,7 @@ PRINT_DINGTALK_RESPONSE = False
 
 # Output file (one file for all notebooks)
 OUTPUT_TEXT_PATH = "latest_shared_notes.txt"
+MAIN_CONTENT_PATH = "main_content.txt"
 
 # Filter rules
 # If a note title contains this string, treat it as a "directory/index" note and skip it.
@@ -245,6 +247,47 @@ def extract_title_date_prefix(title: str) -> str:
     return m.group(1) if m else ""
 
 
+def summarize_text(text: str) -> str:
+    """
+    Summarize the given text using an LLM (OpenAI-compatible API).
+    """
+    if not LLM_API_KEY or not text:
+        return ""
+
+    url = f"{LLM_BASE_URL.rstrip('/')}/chat/completions"
+    prompt = f"请为以下文章写一个100字左右的总结和摘要：\n\n{text}"
+    
+    body = json.dumps({
+        "model": LLM_MODEL,
+        "messages": [
+            {"role": "system", "content": "你是一个擅长提炼文章精华的助手。"},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.7
+    }, ensure_ascii=False).encode("utf-8")
+
+    req = request.Request(
+        url,
+        data=body,
+        headers={
+            "Content-Type": "application/json; charset=utf-8",
+            "Authorization": f"Bearer {LLM_API_KEY}"
+        },
+        method="POST",
+    )
+
+    try:
+        with request.urlopen(req, timeout=30) as resp:
+            resp_body = resp.read().decode("utf-8", errors="replace")
+            data = json.loads(resp_body)
+            # OpenAI format: data['choices'][0]['message']['content']
+            summary = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            return summary.strip()
+    except Exception as e:
+        print(f"\nLLM summarization failed: {e}")
+        return ""
+
+
 def post_dingtalk_text(webhook: str, content: str) -> None:
     if not webhook:
         return
@@ -308,6 +351,7 @@ def main():
         return
 
     outputs: list[str] = []
+    main_contents: list[str] = []
     today_prefix = today_title_prefix()
 
     for share_key, item in sorted(cache_items.items(), key=lambda kv: kv[1].shareName):
@@ -352,23 +396,49 @@ def main():
 
         plain = get_latest_note_plain_text(shared_store, latest_guid) if latest_guid else ""
 
+        # --- 问题2: 内容分割与AI总结 ---
+        # 以“用户留言”为界，分割文章主体和留言部分
+        parts = plain.split("用户留言", 1)
+        main_content = parts[0].strip()
+        user_comments = parts[1].strip() if len(parts) > 1 else ""
+
+        summary = ""
+        if main_content:
+            print(f"Summarizing: {latest_title}...")
+            summary = summarize_text(main_content) # 只总结主体内容
+
+        # --- 钉钉消息格式 ---
+        if summary:
+            # 清理课程名称：去掉书名号，去掉￥符号及其后面的内容
+            clean_share_name = item.shareName.replace("《", "").replace("》", "")
+            if "￥" in clean_share_name:
+                clean_share_name = clean_share_name.split("￥")[0].strip()
+            
+            dingtalk_msg = f"{latest_title} - {clean_share_name}\n\n{summary}"
+            post_dingtalk_text(DINGTALK_WEBHOOK, dingtalk_msg)
+
+        # --- 文件保存逻辑 ---
+        # 1. 收集主体内容，用于写入 main_content.txt
+        main_contents.append(main_content)
+
+        # 2. 保持原有逻辑，将完整内容（包括摘要和留言）写入 aatest_shared_notes.txt
         if PRINT_NOTE_TEXT_TO_CONSOLE:
             print(f"\n=== {item.shareName} ===")
             print(f"Title: {latest_title}")
+            if summary:
+                print(f"Summary: {summary}")
             print(plain)
 
-        block = "\n".join(
-            [
-                f"=== {item.shareName} ===",
-                f"Title: {latest_title}",
-                plain,
-                "",
-            ]
-        )
+        # Still keep the full content for the local text file (optional)
+        lines = [
+            f"=== {item.shareName} ===",
+            f"Title: {latest_title}",
+        ]
+        if summary:
+            lines.append(f"Summary: {summary}\n")
+        lines.extend([plain, ""])
+        block = "\n".join(lines)
         outputs.append(block)
-
-        # Send each note as a separate DingTalk message (optional).
-        post_dingtalk_text(DINGTALK_WEBHOOK, block)
 
         # Update lastSentTitle only if we actually kept/saved this note today.
         item.lastSentTitle = latest_title
@@ -377,6 +447,10 @@ def main():
     if outputs:
         out_file = Path(__file__).with_name(OUTPUT_TEXT_PATH)
         out_file.write_text("\n".join(outputs).strip() + "\n", encoding="utf-8")
+
+    if main_contents:
+        main_content_file = Path(__file__).with_name(MAIN_CONTENT_PATH)
+        main_content_file.write_text("\n\n---\n\n".join(main_contents).strip() + "\n", encoding="utf-8")
 
     save_cache(cache_file, cache_items)
 
