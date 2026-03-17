@@ -48,7 +48,17 @@ from evernote.edam.error import ttypes as Errors
 DEV_TOKEN = "S=s10:U=1030989:E=19d18c7ea90:C=19cf4bb6600:P=1cd:A=en-devtoken:V=2:H=6628f588ea7f6ab10fb68e2f3cf794a6"
 
 # LLM configuration (Qwen/DashScope compatible)
-LLM_API_KEY = "sk-5c3a7e35dd844dcdb0b6df51db28dc30"
+def load_config():
+    config_path = Path(__file__).with_name("config.json")
+    if not config_path.exists():
+        return {}
+    try:
+        return json.loads(config_path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+config = load_config()
+LLM_API_KEY = config.get("LLM_API_KEY", "")
 LLM_MODEL = "qwen-max"
 LLM_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
@@ -75,9 +85,9 @@ ONLY_KEEP_TODAY = True
 
 # DingTalk robot webhook (optional). Example:
 # https://oapi.dingtalk.com/robot/send?access_token=xxxx
-DINGTALK_WEBHOOK = "https://oapi.dingtalk.com/robot/send?access_token=13c5c4778559dadb0c6bd0a2a92b57c58c2cce43bf2ad6bc09be92f84b0307c8"
+DINGTALK_WEBHOOK = "https://oapi.dingtalk.com/robot/send?access_token=d9be77e9d9b6587e9a9fbda216b0020f036fd7c8a1091669ea2b34c04131f12c"
 # DingTalk secret for "sign" (optional). If set, requests will include timestamp + sign.
-DINGTALK_SECRET = "SEC4e2170b9673a002eb6a245290135669f4ce4f7784e6d84adefe26dbd1d14f73e"
+DINGTALK_SECRET = "SECcd4f87d484378b7b8e91aed6bdcd8319cb416b149baa521c7894170428664551"
 
 
 @dataclass
