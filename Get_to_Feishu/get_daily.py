@@ -2,10 +2,7 @@
 Sync latest notes from Yinxiang shared (linked) notebooks.
 
 Features:
-- Cache shared notebook list and each notebook's latest note title.
-- Optionally compare titles and only send updates.
-- Optionally push to DingTalk via webhook.
-- Convert ENML to plain text.
+- to be updated
 """
 
 from __future__ import annotations
@@ -24,6 +21,7 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from collections import namedtuple
 from urllib import request
+from openai import OpenAI
 
 # Compatibility shim for Python 3.11+ where inspect.getargspec is removed.
 # The Evernote SDK still calls inspect.getargspec in some versions.
@@ -43,51 +41,54 @@ from evernote.edam.notestore import NoteStore
 from evernote.edam.type import ttypes as Types
 from evernote.edam.error import ttypes as Errors
 
-# Get your developer token from:
-# https://app.yinxiang.com/api/DeveloperToken.action
-DEV_TOKEN = "S=s10:U=1030989:E=19d18c7ea90:C=19cf4bb6600:P=1cd:A=en-devtoken:V=2:H=6628f588ea7f6ab10fb68e2f3cf794a6"
+# --- CONFIGURATION ---
 
-# LLM configuration (Qwen/DashScope compatible)
 def load_config():
     config_path = Path(__file__).with_name("config.json")
     if not config_path.exists():
-        return {}
+        print("FATAL: config.json not found.")
+        sys.exit(1)
     try:
         return json.loads(config_path.read_text(encoding="utf-8"))
-    except Exception:
-        return {}
+    except Exception as e:
+        print(f"FATAL: Failed to load config.json: {e}")
+        sys.exit(1)
 
 config = load_config()
-LLM_API_KEY = config.get("LLM_API_KEY", "")
-LLM_MODEL = "qwen-max"
-LLM_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
-CACHE_PATH = "shared_notebooks_cache.json"
+# Secrets (from config.json)
+DEV_TOKEN = config.get("DEV_TOKEN", "")
+DINGTALK_WEBHOOK = config.get("DINGTALK_WEBHOOK", "")
+DINGTALK_SECRET = config.get("DINGTALK_SECRET", "")
+DINGTALK_WEBHOOK_NOTIFICATION = config.get("DINGTALK_WEBHOOK_NOTIFICATION", "")
+DOWNLOAD_DIR = config.get("DOWNLOAD_DIR", "D:\\Get")
 
-# Output/debug switches
-PRINT_ENDPOINTS = True
+# LLM Configuration
+active_llm_key = config.get("ACTIVE_LLM", "qwen")
+llm_configs = config.get("LLM_CONFIGS", {})
+active_llm_config = llm_configs.get(active_llm_key, {})
+
+LLM_API_KEY = active_llm_config.get("API_KEY", "")
+LLM_MODEL = active_llm_config.get("MODEL", "qwen-max")
+LLM_BASE_URL = active_llm_config.get("BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+
+# Output files
+NOTEBOOK_LIST = "notebook_list.json"
+NOTE_DAILY_FULL = "note_daily_full.txt"
+NOTE_DAILY_MAIN = "note_daily_main.txt"
+
+# Debug/Output switches
+PRINT_ENDPOINTS = False
 PRINT_NOTE_TEXT_TO_CONSOLE = False
 PRINT_DINGTALK_RESPONSE = False
 
-# Output file (one file for all notebooks)
-OUTPUT_TEXT_PATH = "latest_shared_notes.txt"
-MAIN_CONTENT_PATH = "main_content.txt"
-
 # Filter rules
-# If a note title contains this string, treat it as a "directory/index" note and skip it.
 SKIP_TITLE_CONTAINS = "【"
-# When searching for the "latest non-directory note", fetch up to this many notes.
-MAX_NOTES_TO_SCAN_PER_NOTEBOOK = 10
+MAX_NOTES_TO_SCAN_PER_NOTEBOOK = 5
+# True: sync today's note; False: sync the latest available note
+SYNC_TODAY_ONLY = True
 
-# Only keep notes for today's date.
-# Title prefix example: "25.1210丨100｜..."
-ONLY_KEEP_TODAY = True
-
-# DingTalk robot webhook (optional). Example:
-# https://oapi.dingtalk.com/robot/send?access_token=xxxx
-DINGTALK_WEBHOOK = "https://oapi.dingtalk.com/robot/send?access_token=d9be77e9d9b6587e9a9fbda216b0020f036fd7c8a1091669ea2b34c04131f12c"
-# DingTalk secret for "sign" (optional). If set, requests will include timestamp + sign.
-DINGTALK_SECRET = "SECcd4f87d484378b7b8e91aed6bdcd8319cb416b149baa521c7894170428664551"
+# --- END CONFIGURATION ---
 
 
 @dataclass
@@ -246,6 +247,52 @@ def get_latest_note_plain_text(note_store, note_guid: str) -> str:
     )
     return enml_to_text(getattr(note, "content", "") or "")
 
+def download_mp3_attachments(note, download_dir: str):
+    """
+    Find and download .mp3 resources from the note.
+    """
+    if not note or not getattr(note, "resources", None):
+        return
+
+    path = Path(download_dir)
+    if not path.exists():
+        try:
+            path.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            print(f"Error creating download directory {download_dir}: {e}")
+            return
+
+    for res in note.resources:
+        mime = getattr(res, "mime", "")
+        filename = ""
+        if getattr(res, "attributes", None):
+            filename = getattr(res.attributes, "fileName", "")
+        
+        # Check if it's an MP3 by mime type or extension
+        is_mp3 = "audio/mpeg" in mime or (filename and filename.lower().endswith(".mp3"))
+        
+        if is_mp3:
+            if not filename:
+                filename = f"attachment_{res.guid[:8]}.mp3"
+            
+            # Skip files with "[1.5倍速]" in the name
+            if "[1.5倍速]" in filename:
+                print(f"Skipping 1.5x speed file: {filename}")
+                continue
+            
+            dest = path / filename
+            if dest.exists():
+                print(f"\nFile already exists, skipping: {filename}")
+                continue
+            
+            print(f"\nDownloading MP3 attachment: {filename}...")
+            if getattr(res, "data", None) and getattr(res.data, "body", None):
+                try:
+                    dest.write_bytes(res.data.body)
+                    print(f"Saved to {dest}")
+                except Exception as e:
+                    print(f"Failed to save {filename}: {e}")
+
 
 def today_title_prefix() -> str:
     # Example: "25.1210" for 2025-12-10
@@ -264,48 +311,86 @@ def summarize_text(text: str) -> str:
     if not LLM_API_KEY or not text:
         return ""
 
-    url = f"{LLM_BASE_URL.rstrip('/')}/chat/completions"
-    prompt = f"请为以下文章写一个100字左右的总结和摘要：\n\n{text}"
-    
-    body = json.dumps({
-        "model": LLM_MODEL,
-        "messages": [
-            {"role": "system", "content": "你是一个擅长提炼文章精华的助手。"},
-            {"role": "user", "content": prompt}
-        ],
-        "temperature": 0.7
-    }, ensure_ascii=False).encode("utf-8")
+    # Truncate extremely long text to avoid timeouts
+    if len(text) > 30000:
+        text = text[:30000] + "...(内容过长，已截断)"
 
-    req = request.Request(
-        url,
-        data=body,
-        headers={
-            "Content-Type": "application/json; charset=utf-8",
-            "Authorization": f"Bearer {LLM_API_KEY}"
-        },
-        method="POST",
-    )
-
+    prompt_template_path = Path(__file__).with_name("prompt.md")
     try:
-        with request.urlopen(req, timeout=30) as resp:
-            resp_body = resp.read().decode("utf-8", errors="replace")
-            data = json.loads(resp_body)
-            # OpenAI format: data['choices'][0]['message']['content']
-            summary = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-            return summary.strip()
+        prompt_template = prompt_template_path.read_text(encoding="utf-8").strip()
     except Exception as e:
-        print(f"\nLLM summarization failed: {e}")
-        return ""
+        print(f"Warning: Failed to load prompt.md, using default prompt. Error: {e}")
+        prompt_template = "请为以下文章写一个200字左右的总结和摘要："
+
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            # Branch 1: Use OpenAI client (e.g., for megallm or deepseek)
+            if active_llm_key != "qwen":
+                client = OpenAI(
+                    base_url=LLM_BASE_URL,
+                    api_key=LLM_API_KEY
+                )
+                response = client.chat.completions.create(
+                    model=LLM_MODEL,
+                    messages=[
+                        {"role": "system", "content": "你是一个擅长提炼文章精华的助手。"},
+                        {"role": "user", "content": f"{prompt_template}\n\n{text}"}
+                    ],
+                    temperature=0.7,
+                    timeout=120
+                )
+                return response.choices[0].message.content.strip()
+            
+            # Branch 2: Use urllib.request (original qwen branch)
+            else:
+                url = f"{LLM_BASE_URL.rstrip('/')}/chat/completions"
+                prompt = f"{prompt_template}\n\n{text}"
+                body = json.dumps({
+                    "model": LLM_MODEL,
+                    "messages": [
+                        {"role": "system", "content": "你是一个擅长提炼文章精华的助手。"},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.7
+                }, ensure_ascii=False).encode("utf-8")
+
+                req = request.Request(
+                    url,
+                    data=body,
+                    headers={
+                        "Content-Type": "application/json; charset=utf-8",
+                        "Authorization": f"Bearer {LLM_API_KEY}"
+                    },
+                    method="POST",
+                )
+                with request.urlopen(req, timeout=120) as resp:
+                    resp_body = resp.read().decode("utf-8", errors="replace")
+                    data = json.loads(resp_body)
+                    summary = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                    return summary.strip()
+
+        except Exception as e:
+            if "timeout" in str(e).lower() and attempt < max_retries - 1:
+                print(f"LLM ({active_llm_key}) summarization timeout (attempt {attempt + 1}/{max_retries}), retrying...")
+                time.sleep(2)
+                continue
+            print(f"\nLLM ({active_llm_key}) summarization failed: {e}")
+            break
+    return ""
 
 
-def post_dingtalk_text(webhook: str, content: str) -> None:
+def post_dingtalk_text(webhook: str, content: str, secret: str = None) -> None:
     if not webhook:
         return
     url = webhook
-    if DINGTALK_SECRET:
+    # Use provided secret or fall back to DINGTALK_SECRET
+    effective_secret = secret if secret is not None else DINGTALK_SECRET
+    
+    if effective_secret:
         ts = str(int(time.time() * 1000))
-        string_to_sign = f"{ts}\n{DINGTALK_SECRET}".encode("utf-8")
-        hmac_code = hmac.new(DINGTALK_SECRET.encode("utf-8"), string_to_sign, digestmod=hashlib.sha256).digest()
+        string_to_sign = f"{ts}\n{effective_secret}".encode("utf-8")
+        hmac_code = hmac.new(effective_secret.encode("utf-8"), string_to_sign, digestmod=hashlib.sha256).digest()
         sign = urllib.parse.quote_plus(base64.b64encode(hmac_code))
         sep = "&" if "?" in url else "?"
         url = f"{url}{sep}timestamp={ts}&sign={sign}"
@@ -340,7 +425,7 @@ def main():
     client = EvernoteClient(token=DEV_TOKEN, service_host=service_host, sandbox=False)
     personal_store = get_personal_note_store(client, service_host)
 
-    cache_file = Path(__file__).with_name(CACHE_PATH)
+    cache_file = Path(__file__).with_name(NOTEBOOK_LIST)
     cache_items = load_cache(cache_file)
 
     # Always refresh shared notebook list every run
@@ -353,6 +438,7 @@ def main():
             fresh_item.latestNoteGuid = old.latestNoteGuid
             fresh_item.lastCheckedAt = old.lastCheckedAt
             fresh_item.lastSentAt = old.lastSentAt
+            fresh_item.lastSentTitle = old.lastSentTitle # key check
         cache_items[share_key] = fresh_item
     save_cache(cache_file, cache_items)
 
@@ -363,6 +449,7 @@ def main():
     outputs: list[str] = []
     main_contents: list[str] = []
     today_prefix = today_title_prefix()
+    notification_sent = False
 
     for share_key, item in sorted(cache_items.items(), key=lambda kv: kv[1].shareName):
         if not item.linkedNoteStoreUrl or not item.shareKey:
@@ -377,36 +464,68 @@ def main():
 
         item.lastCheckedAt = now_ts()
         if not getattr(notes_md, "notes", None):
+            print(f"\n{item.shareName} - no update")
             continue
 
-        # Pick the latest note that is not a "directory/index" note.
+        # Pick the latest note that matches the criteria
         picked = None
         for n in notes_md.notes:
             t = getattr(n, "title", "") or ""
+            
+            # 1. Skip index notes
             if SKIP_TITLE_CONTAINS and SKIP_TITLE_CONTAINS in t:
                 continue
+            
+            # 2. Extract and check date prefix
+            date_prefix = extract_title_date_prefix(t)
+            if not date_prefix:
+                continue # Only process notes with yy.mmdd format
+            
+            # 3. If SYNC_TODAY_ONLY is True, check if it matches today
+            if SYNC_TODAY_ONLY and date_prefix != today_prefix:
+                continue
+            
+            # Found a candidate!
             picked = n
             break
 
         if picked is None:
+            print(f"\n{item.shareName} - no update")
             continue
 
         latest_title = getattr(picked, "title", "") or ""
         latest_guid = getattr(picked, "guid", "") or ""
 
+        # Fetch note with content and resources to check for MP3s
+        # (We do this regardless of title cache to ensure MP3s are checked)
+        note = shared_store.getNote(latest_guid, True, True, False, False) if latest_guid else None
+        
+        # Download MP3 attachments (logic inside checks if file already exists locally)
+        if note:
+            download_mp3_attachments(note, DOWNLOAD_DIR)
+
+        # Skip LLM summary and notification if we have already processed this note title
+        if item.lastSentTitle == latest_title:
+            # Update cache timestamps even if content is same
+            item.latestTitle = latest_title
+            item.latestNoteGuid = latest_guid
+            item.lastCheckedAt = now_ts()
+            print(f"{item.shareName} - {latest_title} - no update (mp3 checked)")
+            continue
+
         previous_title = item.latestTitle
         item.latestTitle = latest_title
         item.latestNoteGuid = latest_guid
 
-        # Keep only today's notes (based on the title prefix like "25.1210").
-        if ONLY_KEEP_TODAY:
-            if extract_title_date_prefix(latest_title) != today_prefix:
-                item.lastSentTitle = ""
-                continue
+        # Send notification to a separate webhook if it's a new today's note (keyword-only)
+        if SYNC_TODAY_ONLY:
+            if not notification_sent:
+                print(f"New note detected: {latest_title}. Sending update notification...")
+                post_dingtalk_text(DINGTALK_WEBHOOK_NOTIFICATION, "note updated", secret="")
+                notification_sent = True
 
-        plain = get_latest_note_plain_text(shared_store, latest_guid) if latest_guid else ""
-
-        # --- 问题2: 内容分割与AI总结 ---
+        plain = enml_to_text(getattr(note, "content", "") or "") if note else ""
+        
         # 以“用户留言”为界，分割文章主体和留言部分
         parts = plain.split("用户留言", 1)
         main_content = parts[0].strip()
@@ -414,7 +533,7 @@ def main():
 
         summary = ""
         if main_content:
-            print(f"Summarizing: {latest_title}...")
+            print(f"\nSummarizing: {latest_title}...")
             summary = summarize_text(main_content) # 只总结主体内容
 
         # --- 钉钉消息格式 ---
@@ -453,13 +572,16 @@ def main():
         # Update lastSentTitle only if we actually kept/saved this note today.
         item.lastSentTitle = latest_title
         item.lastSentAt = now_ts()
+        
+        print(f"{item.shareName} - {latest_title} - updated")
+
 
     if outputs:
-        out_file = Path(__file__).with_name(OUTPUT_TEXT_PATH)
+        out_file = Path(__file__).with_name(NOTE_DAILY_FULL)
         out_file.write_text("\n".join(outputs).strip() + "\n", encoding="utf-8")
 
     if main_contents:
-        main_content_file = Path(__file__).with_name(MAIN_CONTENT_PATH)
+        main_content_file = Path(__file__).with_name(NOTE_DAILY_MAIN)
         main_content_file.write_text("\n\n---\n\n".join(main_contents).strip() + "\n", encoding="utf-8")
 
     save_cache(cache_file, cache_items)
