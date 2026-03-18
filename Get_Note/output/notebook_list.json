@@ -1,5 +1,8 @@
 {
-  "updatedAt": 1773742570,
+  "updatedAt": 1773820810,
+  "syncedDates": [
+    "26.0317"
+  ],
   "items": {
     "64be7-s21": {
       "shareName": "262-老喻·《决策算法100讲》￥229元（完结）",
@@ -9,8 +12,10 @@
       "latestTitle": "25.0409丨100丨决策终极之战：打一场你必定胜利的战争",
       "latestNoteGuid": "77645633-318a-4709-ae43-c743bf8aa445",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742541,
-      "lastSentAt": 1773655180
+      "lastCheckedAt": 1773799723,
+      "lastSentAt": 1771064180,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "64c6d-s21": {
       "shareName": "03-得到·《2024每天听本书》￥365元（完结）",
@@ -20,8 +25,10 @@
       "latestTitle": "24.1231丨《朝贡圈》丨陈子昂解读",
       "latestNoteGuid": "fd08f39d-74a2-4667-9c4d-ef445afed5a0",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742524,
-      "lastSentAt": 1773655164
+      "lastCheckedAt": 1773799713,
+      "lastSentAt": 1771064164,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "64be9-s21": {
       "shareName": "04-得到·《2024·AI学习圈》￥399元（完结）",
@@ -31,8 +38,10 @@
       "latestTitle": "24.0409丨余一·如何用AI轻松完成行业研究分析？",
       "latestNoteGuid": "22de0f9b-201c-4a6d-a327-d3833fb79e84",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742533,
-      "lastSentAt": 1773655166
+      "lastCheckedAt": 1773799714,
+      "lastSentAt": 1771064166,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "64bea-s21": {
       "shareName": "05-得到·《2024·职场学习圈》￥399元（完结）",
@@ -42,8 +51,10 @@
       "latestTitle": "05.林屹·做商会千人邀请贴得加班？邮件合并1分钟搞定",
       "latestNoteGuid": "deb23aff-c997-40cd-9538-fa33bd577111",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742536,
-      "lastSentAt": 1773655168
+      "lastCheckedAt": 1773799716,
+      "lastSentAt": 1771064168,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "64beb-s21": {
       "shareName": "06-得到·《2024·心理成长圈》￥399元（完结）",
@@ -53,8 +64,10 @@
       "latestTitle": "24.1231丨187｜网络人格",
       "latestNoteGuid": "687c6598-84f9-490f-9cc8-d3e4b356dd42",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742537,
-      "lastSentAt": 1773655170
+      "lastCheckedAt": 1773799717,
+      "lastSentAt": 1771064170,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "64c5a-s21": {
       "shareName": "252-熊太行·《关系攻略2》￥299元（完结）",
@@ -64,8 +77,10 @@
       "latestTitle": "25.0527丨261｜未来十年可能的人际趋势变化",
       "latestNoteGuid": "fcb15683-2475-4ed9-8c3c-17dbc0845b6d",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742539,
-      "lastSentAt": 1773655176
+      "lastCheckedAt": 1773799720,
+      "lastSentAt": 1771064176,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "64c5b-s21": {
       "shareName": "253-《学习高手修炼手册（体验课）》（完结）",
@@ -75,8 +90,10 @@
       "latestTitle": "24.0530丨08丨许岑：怎样突破学习瓶颈？",
       "latestNoteGuid": "5531a720-fa2e-46ac-9c98-6c6ba31d0acd",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742540,
-      "lastSentAt": 1773655176
+      "lastCheckedAt": 1773799721,
+      "lastSentAt": 1771064176,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "64c61-s21": {
       "shareName": "259-吴军·《吴军来信2》￥299元（完结）",
@@ -86,8 +103,10 @@
       "latestTitle": "25.0921丨周末问答52｜面对未知，为什么要少做假设？",
       "latestNoteGuid": "995a8a0a-bd5e-4c96-8043-56720f25ada3",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742540,
-      "lastSentAt": 1773655177
+      "lastCheckedAt": 1773799721,
+      "lastSentAt": 1771064177,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "64c63-s21": {
       "shareName": "261-何刚·《投资参考2024-2025》￥399元（完结）",
@@ -97,8 +116,10 @@
       "latestTitle": "25.1118丨直播问答｜怎么看巴菲特继续持仓谷歌？",
       "latestNoteGuid": "94ce9546-9d26-46f1-a8c9-6f58320d6b12",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742541,
-      "lastSentAt": 1773655179
+      "lastCheckedAt": 1773799722,
+      "lastSentAt": 1771064179,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "64c6a-s21": {
       "shareName": "270-卓克·《科技参考4》￥299元（完结）",
@@ -108,8 +129,10 @@
       "latestTitle": "26.0203丨310｜《科技参考》复盘+下一季开更通知",
       "latestNoteGuid": "530f1aeb-184f-485d-9366-d58b32aa258a",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742543,
-      "lastSentAt": 1773655183
+      "lastCheckedAt": 1773799724,
+      "lastSentAt": 1771064183,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "247bdf-s55": {
       "shareName": "123-吴军·《阅读与写作50讲》￥199元（完结）",
@@ -119,8 +142,10 @@
       "latestTitle": "20.0801丨彩蛋｜跟宝木一起读《老人与海》",
       "latestNoteGuid": "afcaeeb0-aefa-489c-9ace-7f05d86602de",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742538,
-      "lastSentAt": 1773655172
+      "lastCheckedAt": 1773799718,
+      "lastSentAt": 1771064172,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "247b7e-s55": {
       "shareName": "26-梁宁·《产品思维30讲》￥99元（完结）",
@@ -130,8 +155,10 @@
       "latestTitle": "19.0930丨新课上线，梁宁在《增长思维30讲》等你",
       "latestNoteGuid": "ebce3633-1a7b-4a5c-8438-0e42ce367f1f",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742541,
-      "lastSentAt": 1773655178
+      "lastCheckedAt": 1773799722,
+      "lastSentAt": 1771064178,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "247b7f-s55": {
       "shareName": "27-梁宁·《增长思维30讲》￥99元（完结）",
@@ -141,8 +168,10 @@
       "latestTitle": "24.0429丨加餐4 | 智能世界的增长框架（下）",
       "latestNoteGuid": "ed0d3f47-5c0a-4327-88d1-69a61e4697eb",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742542,
-      "lastSentAt": 1773655182
+      "lastCheckedAt": 1773799724,
+      "lastSentAt": 1771064182,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "64e42-s21": {
       "shareName": "265-华杉·《华杉新品牌营销课》￥199元（完结）",
@@ -152,8 +181,10 @@
       "latestTitle": "24.1128丨10｜道真县域：城市怎样做品牌营销？",
       "latestNoteGuid": "eb5ea834-4b3e-486c-ade0-66d1c7fb15cc",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742542,
-      "lastSentAt": 1773655181
+      "lastCheckedAt": 1773799723,
+      "lastSentAt": 1771064181,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "66c59-s21": {
       "shareName": "250-万维钢·《精英日课·第六季》￥299元（完结）",
@@ -163,8 +194,10 @@
       "latestTitle": "25.0610丨306丨第六季结束语：幸逢拐点",
       "latestNoteGuid": "a302ce95-9469-469d-a98b-c7e8bbc2cd3e",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742539,
-      "lastSentAt": 1773655175
+      "lastCheckedAt": 1773799720,
+      "lastSentAt": 1771064175,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "6ac9b-s21": {
       "shareName": "03-得到·《2025每天听本书》￥365元（更新中）",
@@ -174,8 +207,10 @@
       "latestTitle": "25.1231丨《0次与10000次》| 李松蔚解读",
       "latestNoteGuid": "ee0565d3-1f5b-4bd4-bbb7-3d065579dabd",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742526,
-      "lastSentAt": 1773655165
+      "lastCheckedAt": 1773799713,
+      "lastSentAt": 1771064165,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "6acbd-s21": {
       "shareName": "04-得到·《2025·AI学习圈》￥399元（完结）",
@@ -185,8 +220,10 @@
       "latestTitle": "03.如何用即梦高效设计IP绘本漫画和周边产品?",
       "latestNoteGuid": "e7c0a984-c406-411f-890e-09410ac22df6",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742533,
-      "lastSentAt": 1773655167
+      "lastCheckedAt": 1773799715,
+      "lastSentAt": 1771064167,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "6acdf-s21": {
       "shareName": "05-得到·《2025·职场学习圈》￥399元（完结）",
@@ -196,8 +233,10 @@
       "latestTitle": "25.1203丨227丨一被质疑就想反驳？三招教你把「急脾气」变成「快反应」",
       "latestNoteGuid": "80c1325f-6913-4904-b633-25c5459ee643",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742536,
-      "lastSentAt": 1773655169
+      "lastCheckedAt": 1773799716,
+      "lastSentAt": 1771064169,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "6ad01-s21": {
       "shareName": "06-得到·《2025·心理成长圈》￥399元（完结）",
@@ -207,8 +246,10 @@
       "latestTitle": "25.1203丨428｜迟迟下不了决心？先定个“做决定的日子”",
       "latestNoteGuid": "15e0b223-634f-435b-a431-e6297f448381",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742537,
-      "lastSentAt": 1773655171
+      "lastCheckedAt": 1773799717,
+      "lastSentAt": 1771064171,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "6ae6a-s21": {
       "shareName": "272-马江博·《政经参考1》￥299元（完结）",
@@ -218,8 +259,10 @@
       "latestTitle": "25.1231丨260｜年度收官：从2025到2026的关键总结和预判（下）",
       "latestNoteGuid": "ef0bae9e-5e1e-4401-997d-609cfb19a884",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742543,
-      "lastSentAt": 1773655183
+      "lastCheckedAt": 1773799725,
+      "lastSentAt": 1771064183,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "6ba7e-s21": {
       "shareName": "274-蒋文华·《蒋文华·博弈论50讲》￥139元（完结）",
@@ -229,8 +272,10 @@
       "latestTitle": "25.0419丨50丨结语：博弈思维究竟是什么？",
       "latestNoteGuid": "2223e376-0c4c-4d7b-a954-7a8241fadc2a",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742544,
-      "lastSentAt": 1773655184
+      "lastCheckedAt": 1773799726,
+      "lastSentAt": 1771064184,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "247bfc-s55": {
       "shareName": "153-哈佛商学院教授·《哈佛商学院案例学习课》￥149元（完结）",
@@ -240,8 +285,10 @@
       "latestTitle": "21.1111丨跟哈佛商学院工商管理学教授学习：数字化时代， 企业如何应对创新？",
       "latestNoteGuid": "3d936044-9820-4f15-84b8-ca7658a4e20b",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742538,
-      "lastSentAt": 1773655173
+      "lastCheckedAt": 1773799718,
+      "lastSentAt": 1771064173,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "247ba5-s55": {
       "shareName": "65-李翔·《商业内参》￥199元（完结）",
@@ -251,8 +298,10 @@
       "latestTitle": "17.0527丨过去一年的十个瞬间",
       "latestNoteGuid": "30449f77-05fe-4c7b-9234-ce8e8f420b7f",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742569,
-      "lastSentAt": 1773655199
+      "lastCheckedAt": 1773799734,
+      "lastSentAt": 1771064199,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "247bbe-s55": {
       "shareName": "90-张潇雨·《商业经典案例课》￥199元（完结）",
@@ -262,8 +311,10 @@
       "latestTitle": "20.0917丨附录丨货币的四条基础法则+书单",
       "latestNoteGuid": "e014a5a2-df0e-460c-929b-124dc7912ee3",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742570,
-      "lastSentAt": 1773655199
+      "lastCheckedAt": 1773799735,
+      "lastSentAt": 1771064199,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "6c225-s21": {
       "shareName": "277-蔡钰·《商业参考4》￥299元（更新中）",
@@ -273,8 +324,10 @@
       "latestTitle": "26.0317丨249｜ “龙虾”分歧（上）：国家防风险，地方抢产业",
       "latestNoteGuid": "ffedd4d8-3460-4a9c-8b40-704ffa4971a3",
       "lastSentTitle": "26.0317丨249｜ “龙虾”分歧（上）：国家防风险，地方抢产业",
-      "lastCheckedAt": 1773742545,
-      "lastSentAt": 1773740978
+      "lastCheckedAt": 1773820806,
+      "lastSentAt": 1773740978,
+      "archivedNote": false,
+      "mp3Downloaded": true
     },
     "6ce12-s21": {
       "shareName": "279-贾行家·《年度人文课堂》￥299元（更新中）",
@@ -284,8 +337,10 @@
       "latestTitle": "26.0317丨198｜ 姚洋《活明白的学问》（1）：如何掌握自己的命运？",
       "latestNoteGuid": "d8c84e76-5410-4957-a8ee-c8c79f4359df",
       "lastSentTitle": "26.0317丨198｜ 姚洋《活明白的学问》（1）：如何掌握自己的命运？",
-      "lastCheckedAt": 1773742548,
-      "lastSentAt": 1773741001
+      "lastCheckedAt": 1773820807,
+      "lastSentAt": 1773799127,
+      "archivedNote": false,
+      "mp3Downloaded": true
     },
     "6d5a3-s21": {
       "shareName": "281-马冠生·《营养健康100讲》￥199元（完结）",
@@ -295,8 +350,10 @@
       "latestTitle": "25.1210丨100｜网红零食：是什么让我们停不下来？",
       "latestNoteGuid": "15bf503f-098c-4adc-8d7b-5257c9e95951",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742548,
-      "lastSentAt": 1773655188
+      "lastCheckedAt": 1773799728,
+      "lastSentAt": 1771064188,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "6cca4-s21": {
       "shareName": "278-王路·《金刚经50讲》￥199元（完结）",
@@ -306,8 +363,10 @@
       "latestTitle": "25.0820丨55丨究竟涅槃：为什么烦恼即菩提？",
       "latestNoteGuid": "d597c031-26dd-4e22-a147-2739562b7b08",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742546,
-      "lastSentAt": 1773655186
+      "lastCheckedAt": 1773799726,
+      "lastSentAt": 1771064186,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "6dbfb-s21": {
       "shareName": "286-周之江·《周之江书院》￥299元（更新中）",
@@ -317,8 +376,10 @@
       "latestTitle": "26.0317丨134丨押字印｜民间匠人的创造如何登上大雅之堂",
       "latestNoteGuid": "6d814214-876c-4218-a816-529e3ed8b99e",
       "lastSentTitle": "26.0317丨134丨押字印｜民间匠人的创造如何登上大雅之堂",
-      "lastCheckedAt": 1773742553,
-      "lastSentAt": 1773741026
+      "lastCheckedAt": 1773820807,
+      "lastSentAt": 1773741026,
+      "archivedNote": false,
+      "mp3Downloaded": true
     },
     "6d946-s21": {
       "shareName": "283-刘擎·《爱情哲学30讲》￥129元（完结）",
@@ -328,8 +389,10 @@
       "latestTitle": "25.1008丨30丨结语：现实主义乌托邦",
       "latestNoteGuid": "afb95035-7b07-4e85-9919-28687791a53d",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742549,
-      "lastSentAt": 1773655188
+      "lastCheckedAt": 1773799728,
+      "lastSentAt": 1771064188,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "247c02-s55": {
       "shareName": "159-何刚·《财经大课》￥299元（完结）",
@@ -339,8 +402,10 @@
       "latestTitle": "22.0512丨毕业公开课 • 如何理解财经世界、实现财富人生?",
       "latestNoteGuid": "e9e63345-9031-47b0-9eac-add0ea7cd910",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742539,
-      "lastSentAt": 1773655174
+      "lastCheckedAt": 1773799719,
+      "lastSentAt": 1771064174,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "6e59f-s21": {
       "shareName": "290-刘润·《商业报告解读》￥299元（更新中）",
@@ -350,8 +415,10 @@
       "latestTitle": "26.0317丨084丨麦肯锡季刊：自动驾驶规模化之后，会改变什么？",
       "latestNoteGuid": "aad9e044-cf29-442d-9a11-5926b2bd235f",
       "lastSentTitle": "26.0317丨084丨麦肯锡季刊：自动驾驶规模化之后，会改变什么？",
-      "lastCheckedAt": 1773742557,
-      "lastSentAt": 1773741060
+      "lastCheckedAt": 1773820808,
+      "lastSentAt": 1773741060,
+      "archivedNote": false,
+      "mp3Downloaded": true
     },
     "6e9c9-s21": {
       "shareName": "291-何刚·《投资参考2025-2026》￥399元（更新中）",
@@ -361,8 +428,10 @@
       "latestTitle": "26.0317丨040｜中国AI芯片公司的投资价值还有多大？",
       "latestNoteGuid": "ec09c5cb-3dec-4be1-a368-7d763e8a7021",
       "lastSentTitle": "26.0317丨040｜中国AI芯片公司的投资价值还有多大？",
-      "lastCheckedAt": 1773742561,
-      "lastSentAt": 1773741085
+      "lastCheckedAt": 1773820809,
+      "lastSentAt": 1773741085,
+      "archivedNote": false,
+      "mp3Downloaded": true
     },
     "6e9eb-s21": {
       "shareName": "292-吴军·《教育的方法50讲》￥169元（完结）",
@@ -372,8 +441,10 @@
       "latestTitle": "26.0204丨52｜结语：未来工作会变多还是变少？",
       "latestNoteGuid": "70750ecc-b590-44cf-a502-e30bc3af5fe0",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742562,
-      "lastSentAt": 1773655193
+      "lastCheckedAt": 1773799731,
+      "lastSentAt": 1771064193,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "6eb0d-s21": {
       "shareName": "289-刘怡·《刘怡·国际参考》￥199元（更新中）",
@@ -383,8 +454,10 @@
       "latestTitle": "26.0317丨084｜身处伊朗战争前线，波斯湾国家将走向何方？",
       "latestNoteGuid": "f9f070dd-9adc-40fd-9a2f-2f2e2c20c21d",
       "lastSentTitle": "26.0317丨084｜身处伊朗战争前线，波斯湾国家将走向何方？",
-      "lastCheckedAt": 1773742555,
-      "lastSentAt": 1773741049
+      "lastCheckedAt": 1773820808,
+      "lastSentAt": 1773741049,
+      "archivedNote": false,
+      "mp3Downloaded": true
     },
     "6e221-s21": {
       "shareName": "288-王路·《情绪觉知100讲》￥299元（完结）",
@@ -394,8 +467,10 @@
       "latestTitle": "26.0313丨105丨面对：很多年没穿的衣服你为什么还留着？",
       "latestNoteGuid": "d9621ad0-ce4e-4101-851b-859ebfc162d4",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742553,
-      "lastSentAt": 1773655190
+      "lastCheckedAt": 1773799729,
+      "lastSentAt": 1771064190,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "6edbf-s21": {
       "shareName": "293-香帅·《中国财富报告2025-2026》￥99元（完结）",
@@ -405,8 +480,10 @@
       "latestTitle": "26.0106丨互动 | 香帅邀请你来填问卷，查收你的财富坐标",
       "latestNoteGuid": "cbd72518-9e12-422f-ad77-cba323b9899f",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742562,
-      "lastSentAt": 1773655194
+      "lastCheckedAt": 1773799731,
+      "lastSentAt": 1771064194,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "6ef99-s21": {
       "shareName": "294-何帆·《中国经济报告（2025-2026）》￥99元（完结）",
@@ -416,8 +493,10 @@
       "latestTitle": "26.0104丨20｜美学：颜值革命将如何影响中国经济？",
       "latestNoteGuid": "dfd3917a-31d3-489c-b70f-8ae35511dc27",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742562,
-      "lastSentAt": 1773655195
+      "lastCheckedAt": 1773799732,
+      "lastSentAt": 1771064195,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "6efbb-s21": {
       "shareName": "295-沈祖芸·《全球教育报告（2025-2026）》￥99元（完结）",
@@ -427,8 +506,10 @@
       "latestTitle": "25.1227丨专属福利｜领取《AI时代，给家长的七个行动锦囊》",
       "latestNoteGuid": "6cb717ec-712b-4917-a0aa-51416310ce6c",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742563,
-      "lastSentAt": 1773655195
+      "lastCheckedAt": 1773799732,
+      "lastSentAt": 1771064195,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "6f120-s21": {
       "shareName": "297-陈行甲·《青春期家庭教育40讲》￥169元（完结）",
@@ -438,8 +519,10 @@
       "latestTitle": "26.0224丨40｜从问题解决者，到家庭园丁",
       "latestNoteGuid": "2d2b15d2-352d-4609-9687-9fa1e1b4106b",
       "lastSentTitle": "",
-      "lastCheckedAt": 1773742567,
-      "lastSentAt": 1773655197
+      "lastCheckedAt": 1773799733,
+      "lastSentAt": 1771064197,
+      "archivedNote": true,
+      "mp3Downloaded": false
     },
     "6f12f-s21": {
       "shareName": "296-马江博·《政经参考2》￥299元（更新中）",
@@ -449,8 +532,10 @@
       "latestTitle": "26.0317丨053｜就业新趋势（下）：面对AI冲击，应该如何应对？",
       "latestNoteGuid": "67e4aaf5-a929-48aa-a513-2878555af996",
       "lastSentTitle": "26.0317丨053｜就业新趋势（下）：面对AI冲击，应该如何应对？",
-      "lastCheckedAt": 1773742566,
-      "lastSentAt": 1773741099
+      "lastCheckedAt": 1773820809,
+      "lastSentAt": 1773741099,
+      "archivedNote": false,
+      "mp3Downloaded": true
     },
     "6f15b-s21": {
       "shareName": "03-得到·《2026每天听本书》￥365元（更新中）",
@@ -460,8 +545,10 @@
       "latestTitle": "26.0317丨《孟子开讲》| 鲍鹏山解读",
       "latestNoteGuid": "f7e6e973-b9de-48df-957c-f159ba3b97fd",
       "lastSentTitle": "26.0317丨《孟子开讲》| 鲍鹏山解读",
-      "lastCheckedAt": 1773742532,
-      "lastSentAt": 1773740919
+      "lastCheckedAt": 1773820805,
+      "lastSentAt": 1773740919,
+      "archivedNote": false,
+      "mp3Downloaded": true
     },
     "6f187-s21": {
       "shareName": "04-得到·《2026·AI学习圈》￥399元（更新中）",
@@ -471,8 +558,10 @@
       "latestTitle": "26.0317丨791｜摩根士丹利报告：56%的人没因AI被裁掉，小公司比中型公司更安全",
       "latestNoteGuid": "42d20b2e-5101-4476-9109-5ca6a87afe99",
       "lastSentTitle": "26.0317丨791｜摩根士丹利报告：56%的人没因AI被裁掉，小公司比中型公司更安全",
-      "lastCheckedAt": 1773742536,
-      "lastSentAt": 1773740954
+      "lastCheckedAt": 1773820806,
+      "lastSentAt": 1773740954,
+      "archivedNote": false,
+      "mp3Downloaded": true
     },
     "6fa4d-s21": {
       "shareName": "298-于困困·《个人影响力打造35讲》￥99元（更新中）",
@@ -482,8 +571,10 @@
       "latestTitle": "26.0317丨11｜结构设计：怎样高效抓住用户注意力？",
       "latestNoteGuid": "d75bcde5-d964-4064-9b01-694a9974609f",
       "lastSentTitle": "26.0317丨11｜结构设计：怎样高效抓住用户注意力？",
-      "lastCheckedAt": 1773742569,
-      "lastSentAt": 1773741122
+      "lastCheckedAt": 1773820810,
+      "lastSentAt": 1773741122,
+      "archivedNote": false,
+      "mp3Downloaded": true
     }
   }
 }

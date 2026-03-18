@@ -96,15 +96,19 @@ class SharedNotebookCacheItem:
     latestTitle: str = ""
     latestNoteGuid: str = ""
     lastSentTitle: str = ""
+    lastCheckedAt: int = 0
+    lastSentAt: int = 0
+    archivedNote: bool = False
+    mp3Downloaded: bool = False
 
 
-def load_cache(cache_file: Path) -> dict[str, SharedNotebookCacheItem]:
+def load_cache(cache_file: Path) -> tuple[dict[str, SharedNotebookCacheItem], list[str]]:
     if not cache_file.exists():
-        return {}
+        return {}, []
     try:
         data = json.loads(cache_file.read_text(encoding="utf-8"))
     except Exception:
-        return {}
+        return {}, []
     items: dict[str, SharedNotebookCacheItem] = {}
     for share_key, raw in (data.get("items") or {}).items():
         if not isinstance(raw, dict):
@@ -113,12 +117,18 @@ def load_cache(cache_file: Path) -> dict[str, SharedNotebookCacheItem]:
             items[share_key] = SharedNotebookCacheItem(**raw)
         except Exception:
             continue
-    return items
+    synced_dates = data.get("syncedDates") or []
+    return items, synced_dates
 
 
-def save_cache(cache_file: Path, items: dict[str, SharedNotebookCacheItem]) -> None:
+def save_cache(cache_file: Path, items: dict[str, SharedNotebookCacheItem], synced_dates: list[str]) -> None:
+    # Only keep the last 10 dates
+    if len(synced_dates) > 10:
+        synced_dates = synced_dates[-10:]
+        
     payload = {
         "updatedAt": int(time.time()),
+        "syncedDates": synced_dates,
         "items": {k: asdict(v) for k, v in items.items()},
     }
     cache_file.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -169,12 +179,14 @@ def get_latest_note_plain_text(note_store, note_guid: str) -> str:
     note = note_store.getNote(note_guid, True, False, False, False)
     return enml_to_text(getattr(note, "content", "") or "")
 
-def download_mp3_attachments(note, download_dir: str):
+def download_mp3_attachments(note, download_dir: str) -> bool:
     """
     Find and download .mp3 resources from the note.
+    Returns True if at least one MP3 was found and ensured (downloaded or exists),
+    or if no MP3s were present at all.
     """
     if not note or not getattr(note, "resources", None):
-        return
+        return True
 
     path = Path(download_dir)
     if not path.exists():
@@ -182,8 +194,10 @@ def download_mp3_attachments(note, download_dir: str):
             path.mkdir(parents=True, exist_ok=True)
         except Exception as e:
             print(f"Error creating download directory {download_dir}: {e}")
-            return
+            return False
 
+    has_mp3 = False
+    all_success = True
     for res in note.resources:
         mime = getattr(res, "mime", "")
         filename = ""
@@ -194,17 +208,18 @@ def download_mp3_attachments(note, download_dir: str):
         is_mp3 = "audio/mpeg" in mime or (filename and filename.lower().endswith(".mp3"))
         
         if is_mp3:
+            has_mp3 = True
             if not filename:
                 filename = f"attachment_{res.guid[:8]}.mp3"
             
             # Skip files with "[1.5倍速]" in the name
             if "[1.5倍速]" in filename:
-                print(f"Skipping 1.5x speed file: {filename}")
+                # print(f"Skipping 1.5x speed file: {filename}")
                 continue
             
             dest = path / filename
             if dest.exists():
-                print(f"\nFile already exists, skipping: {filename}")
+                # print(f"\nFile already exists, skipping: {filename}")
                 continue
             
             print(f"\nDownloading MP3 attachment: {filename}...")
@@ -214,6 +229,11 @@ def download_mp3_attachments(note, download_dir: str):
                     print(f"Saved to {dest}")
                 except Exception as e:
                     print(f"Failed to save {filename}: {e}")
+                    all_success = False
+            else:
+                all_success = False
+
+    return all_success if has_mp3 else True
 
 def today_title_prefix() -> str:
     return time.strftime("%y.%m%d", time.localtime())
@@ -328,8 +348,13 @@ def main():
     
     # Load cache for persistence
     cache_file = Path(__file__).parent / "demo_notebook_cache.json"
-    cache_items = load_cache(cache_file)
+    cache_items, synced_dates = load_cache(cache_file)
     
+    today_prefix = today_title_prefix()
+    if SYNC_TODAY_ONLY and today_prefix in synced_dates:
+        print(f"{today_prefix} already synced")
+        return
+
     share_key = DEMO_NOTEBOOK["shareKey"]
     if share_key in cache_items:
         item = cache_items[share_key]
@@ -341,10 +366,16 @@ def main():
             shareName=DEMO_NOTEBOOK.get("shareName", "Demo Notebook"),
             shareKey=share_key,
             linkedNoteStoreUrl=DEMO_NOTEBOOK["noteStoreUrl"],
+            lastSentAt=now_ts() # Initialize for new
         )
         cache_items[share_key] = item
 
+    if item.archivedNote:
+        print(f"Skipping archived notebook: {item.shareName}")
+        return
+
     notification_sent = False
+    all_active_synced_today = True
 
     try:
         shared_store = get_shared_note_store(client, item.linkedNoteStoreUrl, item.shareKey)
@@ -353,8 +384,12 @@ def main():
         print(f"\nFailed to read shared notebook '{item.shareName}' ({item.shareKey}): {e}")
         return
 
+    item.lastCheckedAt = now_ts()
     if not getattr(notes_md, "notes", None):
         print(f"\n{item.shareName} - no update")
+        all_active_synced_today = False
+        # Still need to save cache for lastCheckedAt
+        save_cache(cache_file, cache_items, synced_dates)
         return
 
     # Pick the latest note that matches the criteria
@@ -372,7 +407,7 @@ def main():
             continue # Only process notes with yy.mmdd format
         
         # 3. If SYNC_TODAY_ONLY is True, check if it matches today
-        if SYNC_TODAY_ONLY and date_prefix != today_title_prefix():
+        if SYNC_TODAY_ONLY and date_prefix != today_prefix:
             continue
         
         # Found a candidate!
@@ -380,26 +415,38 @@ def main():
         break
 
     if picked is None:
-        print(f"\n{item.shareName} - no update")
+        print(f"\n{item.shareName} - no update (today's note not found)")
+        all_active_synced_today = False
+        save_cache(cache_file, cache_items, synced_dates)
         return
 
     latest_title = getattr(picked, "title", "") or ""
     latest_guid = getattr(picked, "guid", "") or ""
 
-    # Fetch note with content and resources to check for MP3s
-    # (We do this regardless of title cache to ensure MP3s are checked)
-    note = shared_store.getNote(latest_guid, True, True, False, False) if latest_guid else None
-    
-    # Download MP3 attachments (logic inside checks if file already exists locally)
-    if note:
-        download_mp3_attachments(note, DOWNLOAD_DIR)
+    # Check if we should skip resource check/download
+    if not item.mp3Downloaded or item.lastSentTitle != latest_title:
+        # Fetch note with content and resources to check for MP3s
+        # (We do this if mp3 is not downloaded OR if title is new)
+        note = shared_store.getNote(latest_guid, True, True, False, False) if latest_guid else None
+        
+        # Download MP3 attachments (logic inside checks if file already exists locally)
+        if note:
+            # If we have a new title, reset mp3Downloaded and re-check
+            if item.lastSentTitle != latest_title:
+                item.mp3Downloaded = False
+            
+            download_success = download_mp3_attachments(note, DOWNLOAD_DIR)
+            item.mp3Downloaded = download_success
+    else:
+        # Already downloaded and title matches, skip note fetch
+        note = None
 
     # Skip processing if we have already sent/processed this note title
     if item.lastSentTitle == latest_title:
         # Update cache even if content is same
         item.latestTitle = latest_title
         item.latestNoteGuid = latest_guid
-        save_cache(cache_file, cache_items)
+        save_cache(cache_file, cache_items, synced_dates)
         print(f"- {item.shareName} - {latest_title} - no update (mp3 checked)")
         return
 
@@ -446,7 +493,22 @@ def main():
     item.lastSentTitle = latest_title
     item.latestTitle = latest_title
     item.latestNoteGuid = latest_guid
-    save_cache(cache_file, cache_items)
+    item.lastSentAt = now_ts()
+
+    # Update archivedNote status
+    thirty_days_sec = 30 * 24 * 3600
+    current_time = now_ts()
+    if not item.archivedNote and item.lastSentAt > 0 and (current_time - item.lastSentAt) > thirty_days_sec:
+        item.archivedNote = True
+        print(f"Archiving inactive notebook: {item.shareName}")
+
+    # Mark today as synced if SYNC_TODAY_ONLY is on and all active were synced
+    if SYNC_TODAY_ONLY and all_active_synced_today:
+        if today_prefix not in synced_dates:
+            synced_dates.append(today_prefix)
+            print(f"Marked {today_prefix} as synced")
+
+    save_cache(cache_file, cache_items, synced_dates)
     
     print(f"{item.shareName} - {latest_title} - updated")
 
