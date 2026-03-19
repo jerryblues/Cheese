@@ -45,7 +45,7 @@ def parse_notes(file_path: Path):
             if not note_raw.strip():
                 continue
                 
-            # 3. Note Title (keep only content after the last ｜ or |)
+            # 3. Note Title (remove date and number prefixes, keep rest)
             full_title = ""
             title_match = re.search(r'Title:\s*(.*)', note_raw)
             if title_match:
@@ -53,9 +53,33 @@ def parse_notes(file_path: Path):
             
             note_display_title = full_title
             if full_title:
-                # Split by both full-width and half-width pipes
-                title_parts = re.split(r'[｜|]', full_title)
-                note_display_title = title_parts[-1].strip()
+                # First remove date prefix (e.g., "26.0318丨") and number prefix (e.g., "085丨")
+                # Match pattern: YY.MMDD丨 followed by optional number丨
+                cleaned_title = re.sub(r'^\d{2}\.\d{4}丨(\d+丨)?', '', full_title)
+                cleaned_title = cleaned_title.strip()
+                
+                # Remove trailing quotes if present
+                cleaned_title = cleaned_title.rstrip('"')
+                
+                # Apply the rule: find the first Chinese character from the beginning
+                # Then check what's before it
+                chinese_char_pattern = re.compile(r'[\u4e00-\u9fa5]')
+                match = chinese_char_pattern.search(cleaned_title)
+                
+                if match:
+                    start_pos = match.start()
+                    # Check what's before the first Chinese character
+                    if start_pos > 0:
+                        prev_char = cleaned_title[start_pos - 1]
+                        # If previous character is a space, start from the Chinese character
+                        if prev_char.isspace():
+                            start_pos = start_pos
+                        # If previous character is a punctuation that should be included
+                        elif prev_char in ['《', '"', '“', "'", "‘"]:
+                            start_pos = start_pos - 1
+                    
+                    # Extract from start_pos to end
+                    note_display_title = cleaned_title[start_pos:]
             
             # 4. Update Time (from Title)
             update_time = ""

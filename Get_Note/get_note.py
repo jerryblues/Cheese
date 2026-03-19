@@ -89,7 +89,7 @@ PRINT_DINGTALK_RESPONSE = False
 SKIP_TITLE_CONTAINS = "【"
 MAX_NOTES_TO_SCAN_PER_NOTEBOOK = 5
 # True: sync today's note; False: sync the latest available note
-SYNC_TODAY_ONLY = True
+SYNC_TODAY_ONLY = False
 
 # --- END CONFIGURATION ---
 
@@ -106,7 +106,14 @@ class SharedNotebookCacheItem:
     lastCheckedAt: int = 0
     lastSentAt: int = 0
     archivedNote: bool = False
-    mp3Downloaded: bool = False
+    syncedNotes: dict[str, bool] = None # {title: mp3Downloaded}
+
+    def __post_init__(self):
+        if self.syncedNotes is None:
+            self.syncedNotes = {}
+        # Migration from legacy syncedNoteTitles list if exists (handled during load_cache)
+        if self.lastSentTitle and self.lastSentTitle not in self.syncedNotes:
+            self.syncedNotes[self.lastSentTitle] = True # Assume old ones were fully synced
 
 
 def now_ts() -> int:
@@ -168,6 +175,27 @@ def load_cache(cache_file: Path) -> tuple[dict[str, SharedNotebookCacheItem], li
     for share_key, raw in (data.get("items") or {}).items():
         if not isinstance(raw, dict):
             continue
+        
+        # Convert string timestamps back to integers
+        if isinstance(raw.get("lastCheckedAt"), str):
+            try:
+                # Try to parse the string timestamp back to integer
+                # If it's a readable format, convert to timestamp
+                # Otherwise, use current time
+                raw["lastCheckedAt"] = int(time.mktime(time.strptime(raw["lastCheckedAt"], "%Y-%m-%d %H:%M:%S")))
+            except Exception:
+                raw["lastCheckedAt"] = now_ts()
+        if isinstance(raw.get("lastSentAt"), str):
+            try:
+                raw["lastSentAt"] = int(time.mktime(time.strptime(raw["lastSentAt"], "%Y-%m-%d %H:%M:%S")))
+            except Exception:
+                raw["lastSentAt"] = now_ts()
+        
+        # Migration from syncedNoteTitles (list) to syncedNotes (dict)
+        legacy_titles = raw.pop("syncedNoteTitles", [])
+        if "syncedNotes" not in raw:
+            raw["syncedNotes"] = {t: True for t in legacy_titles}
+        
         try:
             items[share_key] = SharedNotebookCacheItem(**raw)
         except Exception:
@@ -181,10 +209,35 @@ def save_cache(cache_file: Path, items: dict[str, SharedNotebookCacheItem], sync
     if len(synced_dates) > 10:
         synced_dates = synced_dates[-10:]
     
+    # Process items for saving
+    processed_items = {}
+    for k, v in items.items():
+        item_dict = asdict(v)
+        
+        # Convert timestamps to readable format (UTC+8)
+        if item_dict.get("lastCheckedAt"):
+            item_dict["lastCheckedAt"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(item_dict["lastCheckedAt"]))
+        if item_dict.get("lastSentAt"):
+            item_dict["lastSentAt"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(item_dict["lastSentAt"]))
+        
+        # Update linkedNoteStoreUrl to use web format
+        latest_note_guid = item_dict.get("latestNoteGuid", "")
+        if latest_note_guid:
+            item_dict["linkedNoteStoreUrl"] = f"https://app.yinxiang.com/shard/s21/nl/25729210/{latest_note_guid}"
+        
+        # Limit syncedNotes to last 10 items (FIFO)
+        synced_notes = item_dict.get("syncedNotes", {})
+        if len(synced_notes) > 10:
+            # Convert to list, keep last 10, then convert back to dict
+            sorted_notes = list(synced_notes.items())
+            item_dict["syncedNotes"] = dict(sorted_notes[-10:])
+        
+        processed_items[k] = item_dict
+    
     payload = {
-        "updatedAt": now_ts(),
+        "updatedAt": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
         "syncedDates": synced_dates,
-        "items": {k: asdict(v) for k, v in items.items()},
+        "items": processed_items,
     }
     cache_file.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -260,14 +313,15 @@ def get_latest_note_plain_text(note_store, note_guid: str) -> str:
     )
     return enml_to_text(getattr(note, "content", "") or "")
 
-def download_mp3_attachments(note, download_dir: str) -> bool:
+def download_mp3_attachments(note, download_dir: str) -> tuple[bool, bool]:
     """
     Find and download .mp3 resources from the note.
-    Returns True if at least one MP3 was found and ensured (downloaded or exists),
-    or if no MP3s were present at all.
+    Returns (download_success, has_mp3)
+    - download_success: True if all MP3s were successfully downloaded or already exist
+    - has_mp3: True if at least one MP3 was found
     """
     if not note or not getattr(note, "resources", None):
-        return True # No resources to download, consider it "done"
+        return True, False # No resources, but consider it "done" for this check
 
     path = Path(download_dir)
     if not path.exists():
@@ -275,7 +329,7 @@ def download_mp3_attachments(note, download_dir: str) -> bool:
             path.mkdir(parents=True, exist_ok=True)
         except Exception as e:
             print(f"Error creating download directory {download_dir}: {e}")
-            return False
+            return False, False
 
     has_mp3 = False
     all_success = True
@@ -314,7 +368,7 @@ def download_mp3_attachments(note, download_dir: str) -> bool:
             else:
                 all_success = False
 
-    return all_success if has_mp3 else True
+    return all_success, has_mp3
 
 
 def today_title_prefix() -> str:
@@ -462,7 +516,7 @@ def main():
 
     # Always refresh shared notebook list every run
     fresh = refresh_shared_notebooks(personal_store)
-    # merge into cache to keep latestTitle fields; lastSentTitle will be updated below
+    # merge into cache to keep history fields
     for share_key, fresh_item in fresh.items():
         old = cache_items.get(share_key)
         if old:
@@ -470,8 +524,8 @@ def main():
             fresh_item.latestNoteGuid = old.latestNoteGuid
             fresh_item.lastCheckedAt = old.lastCheckedAt
             fresh_item.lastSentAt = old.lastSentAt
-            fresh_item.lastSentTitle = old.lastSentTitle # key check
-            fresh_item.mp3Downloaded = old.mp3Downloaded
+            fresh_item.lastSentTitle = old.lastSentTitle
+            fresh_item.syncedNotes = getattr(old, "syncedNotes", {})
             fresh_item.archivedNote = old.archivedNote
         cache_items[share_key] = fresh_item
     save_cache(cache_file, cache_items, synced_dates)
@@ -487,147 +541,207 @@ def main():
     # Track if all active notebooks have today's note synced
     all_active_synced_today = True
 
+    # Debug: Print all notebooks
+    print(f"\nProcessing {len(cache_items)} notebooks:")
     for share_key, item in sorted(cache_items.items(), key=lambda kv: kv[1].shareName):
-        if not item.linkedNoteStoreUrl or not item.shareKey:
-            continue
-        
-        # Skip archived notebooks
-        if item.archivedNote:
-            # print(f"Skipping archived notebook: {item.shareName}")
-            continue
-
+        print(f"  - {item.shareName} (shareKey: {share_key})")
+    
+    for share_key, item in sorted(cache_items.items(), key=lambda kv: kv[1].shareName):
         try:
-            shared_store = get_shared_note_store(client, item.linkedNoteStoreUrl, item.shareKey)
-            notes_md = fetch_latest_from_store(shared_store, "")
-        except Exception as e:
-            print(f"\nFailed to read shared notebook '{item.shareName}' ({share_key}): {e}")
-            all_active_synced_today = False
-            continue
-
-        item.lastCheckedAt = now_ts()
-        if not getattr(notes_md, "notes", None):
-            print(f"\n{item.shareName} - no update")
-            all_active_synced_today = False
-            continue
-
-        # Pick the latest note that matches the criteria
-        picked = None
-        for n in notes_md.notes:
-            t = getattr(n, "title", "") or ""
-            
-            # 1. Skip index notes
-            if SKIP_TITLE_CONTAINS and SKIP_TITLE_CONTAINS in t:
+            print(f"\nProcessing notebook: {item.shareName} (shareKey: {share_key})")
+            if not item.linkedNoteStoreUrl or not item.shareKey:
+                print(f"  Skipped: missing linkedNoteStoreUrl or shareKey")
                 continue
             
-            # 2. Extract and check date prefix
-            date_prefix = extract_title_date_prefix(t)
-            if not date_prefix:
-                continue # Only process notes with yy.mmdd format
-            
-            # 3. If SYNC_TODAY_ONLY is True, check if it matches today
-            if SYNC_TODAY_ONLY and date_prefix != today_prefix:
+            # Skip archived notebooks
+            if item.archivedNote:
+                print(f"  Skipped: archived")
+                continue
+
+            try:
+                shared_store = get_shared_note_store(client, item.linkedNoteStoreUrl, item.shareKey)
+                # Use empty string to get all notes, then filter on client side
+                notes_md = fetch_latest_from_store(shared_store, "")
+            except Exception as e:
+                print(f"\nFailed to read shared notebook '{item.shareName}' ({share_key}): {e}")
+                all_active_synced_today = False
                 continue
             
-            # Found a candidate!
-            picked = n
-            break
+            try:
+                item.lastCheckedAt = now_ts()
+                if not getattr(notes_md, "notes", None):
+                    print(f"\n{item.shareName} - no update")
+                    all_active_synced_today = False
+                    continue
 
-        if picked is None:
-            print(f"\n{item.shareName} - no update - today's note not updated")
-            all_active_synced_today = False
-            continue
+                # Debug: Print number of notes found
+                print(f"\n{item.shareName} - found {len(notes_md.notes)} notes")
 
-        latest_title = getattr(picked, "title", "") or ""
-        latest_guid = getattr(picked, "guid", "") or ""
-
-        # Check if we should skip resource check/download
-        if not item.mp3Downloaded or item.lastSentTitle != latest_title:
-            # Fetch note with content and resources to check for MP3s
-            # (We do this if mp3 is not downloaded OR if title is new)
-            note = shared_store.getNote(latest_guid, True, True, False, False) if latest_guid else None
-            
-            # Download MP3 attachments (logic inside checks if file already exists locally)
-            if note:
-                # If we have a new title, reset mp3Downloaded and re-check
-                if item.lastSentTitle != latest_title:
-                    item.mp3Downloaded = False
+                # Process notes (from newest to oldest in API result)
+                to_sync_notes = []
                 
-                download_success = download_mp3_attachments(note, DOWNLOAD_DIR)
-                item.mp3Downloaded = download_success
-        else:
-            # Already downloaded and title matches, skip note fetch
-            note = None
+                for n in notes_md.notes:
+                    t = getattr(n, "title", "") or ""
+                    # print(f"  - Note: {t}")
+                    
+                    # 1. Skip index notes
+                    if SKIP_TITLE_CONTAINS and SKIP_TITLE_CONTAINS in t:
+                        # print(f"    Skipped: contains {SKIP_TITLE_CONTAINS}")
+                        continue
+                    
+                    # 2. Extract and check date prefix (yy.mmdd)
+                    date_prefix = extract_title_date_prefix(t)
+                    if not date_prefix:
+                        # print(f"    Skipped: no date prefix")
+                        continue
+                    
+                    
+                    
+                    # 4. Check sync status
+                    is_synced = t in item.syncedNotes
+                    mp3_status = item.syncedNotes.get(t, False)
 
-        # Skip LLM summary and notification if we have already processed this note title
-        if item.lastSentTitle == latest_title:
-            # Update cache timestamps even if content is same
-            item.latestTitle = latest_title
-            item.latestNoteGuid = latest_guid
-            item.lastCheckedAt = now_ts()
-            print(f"\n{item.shareName} - {latest_title} - no update - mp3 checked")
+                    # Skip if already downloaded or marked as no_mp3
+                    if mp3_status in ["downloaded", "no_mp3"]:
+                        # Fully done, stop if this is the lastSentTitle
+                        if t == item.lastSentTitle:
+                            print(f"    Stopping: reached last sent title")
+                            break
+                        print(f"    Skipped: already synced")
+                        continue
+
+                    to_sync_notes.append(n)
+                    print(f"    Added to sync list")
+
+                print(f"  Total notes to sync: {len(to_sync_notes)}")
+
+                if not to_sync_notes:
+                    continue
+
+                # Process from oldest to newest (to maintain order in outputs)
+                to_sync_notes.reverse()
+
+                for picked in to_sync_notes:
+                    try:
+                        latest_title = getattr(picked, "title", "") or ""
+                        latest_guid = getattr(picked, "guid", "") or ""
+                        
+                        print(f"  Processing note: {latest_title} (guid: {latest_guid})")
+                        
+                        is_synced = latest_title in item.syncedNotes
+                        mp3_status = item.syncedNotes.get(latest_title, False)
+                        download_success = False
+
+                        # 1. If MP3 not done, try downloading (even if text is synced)
+                        if mp3_status not in ["downloaded", "no_mp3"]:
+                            print(f"    Fetching note with resources for MP3 download: {latest_title}")
+                            try:
+                                # 获取包含资源数据的笔记
+                                note = shared_store.getNote(latest_guid, True, True, False, False)
+                                print(f"    Downloading MP3 attachments for: {latest_title}")
+                                download_success, has_mp3 = download_mp3_attachments(note, DOWNLOAD_DIR)
+                                
+                                # Update status based on result
+                                if has_mp3:
+                                    item.syncedNotes[latest_title] = "downloaded"
+                                else:
+                                    # Check if this is the second time we've checked and found no MP3
+                                    if isinstance(mp3_status, int):
+                                        if mp3_status >= 1:
+                                            # Second check with no MP3, mark as no_mp3
+                                            item.syncedNotes[latest_title] = "no_mp3"
+                                        else:
+                                            # First check with no MP3, increment counter
+                                            item.syncedNotes[latest_title] = mp3_status + 1
+                                    else:
+                                        # First check with no MP3, start counter
+                                        item.syncedNotes[latest_title] = 1
+                            except Exception as e:
+                                print(f"    Error downloading MP3 attachments: {e}")
+                                # On error, don't increment counter, just leave as is or set to 0
+                                if not isinstance(mp3_status, (int, str)):
+                                    item.syncedNotes[latest_title] = 0
+                            
+                            # If text was already synced, we are done with this note
+                            if is_synced:
+                                print(f"{item.shareName} - {latest_title} - MP3 catch-up {'successful' if download_success else 'failed'}")
+                                continue
+                        else:
+                            # 文本已同步但MP3未完成，获取包含资源的笔记
+                            print(f"    Fetching note for text: {latest_title}")
+                            try:
+                                note = shared_store.getNote(latest_guid, True, False, False, False)
+                            except Exception as e:
+                                print(f"    Error fetching note: {e}")
+                                continue
+
+                        # 2. Process Text (only if not synced)
+                        print(f"    Processing text for: {latest_title}")
+                        try:
+                            plain = enml_to_text(getattr(note, "content", "") or "")
+                        except Exception as e:
+                            print(f"    Error processing text: {e}")
+                            continue
+                        
+                        parts = plain.split("用户留言", 1)
+                        main_content = parts[0].strip()
+
+                        summary = ""
+                        if main_content:
+                            print(f"\nSummarizing: {latest_title}...")
+                            summary = summarize_text(main_content)
+
+                        # --- DingTalk Notification ---
+                        if summary:
+                            clean_share_name = item.shareName.replace("《", "").replace("》", "")
+                            if "￥" in clean_share_name:
+                                clean_share_name = clean_share_name.split("￥")[0].strip()
+                            
+                            dingtalk_msg = f"{latest_title} - {clean_share_name}\n\n{summary}"
+                            post_dingtalk_text(DINGTALK_WEBHOOK, dingtalk_msg)
+
+                        # --- File Saving ---
+                        print(f"    Saving note: {latest_title}")
+                        main_contents.append(main_content)
+                        
+                        lines = [
+                            f"=== {item.shareName} ===",
+                            f"Title: {latest_title}",
+                        ]
+                        if summary:
+                            lines.append(f"Summary: {summary}\n")
+                        lines.extend([plain, ""])
+                        block = "\n".join(lines)
+                        outputs.append(block)
+
+                        # Mark text as synced (MP3 status already updated above)
+                        item.lastSentTitle = latest_title
+                        item.lastSentAt = now_ts()
+                        item.latestTitle = latest_title
+                        item.latestNoteGuid = latest_guid
+                        
+                        print(f"{item.shareName} - {latest_title} - Text + MP3 updated")
+                    except Exception as e:
+                        print(f"\nError processing note '{latest_title}': {e}")
+                        import traceback
+                        traceback.print_exc()
+                        continue
+
+                # Send notification once if there are new notes to sync
+                if to_sync_notes and not notification_sent:
+                    print(f"\nNew notes detected. Sending update notification...")
+                    post_dingtalk_text(DINGTALK_WEBHOOK_NOTIFICATION, "note updated", secret="")
+                    notification_sent = True
+            except Exception as e:
+                print(f"\nError processing notebook '{item.shareName}' ({share_key}): {e}")
+                import traceback
+                traceback.print_exc()
+                continue
+        except Exception as e:
+            print(f"\nError processing notebook '{item.shareName}' ({share_key}): {e}")
+            import traceback
+            traceback.print_exc()
             continue
-
-        previous_title = item.latestTitle
-        item.latestTitle = latest_title
-        item.latestNoteGuid = latest_guid
-
-        # Send notification to a separate webhook if it's a new today's note (keyword-only)
-        if SYNC_TODAY_ONLY:
-            if not notification_sent:
-                print(f"\nNew note detected: {latest_title}. Sending update notification...")
-                post_dingtalk_text(DINGTALK_WEBHOOK_NOTIFICATION, "note updated", secret="")
-                notification_sent = True
-
-        plain = enml_to_text(getattr(note, "content", "") or "") if note else ""
-        
-        # 以“用户留言”为界，分割文章主体和留言部分
-        parts = plain.split("用户留言", 1)
-        main_content = parts[0].strip()
-        user_comments = parts[1].strip() if len(parts) > 1 else ""
-
-        summary = ""
-        if main_content:
-            print(f"\nSummarizing: {latest_title}...")
-            summary = summarize_text(main_content) # 只总结主体内容
-
-        # --- 钉钉消息格式 ---
-        if summary:
-            # 清理课程名称：去掉书名号，去掉￥符号及其后面的内容
-            clean_share_name = item.shareName.replace("《", "").replace("》", "")
-            if "￥" in clean_share_name:
-                clean_share_name = clean_share_name.split("￥")[0].strip()
-            
-            dingtalk_msg = f"{latest_title} - {clean_share_name}\n\n{summary}"
-            post_dingtalk_text(DINGTALK_WEBHOOK, dingtalk_msg)
-
-        # --- 文件保存逻辑 ---
-        # 1. 收集主体内容，用于写入 main_content.txt
-        main_contents.append(main_content)
-
-        # 2. 保持原有逻辑，将完整内容（包括摘要和留言）写入 aatest_shared_notes.txt
-        if PRINT_NOTE_TEXT_TO_CONSOLE:
-            print(f"\n=== {item.shareName} ===")
-            print(f"Title: {latest_title}")
-            if summary:
-                print(f"Summary: {summary}")
-            print(plain)
-
-        # Still keep the full content for the local text file (optional)
-        lines = [
-            f"=== {item.shareName} ===",
-            f"Title: {latest_title}",
-        ]
-        if summary:
-            lines.append(f"Summary: {summary}\n")
-        lines.extend([plain, ""])
-        block = "\n".join(lines)
-        outputs.append(block)
-
-        # Update lastSentTitle only if we actually kept/saved this note today.
-        item.lastSentTitle = latest_title
-        item.lastSentAt = now_ts()
-        
-        print(f"{item.shareName} - {latest_title} - updated")
 
     # Finalize and save
     if outputs:
@@ -661,12 +775,7 @@ def main():
             item.archivedNote = True
             print(f"Archiving inactive notebook: {item.shareName}")
 
-    # If all active notebooks were processed successfully and found today's note,
-    # and SYNC_TODAY_ONLY is on, we mark the day as synced.
-    if SYNC_TODAY_ONLY and all_active_synced_today:
-        if today_prefix not in synced_dates:
-            synced_dates.append(today_prefix)
-            print(f"Marked {today_prefix} as synced")
+
 
     save_cache(cache_file, cache_items, synced_dates)
 
