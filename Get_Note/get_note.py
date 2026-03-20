@@ -313,7 +313,7 @@ def get_latest_note_plain_text(note_store, note_guid: str) -> str:
     )
     return enml_to_text(getattr(note, "content", "") or "")
 
-def download_mp3_attachments(note, download_dir: str) -> tuple[bool, bool]:
+def download_mp3_attachments(note, download_dir: str, title: str) -> tuple[bool, bool]:
     """
     Find and download .mp3 resources from the note.
     Returns (download_success, has_mp3)
@@ -323,13 +323,28 @@ def download_mp3_attachments(note, download_dir: str) -> tuple[bool, bool]:
     if not note or not getattr(note, "resources", None):
         return True, False # No resources, but consider it "done" for this check
 
-    path = Path(download_dir)
-    if not path.exists():
+    # Extract date prefix from title
+    date_prefix = extract_title_date_prefix(title)
+    
+    # Create base path
+    base_path = Path(download_dir)
+    if not base_path.exists():
         try:
-            path.mkdir(parents=True, exist_ok=True)
+            base_path.mkdir(parents=True, exist_ok=True)
         except Exception as e:
             print(f"Error creating download directory {download_dir}: {e}")
             return False, False
+    
+    # Create date-specific directory if date prefix is found
+    path = base_path
+    if date_prefix:
+        path = base_path / date_prefix
+        if not path.exists():
+            try:
+                path.mkdir(parents=True, exist_ok=True)
+            except Exception as e:
+                print(f"Error creating date directory {path}: {e}")
+                return False, False
 
     has_mp3 = False
     all_success = True
@@ -644,7 +659,7 @@ def main():
                                 # 获取包含资源数据的笔记
                                 note = shared_store.getNote(latest_guid, True, True, False, False)
                                 print(f"    Downloading MP3 attachments for: {latest_title}")
-                                download_success, has_mp3 = download_mp3_attachments(note, DOWNLOAD_DIR)
+                                download_success, has_mp3 = download_mp3_attachments(note, DOWNLOAD_DIR, latest_title)
                                 
                                 # Update status based on result
                                 if has_mp3:
@@ -736,7 +751,17 @@ def main():
                 # Send notification once if there are new notes to sync
                 if to_sync_notes and not notification_sent:
                     print(f"\nNew notes detected. Sending update notification...")
-                    post_dingtalk_text(DINGTALK_WEBHOOK_NOTIFICATION, "note updated", secret="")
+                    # Get date prefix from the first note title
+                    note_date = ""
+                    if to_sync_notes:
+                        first_note = to_sync_notes[0]
+                        first_note_title = getattr(first_note, "title", "") or ""
+                        note_date = extract_title_date_prefix(first_note_title)
+                    # Build notification message with date
+                    notification_message = "Note Updated"
+                    if note_date:
+                        notification_message = f"Note Updated - {note_date}"
+                    post_dingtalk_text(DINGTALK_WEBHOOK_NOTIFICATION, notification_message, secret="")
                     notification_sent = True
             except Exception as e:
                 print(f"\nError processing notebook '{item.shareName}' ({share_key}): {e}")
