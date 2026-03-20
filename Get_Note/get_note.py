@@ -86,7 +86,7 @@ PRINT_NOTE_TEXT_TO_CONSOLE = False
 PRINT_DINGTALK_RESPONSE = False
 
 # Filter rules
-SKIP_TITLE_CONTAINS = "【"
+SKIP_TITLE_CONTAINS = "目录】"
 MAX_NOTES_TO_SCAN_PER_NOTEBOOK = 5
 # True: sync today's note; False: sync the latest available note
 SYNC_TODAY_ONLY = False
@@ -357,11 +357,11 @@ def download_mp3_attachments(note, download_dir: str) -> tuple[bool, bool]:
                 # print(f"File already exists, skipping: {filename}")
                 continue
             
-            print(f"\nDownloading MP3 attachment: {filename}...")
+            # print(f"    Downloading MP3 attachment: {filename}...")
             if getattr(res, "data", None) and getattr(res.data, "body", None):
                 try:
                     dest.write_bytes(res.data.body)
-                    print(f"Saved to {dest}")
+                    print(f"    Saved to {dest}")
                 except Exception as e:
                     print(f"Failed to save {filename}: {e}")
                     all_success = False
@@ -401,6 +401,7 @@ def summarize_text(text: str) -> str:
         prompt_template = "请为以下文章写一个200字左右的总结和摘要："
 
     max_retries = 3
+    error_message = ""
     for attempt in range(max_retries):
         try:
             # Branch 1: Use OpenAI client (e.g., for megallm or deepseek)
@@ -449,12 +450,16 @@ def summarize_text(text: str) -> str:
                     return summary.strip()
 
         except Exception as e:
-            if "timeout" in str(e).lower() and attempt < max_retries - 1:
+            error_message = str(e)
+            if "timeout" in error_message.lower() and attempt < max_retries - 1:
                 print(f"LLM ({active_llm_key}) summarization timeout (attempt {attempt + 1}/{max_retries}), retrying...")
                 time.sleep(2)
                 continue
-            print(f"\nLLM ({active_llm_key}) summarization failed: {e}")
+            print(f"\nLLM ({active_llm_key}) summarization failed: {error_message}")
             break
+    # Return error message as summary if all attempts failed
+    if error_message:
+        return f"LLM error: {error_message}"
     return ""
 
 
@@ -688,7 +693,7 @@ def main():
 
                         summary = ""
                         if main_content:
-                            print(f"\nSummarizing: {latest_title}...")
+                            print(f"    Summarizing: {latest_title}...")
                             summary = summarize_text(main_content)
 
                         # --- DingTalk Notification ---
@@ -707,6 +712,7 @@ def main():
                         lines = [
                             f"=== {item.shareName} ===",
                             f"Title: {latest_title}",
+                            f"Link: https://app.yinxiang.com/shard/s21/nl/25729210/{latest_guid}" if latest_guid else "Link: https://app.yinxiang.com/shard/s21/nl/25729210",
                         ]
                         if summary:
                             lines.append(f"Summary: {summary}\n")
@@ -748,12 +754,13 @@ def main():
         out_file = NOTE_DAILY_FULL
         out_file.write_text("\n".join(outputs).strip() + "\n", encoding="utf-8")
         
-        # Trigger process_note.py since new notes were written
-        processor_path = Path(__file__).parent / "process_note.py"
+        # Trigger sync_note.py since new notes were written
+        processor_path = Path(__file__).parent / "sync_note.py"
         if processor_path.exists():
-            print(f"Triggering {processor_path.name}...")
+            print(f"\nTriggering {processor_path.name}...")
             try:
                 subprocess.run([sys.executable, str(processor_path)], check=True)
+                # print(f"Triggering {processor_path.name} done")
             except subprocess.CalledProcessError as e:
                 print(f"Error: Processor script failed: {e}")
         else:
@@ -778,6 +785,7 @@ def main():
 
 
     save_cache(cache_file, cache_items, synced_dates)
+    print(f"\nAll Set!\n")
 
 
 if __name__ == "__main__":
